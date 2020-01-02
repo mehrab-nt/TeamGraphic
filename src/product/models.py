@@ -40,7 +40,6 @@ class Product(models.Model):
     guidance = models.TextField(max_length=777, blank=True)
     template_file = models.ForeignKey('Template_File', on_delete=models.SET_NULL, null=True, blank=True)
     design_feature = models.BooleanField(blank=False)
-    selling_options = models.ForeignKey('Selling_Option', on_delete=models.SET_NULL, null=True, blank=False)
     # point
     # point result
     # comment
@@ -53,9 +52,9 @@ class Product(models.Model):
 
 
 class Side(models.TextChoices):
-    EMP = '0', 'غیر فعال'
-    ONE = '1', 'یک رو'
-    TWO = '2', 'دو رو'
+    EMP = 0, 'غیر فعال'
+    ONE = 1, 'یک رو'
+    TWO = 2, 'دو رو'
 
 
 class Cut(models.Model):
@@ -109,6 +108,8 @@ class Discount(models.Model):
 
 
 class Selling_Option(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=False,
+                                related_name='selling_options')
     side = models.CharField(max_length=1, choices=Side.choices, default=Side.EMP, blank=True)
     count = models.PositiveIntegerField(default=1000, blank=False)
     size = models.ForeignKey('Size', on_delete=models.SET_NULL, null=True, blank=True,
@@ -130,8 +131,4 @@ class Selling_Option(models.Model):
     discount = models.ForeignKey('Discount', on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name='all_product')
     sale_price = models.PositiveIntegerField(blank=False)
-
-
-
-
 

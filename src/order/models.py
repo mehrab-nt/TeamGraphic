@@ -45,9 +45,9 @@ class Order(models.Model):
 
 
 class Type(models.TextChoices):
-    Pos = 1, 'تایید'
-    Neg = -1, 'لغو'
-    Emp = 0, 'بررسی'
+    Pos = 2, 'تایید'
+    Neg = 0, 'لغو'
+    Emp = 1, 'بررسی'
 
 
 class Status(models.Model):
@@ -55,4 +55,4 @@ class Status(models.Model):
     title = models.CharField(max_length=20, blank=False)
     # category
     vector = models.ImageField(blank=False)
-    type = models.IntegerField(choices=Type.choices, blank=False)
+    type = models.CharField(max_length=1, choices=Type.choices, blank=False)

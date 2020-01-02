@@ -81,9 +81,9 @@ WSGI_APPLICATION = 'Teamgraphic.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'teamgraphicdb',
-        'USER': 'teamgraphic_it',
-        'PASSWORD': '09125308707',
+        'NAME': 'team_graphic_db',
+        'USER': 'mehrab_nt',
+        'PASSWORD': '09366818954',
         'HOST': 'localhost',
         'PORT': '',
     }

@@ -16,7 +16,7 @@ class UserAdmin(admin.ModelAdmin):
     readonly_fields = ('last_edit_time',)
     fieldsets = (
         (None, {
-            'fields': (('first_name', 'last_name'),)
+            'fields': ('mobile', ('first_name', 'last_name'),)
         }),
         (None, {
             'fields': ('email', 'Profile', )
