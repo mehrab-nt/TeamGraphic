@@ -52,10 +52,10 @@ class Product(models.Model):
     # inventory_for_sale
 
 
-# class Side(models.TextChoices):
-#     EMP = None, 'غیر فعال'
-#     ONE = 1, 'یک رو'
-#     TWO = 2, 'دو رو'
+class Side(models.TextChoices):
+    EMP = '0', 'غیر فعال'
+    ONE = '1', 'یک رو'
+    TWO = '2', 'دو رو'
 
 
 class Cut(models.Model):
@@ -109,7 +109,7 @@ class Discount(models.Model):
 
 
 class Selling_Option(models.Model):
-    # side = models.PositiveSmallIntegerField(choices=Side.choices, default=Side.EMP, blank=True)
+    side = models.CharField(max_length=1, choices=Side.choices, default=Side.EMP, blank=True)
     count = models.PositiveIntegerField(default=1000, blank=False)
     size = models.ForeignKey('Size', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='all_product')
