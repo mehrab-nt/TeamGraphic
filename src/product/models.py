@@ -14,6 +14,7 @@ class Classification(models.Model):
 class Category(models.Model):
     title = models.CharField(max_length=20, default='جدید', blank=False)
     icon = models.ImageField()
+    preview = models.ImageField(blank=True)
     classification = models.ForeignKey('Classification', on_delete=models.SET_NULL, null=True)
     description = models.TextField(max_length=2020, blank=True)
     order = models.PositiveSmallIntegerField(default=0)
@@ -92,6 +93,7 @@ class Design(models.Model):
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='design_inf')
     price = models.PositiveIntegerField(default=0, blank=False)
+    low_price = models.PositiveIntegerField(blank=True)
     min_time = models.PositiveSmallIntegerField(blank=False)
     duration = models.PositiveSmallIntegerField(blank=False)
 
