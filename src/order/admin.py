@@ -8,8 +8,8 @@ class OrderInline(admin.TabularInline):
 
 
 class CartAdmin(admin.ModelAdmin):
-    list_display = ('cart_id', 'user', 'status', 'total_cost', 'create_date', 'duration', 'delivery_date')
-    list_editable = ('status', 'total_cost', 'duration')
+    # list_display = ('cart_id', 'user', 'status', 'total_cost', 'create_date', 'duration', 'delivery_date')
+    # list_editable = ('status', 'total_cost', 'duration')
     # fieldsets = (
     #
     # )

@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.dispatch import receiver
+from django.core import validators
 import os
 
 
@@ -17,21 +18,26 @@ class Cart_Status(models.TextChoices):
 
 
 class Cart(models.Model):
-    cart_id = models.CharField(max_length=8, primary_key=True)
-    user = models.ForeignKey('user.User', on_delete=models.CASCADE,
-                             related_name='user_carts', blank=True, null=True)
+    cart_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
+    # user = models.ForeignKey('user.User', on_delete=models.CASCADE, blank=True, null=True,
+    #                          related_name='user_carts')
     status = models.CharField(max_length=3, blank=False, choices=Cart_Status.choices, default=Cart_Status.Record)
-    total_cost = models.PositiveIntegerField(blank=False)
+    total_cost = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
+                                                                      validators.MaxValueValidator(99999999)])
     delivery = models.ForeignKey('delivery.Delivery', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='all_cart')
     create_date = models.DateTimeField(default=timezone.now, blank=False)
-    duration = models.IntegerField(default=0, blank=False)
+    duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                       validators.MaxValueValidator(30)])
     delivery_date = models.DateField(blank=False, default=timezone.now)
     # payment
 
+    def __str__(self):
+        return 'Cart-{0}'.format(self.cart_id)
+
 
 class Order(models.Model):
-    order_id = models.CharField(max_length=10, primary_key=True)
+    order_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
     cart = models.ForeignKey('Cart', on_delete=models.SET_NULL, null=True, blank=False,
                              related_name='cart_orders')
     status = models.ForeignKey('Status', on_delete=models.SET_NULL, null=True, blank=False,
@@ -39,11 +45,17 @@ class Order(models.Model):
     # product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=False,
     #                             related_name='in_orders')
     design_feature = models.BooleanField(blank=False, default=False)
-    count = models.IntegerField(default=1, blank=False)
-    description = models.TextField(max_length=777, blank=True)
-    duration = models.IntegerField(default=0, blank=False)
+    count = models.IntegerField(default=1, blank=False, validators=[validators.MinValueValidator(1),
+                                                                    validators.MaxValueValidator(10)])
+    description = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(10)])
+    duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                       validators.MaxValueValidator(30)])
     ready_date = models.DateField(blank=False)
-    cost = models.PositiveIntegerField(blank=False)
+    cost = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
+                                                                validators.MaxValueValidator(99999999)])
+
+    def __str__(self):
+        return 'Order-{0}'.format(self.order_id)
 
 
 class Type(models.TextChoices):
@@ -57,11 +69,14 @@ def status_vector_directory_path(instance, filename):
 
 
 class Status(models.Model):
-    status_id = models.CharField(max_length=3, primary_key=True)
-    title = models.CharField(max_length=20, blank=False)
+    status_id = models.CharField(max_length=3, primary_key=True, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
     # category
     vector = models.ImageField(upload_to=status_vector_directory_path, blank=False)
     type = models.CharField(max_length=1, choices=Type.choices, blank=False)
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 @receiver(models.signals.post_delete, sender=Status)
@@ -80,7 +95,7 @@ def auto_delete_template_file_on_change(sender, instance, **kwargs):
     except Status.DoesNotExist:
         return False
     new_vector = instance.vector
-    if not old_vector == new_vector:
+    if not old_vector == new_vector and old_vector:
         if os.path.isfile(old_vector.path):
             os.remove(old_vector.path)
 

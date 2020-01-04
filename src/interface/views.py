@@ -1,9 +1,9 @@
-from django.shortcuts import render, get_object_or_404, get_list_or_404, redirect, reverse
+from django.shortcuts import render
 
 
 def home_view(request):
     context = {
-
+        'user': request,
     }
     return render(request, 'main/home.html', context)
     # if request.POST:

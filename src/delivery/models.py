@@ -1,5 +1,6 @@
 from django.db import models
 # from django.utils import timezone
+from django.core import validators
 
 
 # class Delivery_Status(models.TextChoices):
@@ -7,10 +8,15 @@ from django.db import models
 
 
 class Delivery(models.Model):
-    name = models.CharField(max_length=25)
-    cost = models.IntegerField(default=0, blank=False)
-    description = models.TextField(max_length=313, blank=True)
-    duration = models.PositiveSmallIntegerField(default=0, blank=False)
+    name = models.CharField(max_length=25, validators=[validators.MinLengthValidator(3)])
+    cost = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                   validators.MaxValueValidator(99999999)])
+    description = models.TextField(max_length=313, blank=True, validators=[validators.MinLengthValidator(10)])
+    duration = models.PositiveSmallIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                                    validators.MaxValueValidator(10)])
+
+    def __str__(self):
+        return 'Delivery-{0}'.format(self.name)
 
 
 # class Delivery(models.Model):

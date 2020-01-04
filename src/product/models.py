@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.dispatch import receiver
+from django.core import validators
 import os
 
 
@@ -13,12 +14,15 @@ def classification_preview_directory_pass(instance, filename):
 
 
 class Classification(models.Model):
-    id = models.CharField(primary_key=True, max_length=3)
-    title = models.CharField(max_length=20, blank=False)
+    id = models.CharField(primary_key=True, max_length=3, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
     icon = models.ImageField(upload_to=classification_icon_directory_pass, blank=False)
     preview = models.ImageField(upload_to=classification_preview_directory_pass, blank=True)
-    description = models.TextField(max_length=2020, blank=True)
+    description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
     order = models.PositiveSmallIntegerField(default=0)
+
+    def __str__(self):
+        return 'کلاس:‌ {0}'.format(self.title)
 
 
 @receiver(models.signals.post_delete, sender=Classification)
@@ -41,11 +45,11 @@ def auto_delete_classification_img_on_change(sender, instance, **kwargs):
     except Classification.DoesNotExist:
         return False
     new_icon = instance.icon
-    if not old_icon == new_icon:
+    if not old_icon == new_icon and old_icon:
         if os.path.isfile(old_icon.path):
             os.remove(old_icon.path)
     new_preview = instance.preview
-    if not old_preview == new_preview:
+    if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
             os.remove(old_preview.path)
 
@@ -59,13 +63,16 @@ def category_preview_directory_pass(instance, filename):
 
 
 class Category(models.Model):
-    id = models.CharField(primary_key=True, max_length=3)
-    title = models.CharField(max_length=20, default='جدید', blank=False)
+    id = models.CharField(primary_key=True, max_length=3, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, default='جدید', blank=False, validators=[validators.MinLengthValidator(3)])
     icon = models.ImageField(upload_to=category_icon_directory_pass, blank=False)
     preview = models.ImageField(upload_to=category_preview_directory_pass, blank=True)
     classification = models.ForeignKey('Classification', on_delete=models.SET_NULL, null=True)
-    description = models.TextField(max_length=2020, blank=True)
+    description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
     order = models.PositiveSmallIntegerField(default=0)
+
+    def __str__(self):
+        return 'دسته: {0}'.format(self.title)
 
 
 @receiver(models.signals.post_delete, sender=Category)
@@ -88,11 +95,11 @@ def auto_delete_category_img_on_change(sender, instance, **kwargs):
     except Category.DoesNotExist:
         return False
     new_icon = instance.icon
-    if not old_icon == new_icon:
+    if not old_icon == new_icon and old_icon:
         if os.path.isfile(old_icon.path):
             os.remove(old_icon.path)
     new_preview = instance.preview
-    if not old_preview == new_preview:
+    if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
             os.remove(old_preview.path)
 
@@ -109,12 +116,15 @@ def template_file_directory_path(instance, filename):
 
 
 class Template_File(models.Model):
-    title = models.CharField(max_length=50, blank=False, unique=True)
+    title = models.CharField(max_length=50, blank=False, unique=True, validators=[validators.MinLengthValidator(3)])
     # template_file = models.FilePathField()
     tmp_file = models.FileField(upload_to=template_file_directory_path, blank=False)
     # format = models.CharField(max_length=3, blank=False,
     #                           choices=Template_File_Format.choices, default=Template_File_Format.PHOTOSHOP)
     # icon = models.ImageField(upload_to=template_file_icon_directory_path, blank=False)
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 @receiver(models.signals.post_delete, sender=Template_File)
@@ -133,7 +143,7 @@ def auto_delete_template_file_on_change(sender, instance, **kwargs):
     except Template_File.DoesNotExist:
         return False
     new_file = instance.tmp_file
-    if not old_file == new_file:
+    if not old_file == new_file and old_file:
         if os.path.isfile(old_file.path):
             os.remove(old_file.path)
 
@@ -147,15 +157,15 @@ def product_vector_directory_path(instance, filename):
 
 
 class Product(models.Model):
-    id = models.CharField(max_length=6, primary_key=True)
-    title = models.CharField(max_length=77, blank=False)
+    id = models.CharField(max_length=6, primary_key=True, validators=[validators.MinLengthValidator(6)])
+    title = models.CharField(max_length=77, blank=False, validators=[validators.MinLengthValidator(3)])
     preview = models.ImageField(upload_to=product_preview_directory_path, blank=False)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
     # vector = models.ImageField(upload_to=product_vector_directory_path, blank=True)
-    properties = models.TextField(max_length=2020, blank=True)
-    brief_intro = models.TextField(max_length=777, blank=True)
-    long_intro = models.TextField(max_length=5000, blank=True)
-    guidance = models.TextField(max_length=777, blank=True)
+    properties = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
+    brief_intro = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
+    long_intro = models.TextField(max_length=5000, blank=True, validators=[validators.MinLengthValidator(10)])
+    guidance = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
     template_file = models.ForeignKey('Template_File', on_delete=models.SET_NULL, null=True, blank=True,
                                       related_name='product_template')
     design_feature = models.BooleanField(blank=False)
@@ -169,6 +179,9 @@ class Product(models.Model):
     # inventory
     # inventory_for_sale
     # gallery
+
+    def __str__(self):
+        return '{0}-{1}'.format(self.id, self.title)
 
 
 @receiver(models.signals.post_delete, sender=Product)
@@ -191,12 +204,12 @@ def auto_delete_product_img_on_change(sender, instance, **kwargs):
     except Template_File.DoesNotExist:
         return False
     new_preview = instance.preview
-    if not old_preview == new_preview:
+    if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
             os.remove(old_preview.path)
     new_vector = instance.vector
     if not old_vector == new_vector:
-        if os.path.isfile(old_vector.path):
+        if os.path.isfile(old_vector.path) and old_vector:
             os.remove(old_vector.path)
 
 
@@ -207,31 +220,50 @@ class Side(models.TextChoices):
 
 
 class Cut(models.Model):
-    title = models.CharField(max_length=10, blank=False)
-    cut_margin = models.FloatField(blank=False)
-    safe_margin = models.FloatField(blank=False)
+    title = models.CharField(max_length=10, blank=False, validators=[validators.MinLengthValidator(3)])
+    cut_margin = models.FloatField(blank=False, validators=[validators.MinValueValidator(0),
+                                                            validators.MaxValueValidator(1)])
+    safe_margin = models.FloatField(blank=False, validators=[validators.MinValueValidator(0),
+                                                             validators.MaxValueValidator(1)])
     # vector
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 class Size(models.Model):
-    title = models.CharField(max_length=20, blank=False)
-    len = models.FloatField(blank=False, verbose_name='length')
-    wid = models.FloatField(blank=False, verbose_name='width')
-    description = models.CharField(max_length=50, blank=True)
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
+    len = models.FloatField(blank=False, verbose_name='length', validators=[validators.MinValueValidator(2),
+                                                                            validators.MaxValueValidator(100)])
+    wid = models.FloatField(blank=False, verbose_name='width', validators=[validators.MinValueValidator(2),
+                                                                           validators.MaxValueValidator(100)])
+    description = models.CharField(max_length=50, blank=True, validators=[validators.MinLengthValidator(10)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 class Ready(models.Model):
-    title = models.CharField(max_length=20, blank=False)
-    duration = models.PositiveSmallIntegerField(default=0, blank=False)
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
+    duration = models.PositiveSmallIntegerField(default=0, blank=False, validators=[validators.MaxValueValidator(30)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 class Color(models.Model):
-    title = models.CharField(max_length=20, blank=False)
-    code = models.CharField(max_length=7, default='#000000')
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(2)])
+    code = models.CharField(max_length=7, default='#000000', validators=[validators.MinLengthValidator(7)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 class Quality(models.Model):
-    title = models.CharField(max_length=20, blank=False)
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(2)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 def design_preview_directory_path(instance, filename):
@@ -243,16 +275,23 @@ def design_vector_directory_path(instance, filename):
 
 
 class Design(models.Model):
-    id = models.CharField(max_length=3, primary_key=True)
-    title = models.CharField(max_length=20, blank=False)
+    id = models.CharField(max_length=3, primary_key=True, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
     preview = models.ImageField(upload_to=design_preview_directory_path, blank=False)
     vector = models.ImageField(upload_to=design_vector_directory_path, blank=True)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='design_inf')
-    price = models.PositiveIntegerField(default=0, blank=False)
-    low_price = models.PositiveIntegerField(blank=True)
-    min_time = models.PositiveSmallIntegerField(blank=False)
-    duration = models.PositiveSmallIntegerField(blank=False)
+    price = models.PositiveIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(10000),
+                                                                            validators.MaxValueValidator(1000000)])
+    low_price = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(5000),
+                                                                    validators.MaxValueValidator(500000)])
+    min_time = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(5),
+                                                                         validators.MaxValueValidator(300)])
+    duration = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(0),
+                                                                         validators.MaxValueValidator(30)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
 
 
 @receiver(models.signals.post_delete, sender=Design)
@@ -275,11 +314,11 @@ def auto_delete_design_img_on_change(sender, instance, **kwargs):
     except Template_File.DoesNotExist:
         return False
     new_preview = instance.preview
-    if not old_preview == new_preview:
+    if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
             os.remove(old_preview.path)
     new_vector = instance.vector
-    if not old_vector == new_vector:
+    if not old_vector == new_vector and old_vector:
         if os.path.isfile(old_vector.path):
             os.remove(old_vector.path)
 
@@ -291,15 +330,20 @@ class Discount_Type(models.TextChoices):
 
 class Discount(models.Model):
     type = models.CharField(max_length=1, choices=Discount_Type.choices, blank=False)
-    amount = models.PositiveIntegerField(blank=False)
-    title = models.CharField(max_length=15, blank=False)
+    amount = models.FloatField(blank=False, validators=[validators.MinValueValidator(0.1),
+                                                        validators.MaxValueValidator(1000000)])
+    title = models.CharField(max_length=15, blank=False, validators=[validators.MinLengthValidator(3)])
+
+    def __str__(self):
+        return '{0}'.format(self.type)
 
 
 class Selling_Option(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, null=True, blank=False,
                                 related_name='selling_options')
     side = models.CharField(max_length=1, choices=Side.choices, default=Side.EMP, blank=True)
-    count = models.PositiveIntegerField(default=1000, blank=False)
+    count = models.PositiveIntegerField(default=1000, blank=False, validators=[validators.MinValueValidator(1),
+                                                                               validators.MaxValueValidator(100000)])
     size = models.ForeignKey('Size', on_delete=models.SET_NULL, null=True, blank=True,
                              related_name='all_product')
     ready = models.ForeignKey('Ready', on_delete=models.SET_NULL, null=True, blank=True,
@@ -315,8 +359,13 @@ class Selling_Option(models.Model):
     # color_mode
     quality = models.ForeignKey('Quality', on_delete=models.SET_NULL, null=True, blank=True,
                                 related_name='all_product')
-    base_price = models.PositiveIntegerField(blank=False)
+    base_price = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
+                                                                      validators.MaxValueValidator(99999999)])
     discount = models.ForeignKey('Discount', on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name='all_product')
-    sale_price = models.PositiveIntegerField(blank=False)
+    sale_price = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
+                                                                      validators.MaxValueValidator(99999999)])
+
+    def __str__(self):
+        return '{0}'.format(self.product)
 
