@@ -1,7 +1,13 @@
 from django.db import models
+from django.core import validators
 
 
-# class Main_Menu
+class MainMenu(models.Model):
+    title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)])
+    link = models.CharField(max_length=20, validators=[validators.MinLengthValidator(2)])
+    rank = models.PositiveSmallIntegerField(unique=True, blank=False, validators=[validators.MinValueValidator(1),
+                                                                                  validators.MaxValueValidator(20)])
+    active = models.BooleanField(default=True)
 # محصولات
 # تعرفه قیمت چاپ
 # درباره ما
@@ -10,11 +16,27 @@ from django.db import models
 # دعوت به همکاری
 
 
-# class Slid_Show
+def slide_show_directory_path(instance, filename):
+    return './interface/static/img/slide_show/{0}.jpg'.format(instance.title)
+
+
+class SlidShow(models.Model):
+    title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)], unique=True)
+    image = models.ImageField(upload_to=slide_show_directory_path)
+    rank = models.PositiveSmallIntegerField(blank=False, unique=True, validators=[validators.MinValueValidator(1),
+                                                                                  validators.MaxValueValidator(100)])
+    link = models.CharField(max_length=20, validators=[validators.MinLengthValidator(2)])
+    active = models.BooleanField(default=True)
+    description = models.CharField(max_length=50, blank=True)
+    time = models.FloatField(blank=False, validators=[validators.MinValueValidator(1),
+                                                      validators.MaxValueValidator(10)])
 # id / img / time / order / link
 
 
-# product_box
+class SpecialProductBox(models.Model):
+    rank = models.PositiveSmallIntegerField(blank=False, unique=True, validators=[validators.MinValueValidator(1),
+                                                                                  validators.MaxValueValidator(1000)])
+    product = models.ForeignKey('product.Product', on_delete=models.CASCADE, blank=False)
 # id / title / product_id (foreign_key)  / order
 
 

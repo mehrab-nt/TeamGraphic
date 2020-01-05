@@ -1,0 +1,97 @@
+div.nav {
+   border-bottom: 3px solid gray;
+   max-width: 90%;
+}
+
+div.nav ul {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+}
+
+div.nav ul li {
+    float: right;
+}
+
+div.nav li a, .drop-btn {
+    display: inline-block;
+    margin-left: 5px;
+    font-size: 17px;
+    color: #333;
+    text-align: center;
+    text-decoration: none;
+    padding: 2px 18px;
+    width: 100px;
+}
+
+div.nav li a:hover, .drop:hover .drop-btn {
+    -webkit-transition: 0.3s;
+    transition: 0.3s;
+    background-color: black;
+    color: yellow;
+}
+
+div.nav ,drop-type {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    min-width: 200px;
+    z-index: 1;
+    box-shadow: 2px 5px 10px 0px rgba(0,0,0,0.2);
+}
+
+div.nav ,drop-type a {
+    font-size: 18px;
+    color: black;
+    text-decoration: none;
+    display: block;
+    padding: 7px;
+    text-align: right;
+    margin-left: 10%;
+    width: 80%;
+    box-sizing: border-box;
+}
+
+div.nav .drop-type a:hover {
+    background-color: white;
+    color: black;
+}
+
+div.nav .drop:hover .drop-type {
+    display: block;
+}
+
+div.nav a.active {
+    background-color: #248F74;
+    color: white;
+}
+
+@media only screen and (max-width: 600px) {
+    div.nav li {
+        float: none;
+    }
+
+    div.nav li {
+        width: 100%;
+    }
+
+    div.nav li a, .drop-btn {
+        border-left: 0px;
+        width: 100%;
+        padding: 7px 0px;
+    }
+
+    div.nav .drop-type {
+        min-width: 40%;
+    }
+
+    div.nav .drop-type a {
+        font-size: 16px;
+        padding: 4px 0;
+    }
+
+    div.nav {
+        max-width: 100%;
+    }
+}

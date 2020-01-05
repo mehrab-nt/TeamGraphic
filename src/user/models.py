@@ -11,8 +11,23 @@ def user_profile_directory_pass(instance, filename):
     return './user/static/img/profile/{0}-profile.jpg'.format(instance.user.username)
 
 
-class Customer(models.Model):
+class Role(models.TextChoices):
+    CUSTOMER = 'csm', 'مشتری'
+    COLLEAGUE = 'col', 'همکار'
+    FORMAL_DESIGNER = 'fde', 'طراح'
+    NON_FORMAL_DESIGNER = 'nde', 'طراح غیرحضوری'
+    MANAGEMENT = 'man', 'مدیریت'
+    OPERATOR = 'opr', 'اپراتور'
+    INTERNAL_MANAGEMENT = 'pre', 'مدیریت داخلی'
+    ACCOUNTANT = 'acc', 'حسابدار'
+    IT = 'itm', 'مدیر سایت'
+
+
+class UserTG(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    role = models.CharField(max_length=3, choices=Role.choices, default=Role.CUSTOMER)
+    # role = models.ForeignKey('Role', on_delete=models.SET_NULL,
+    #                          related_name='all_user')
     # mobile = models.CharField(primary_key=True, max_length=11, verbose_name='Mobile Number',
     #                           validators=[validators.MinLengthValidator(11)])
     # password = models.CharField(max_length=20, validators=[validators.MinLengthValidator(8)])
@@ -30,32 +45,38 @@ class Customer(models.Model):
     def __str__(self):
         return 'User-{0}'.format(self.user.username)
 
-    def customer_full_name(self):
+    def user_full_name(self):
         return '{0} - {1}'.format(self.user.first_name, self.user.last_name)
 
-    def customer_email_address(self):
+    def user_email_address(self):
         return self.user.email
 
     def is_active(self):
         return self.user.is_active
+    is_active.boolean = True
+
+    def address_count(self, counter=0):
+        for num in self.user_addresses.all():
+            counter += 1
+        return counter
 
 
-@receiver(models.signals.post_delete, sender=Customer)
+@receiver(models.signals.post_delete, sender=UserTG)
 def auto_delete_classification_img_on_delete(sender, instance, **kwargs):
-    if instance.Profile:
-        if os.path.isfile(instance.Profile.path):
-            os.remove(instance.Profile.path)
+    if instance.profile:
+        if os.path.isfile(instance.profile.path):
+            os.remove(instance.profile.path)
 
 
-@receiver(models.signals.pre_save, sender=Customer)
+@receiver(models.signals.pre_save, sender=UserTG)
 def auto_delete_classification_img_on_change(sender, instance, **kwargs):
     if not instance.user:
         return False
     try:
-        old_profile = Customer.objects.get(pk=instance.user).Profile
-    except Customer.DoesNotExist:
+        old_profile = UserTG.objects.get(pk=instance.user).profile
+    except UserTG.DoesNotExist:
         return False
-    new_profile = instance.Profile
+    new_profile = instance.profile
     if not old_profile == new_profile and old_profile:
         if os.path.isfile(old_profile.path):
             os.remove(old_profile.path)
@@ -75,9 +96,17 @@ class Address(models.Model):
     # city =
     # area = models.CharField(max_length=25, blank=True)
     detail = models.CharField(max_length=313, verbose_name='Address', validators=[validators.MinLengthValidator(10)])
-    user = models.ForeignKey('Customer', on_delete=models.CASCADE,
+    user = models.ForeignKey('UserTG', on_delete=models.CASCADE,
                              related_name='user_addresses')
 
     def __str__(self):
         return 'User-{0}'.format(self.user.user.username)
 
+
+# class Role_TG(models.Model):
+#     id = models.CharField(max_length=3, primary_key=True, validators=[validators.MinLengthValidator(3)])
+#     title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)])
+#     access = models.ManyToManyRel()
+#
+#
+# class Access(models.Model):

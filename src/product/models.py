@@ -115,7 +115,7 @@ def template_file_directory_path(instance, filename):
 #     PDF = 'pdf', 'PDF'
 
 
-class Template_File(models.Model):
+class TemplateFile(models.Model):
     title = models.CharField(max_length=50, blank=False, unique=True, validators=[validators.MinLengthValidator(3)])
     # template_file = models.FilePathField()
     tmp_file = models.FileField(upload_to=template_file_directory_path, blank=False)
@@ -127,20 +127,20 @@ class Template_File(models.Model):
         return '{0}'.format(self.title)
 
 
-@receiver(models.signals.post_delete, sender=Template_File)
+@receiver(models.signals.post_delete, sender=TemplateFile)
 def auto_delete_template_file_on_delete(sender, instance, **kwargs):
     if instance.tmp_file:
         if os.path.isfile(instance.tmp_file.path):
             os.remove(instance.tmp_file.path)
 
 
-@receiver(models.signals.pre_save, sender=Template_File)
+@receiver(models.signals.pre_save, sender=TemplateFile)
 def auto_delete_template_file_on_change(sender, instance, **kwargs):
     if not instance.pk:
         return False
     try:
-        old_file = Template_File.objects.get(pk=instance.pk).tmp_file
-    except Template_File.DoesNotExist:
+        old_file = TemplateFile.objects.get(pk=instance.pk).tmp_file
+    except TemplateFile.DoesNotExist:
         return False
     new_file = instance.tmp_file
     if not old_file == new_file and old_file:
@@ -166,7 +166,7 @@ class Product(models.Model):
     brief_intro = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
     long_intro = models.TextField(max_length=5000, blank=True, validators=[validators.MinLengthValidator(10)])
     guidance = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
-    template_file = models.ForeignKey('Template_File', on_delete=models.SET_NULL, null=True, blank=True,
+    template_file = models.ForeignKey('TemplateFile', on_delete=models.SET_NULL, null=True, blank=True,
                                       related_name='product_template')
     design_feature = models.BooleanField(blank=False)
     # point
@@ -199,9 +199,9 @@ def auto_delete_product_img_on_change(sender, instance, **kwargs):
     if not instance.id:
         return False
     try:
-        old_preview = Template_File.objects.get(pk=instance.id).preview
-        old_vector = Template_File.objects.get(pk=instance.id).vector
-    except Template_File.DoesNotExist:
+        old_preview = TemplateFile.objects.get(pk=instance.id).preview
+        old_vector = TemplateFile.objects.get(pk=instance.id).vector
+    except TemplateFile.DoesNotExist:
         return False
     new_preview = instance.preview
     if not old_preview == new_preview and old_preview:
@@ -279,13 +279,14 @@ class Design(models.Model):
     title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
     preview = models.ImageField(upload_to=design_preview_directory_path, blank=False)
     vector = models.ImageField(upload_to=design_vector_directory_path, blank=True)
+    base = models.BooleanField(default=False)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='design_inf')
     price = models.PositiveIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(10000),
                                                                             validators.MaxValueValidator(1000000)])
     low_price = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(5000),
                                                                     validators.MaxValueValidator(500000)])
-    min_time = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(5),
+    max_time = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(5),
                                                                          validators.MaxValueValidator(300)])
     duration = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(0),
                                                                          validators.MaxValueValidator(30)])
@@ -309,9 +310,9 @@ def auto_delete_design_img_on_change(sender, instance, **kwargs):
     if not instance.id:
         return False
     try:
-        old_preview = Template_File.objects.get(pk=instance.id).preview
-        old_vector = Template_File.objects.get(pk=instance.id).vector
-    except Template_File.DoesNotExist:
+        old_preview = TemplateFile.objects.get(pk=instance.id).preview
+        old_vector = TemplateFile.objects.get(pk=instance.id).vector
+    except TemplateFile.DoesNotExist:
         return False
     new_preview = instance.preview
     if not old_preview == new_preview and old_preview:
@@ -323,13 +324,13 @@ def auto_delete_design_img_on_change(sender, instance, **kwargs):
             os.remove(old_vector.path)
 
 
-class Discount_Type(models.TextChoices):
+class DiscountType(models.TextChoices):
     PERCENT = '%', 'درصدی'
     FIXED = '$', 'ثابت'
 
 
 class Discount(models.Model):
-    type = models.CharField(max_length=1, choices=Discount_Type.choices, blank=False)
+    type = models.CharField(max_length=1, choices=DiscountType.choices, blank=False)
     amount = models.FloatField(blank=False, validators=[validators.MinValueValidator(0.1),
                                                         validators.MaxValueValidator(1000000)])
     title = models.CharField(max_length=15, blank=False, validators=[validators.MinLengthValidator(3)])
@@ -338,7 +339,7 @@ class Discount(models.Model):
         return '{0}'.format(self.type)
 
 
-class Selling_Option(models.Model):
+class SellingOption(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, null=True, blank=False,
                                 related_name='selling_options')
     side = models.CharField(max_length=1, choices=Side.choices, default=Side.EMP, blank=True)

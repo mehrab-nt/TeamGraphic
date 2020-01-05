@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cart, Order, Status
+from .models import Cart, Order, Status, OrderAction, CartAction
 
 
 class OrderInline(admin.TabularInline):
@@ -29,6 +29,17 @@ class StatusAdmin(admin.ModelAdmin):
     list_editable = ('title', 'vector', 'type')
 
 
+class OrderActionAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'order', 'user', 'old_status', 'new_status', 'data')
+
+
+class CartActionAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'cart', 'old_status', 'new_status', 'data')
+
+
 admin.site.register(Cart, CartAdmin)
 admin.site.register(Order, OrderAdmin)
 admin.site.register(Status, StatusAdmin)
+admin.site.register(OrderAction, OrderActionAdmin)
+admin.site.register(CartAction, CartActionAdmin)
+

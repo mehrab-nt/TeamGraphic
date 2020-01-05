@@ -26,7 +26,7 @@ SECRET_KEY = 'z6n*lg(gyxmg2a1r!e=b%o$hb!9+_(wa8(w$5&2qq6r%g38vur'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['127.0.0.1']
 
 
 # Application definition
@@ -108,9 +108,9 @@ AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
     },
-    {
-        'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
-    },
+    # {
+    #     'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
+    # },
     # {
     #     'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     # },

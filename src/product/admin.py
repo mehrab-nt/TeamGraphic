@@ -2,8 +2,8 @@ from django.contrib import admin
 from .models import *
 
 
-class Selling_OptionInline(admin.TabularInline):
-    model = Selling_Option
+class SellingOptionInline(admin.TabularInline):
+    model = SellingOption
     extra = 0
 
 
@@ -14,7 +14,7 @@ class ProductAdmin(admin.ModelAdmin):
     #
     # )
     inlines = [
-        Selling_OptionInline,
+        SellingOptionInline,
     ]
 
 
@@ -29,13 +29,13 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 class DesignAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'preview', 'vector', 'category', 'price', 'low_price', 'min_time', 'duration')
-    list_editable = ('title', 'category', 'price', 'low_price', 'min_time', 'duration')
+    list_display = ('id', 'title', 'preview', 'vector', 'category', 'price', 'low_price', 'max_time', 'duration')
+    list_editable = ('title', 'category', 'price', 'low_price', 'max_time', 'duration')
 
 
 admin.site.register(Classification, ClassificationAdmin)
 admin.site.register(Category, CategoryAdmin)
-admin.site.register(Template_File)
+admin.site.register(TemplateFile)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Size)
 admin.site.register(Cut)
@@ -44,4 +44,4 @@ admin.site.register(Color)
 admin.site.register(Quality)
 admin.site.register(Design, DesignAdmin)
 admin.site.register(Discount)
-admin.site.register(Selling_Option)
+admin.site.register(SellingOption)

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+{% load static %}
+<html lang="fa-IR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="author" content="MahdiYar">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    {% block meta %}
+
+    {% endblock meta %}
+
+    {% block title %}
+        <title>تیم گرافیک - TeamGraphic</title>
+    {% endblock title %}
+
+    <link rel="stylesheet" type="text/css" href="{% static 'main/css/base.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'main/css/navbar.css' %}">
+    {% block stylesheet %}
+        <!-- replace me!!! -->
+    {% endblock stylesheet %}
+
+    <script src="{% static 'main/js/base.js' %}"></script>
+    {% block js %}
+        <!-- replace me!!! -->
+    {% endblock js %}
+
+</head>
+<body onload="viewAlertFunction()">
+
+    {% block navbar %}
+        {% include 'main/navbar.html' %}
+        <script>
+            document.geElementById('homelink').setAttribute("class" ,"active")
+        </script>
+    {% endblock navbar %}
+
+    {% block page %}
+    <br><br><br><br><br><br><br>
+    <a href="https://www.varzesh3.com">V3</a>
+    <br>
+    <a href="https://www.w3schools.com/html/">V4</a>
+    <br>
+    <a href="https://www.w3schools.com/html/">V5</a>
+        replace me!!!
+    {% endblock page %}
+
+    {% block footer %}
+        replace me???
+    {% endblock footer %}
+
+    <div style="margin: 50px 10% 0 0; font-size: 14px; color: #999;
+     text-align: left; border-top: 3px solid gray; max-width: 90%;">
+        <b>D</b>esigned by <strong>Me)-(rab</strong>
+    </div>
+</body>
+</html>

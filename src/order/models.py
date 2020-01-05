@@ -5,7 +5,7 @@ from django.core import validators
 import os
 
 
-class Cart_Status(models.TextChoices):
+class CartStatus(models.TextChoices):
     Record = 'rec', 'در حال ثبت'
     Check = 'chk', 'در حال بررسی'
     Preparation = 'pre', 'آماده سازی'
@@ -19,9 +19,9 @@ class Cart_Status(models.TextChoices):
 
 class Cart(models.Model):
     cart_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
-    # user = models.ForeignKey('user.User', on_delete=models.CASCADE, blank=True, null=True,
-    #                          related_name='user_carts')
-    status = models.CharField(max_length=3, blank=False, choices=Cart_Status.choices, default=Cart_Status.Record)
+    user = models.ForeignKey('user.UserTG', on_delete=models.CASCADE, blank=True, null=True,
+                             related_name='user_carts')
+    status = models.CharField(max_length=3, blank=False, choices=CartStatus.choices, default=CartStatus.Record)
     total_cost = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
                                                                       validators.MaxValueValidator(99999999)])
     delivery = models.ForeignKey('delivery.Delivery', on_delete=models.SET_NULL, null=True, blank=False,
@@ -30,6 +30,7 @@ class Cart(models.Model):
     duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
                                                                        validators.MaxValueValidator(30)])
     delivery_date = models.DateField(blank=False, default=timezone.now)
+    token = models.TextField(null=True, blank=True)
     # payment
 
     def __str__(self):
@@ -98,4 +99,30 @@ def auto_delete_template_file_on_change(sender, instance, **kwargs):
     if not old_vector == new_vector and old_vector:
         if os.path.isfile(old_vector.path):
             os.remove(old_vector.path)
+
+
+class OrderAction(models.Model):
+    order = models.ForeignKey('Order', on_delete=models.CASCADE,
+                              related_name='order_all_actions')
+    user = models.ForeignKey('user.UserTG', on_delete=models.CASCADE,
+                             related_name='user_actions_on_order')
+    old_status = models.ForeignKey('Status', on_delete=models.SET_NULL, blank=False, null=True,
+                                   related_name='on_actions_old')
+    new_status = models.ForeignKey('Status', on_delete=models.SET_NULL, blank=False, null=True,
+                                   related_name='on_actions_new')
+    data = models.DateTimeField(default=timezone.now, blank=False)
+
+    def __str__(self):
+        return '{0} change by {1}'.format(self.order.order_id, self.user)
+
+
+class CartAction(models.Model):
+    cart = models.ForeignKey('Cart', on_delete=models.CASCADE,
+                             related_name='cart_all_actions')
+    old_status = models.CharField(max_length=3, blank=False, choices=CartStatus.choices)
+    new_status = models.CharField(max_length=3, blank=False, choices=CartStatus.choices)
+    data = models.DateTimeField(default=timezone.now, blank=False)
+
+    def __str__(self):
+        return '{0} change in {1}'.format(self.cart.cart_id, self.data)
 
