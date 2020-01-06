@@ -1,0 +1,17 @@
+section {
+    position: relative;
+    background-color: white;
+    float:right;
+    width: 70%;
+    height: auto;
+    margin-right: 15%;
+    padding: 25px;
+    z-index: -1;
+}
+
+@media screen and (max-width: 800px){
+    section {
+        width: 100%;
+        margin-right: 0px;
+    }
+}

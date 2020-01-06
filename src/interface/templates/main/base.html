@@ -5,22 +5,28 @@
     <meta charset="UTF-8">
     <meta name="author" content="MahdiYar">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="چاپ و تبلیغات تیم گرافیک :: سفارش آنلاین محصولات چاپی افست - دیجیتال - لارج فرمت">
 
     {% block meta %}
-
+        <meta name="keywords" content="تیم گرافیک, پرینت, ریسو, پاکت, پوستر, کارت ویزیت, تراکت, تبلیغات, چاپ, teamgraphic">
     {% endblock meta %}
 
     {% block title %}
         <title>تیم گرافیک - TeamGraphic</title>
     {% endblock title %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/base.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/navbar.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/header.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/footer.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/section.css' %}">
+    <!-- <link rel="stylesheet" type="text/css" href="{% static 'css/main/w3.css' %}">-->
 
-    <link rel="stylesheet" type="text/css" href="{% static 'main/css/base.css' %}">
-    <link rel="stylesheet" type="text/css" href="{% static 'main/css/navbar.css' %}">
     {% block stylesheet %}
         <!-- replace me!!! -->
     {% endblock stylesheet %}
 
-    <script src="{% static 'main/js/base.js' %}"></script>
+    <script src="{% static 'js/main/base.js' %}"></script>
+    <noscript>متاسفانه مرورگر شما از برخی از ویژگی ها پشتیبانی نمی کند!</noscript>
     {% block js %}
         <!-- replace me!!! -->
     {% endblock js %}
@@ -28,30 +34,32 @@
 </head>
 <body onload="viewAlertFunction()">
 
-    {% block navbar %}
-        {% include 'main/navbar.html' %}
+    {% block header %}
+        {% include 'main/header.html' %}
         <script>
             document.geElementById('homelink').setAttribute("class" ,"active")
         </script>
-    {% endblock navbar %}
+    {% endblock header %}
 
-    {% block page %}
-    <br><br><br><br><br><br><br>
-    <a href="https://www.varzesh3.com">V3</a>
-    <br>
-    <a href="https://www.w3schools.com/html/">V4</a>
-    <br>
-    <a href="https://www.w3schools.com/html/">V5</a>
-        replace me!!!
-    {% endblock page %}
+    <section>
+        {% block page %}
+        <br><br><br><br><br><br><br>
+        <br><br><br><br><br><br><br>
+        <br><br><br><br><br><br><br>
+        <br><br><br><br><br><br><br>
+        <br><br><br><br><br><br><br>
+        <a href="https://www.varzesh3.com">V3</a>
+        <br>
+        <a href="https://www.w3schools.com/html/">V4</a>
+        <br>
+        <a href="https://www.w3schools.com/html/">V5</a>
+            replace me!!!
+        {% endblock page %}
+    </section>
 
     {% block footer %}
-        replace me???
+        {% include 'main/footer.html' %}
     {% endblock footer %}
 
-    <div style="margin: 50px 10% 0 0; font-size: 14px; color: #999;
-     text-align: left; border-top: 3px solid gray; max-width: 90%;">
-        <b>D</b>esigned by <strong>Me)-(rab</strong>
-    </div>
 </body>
 </html>

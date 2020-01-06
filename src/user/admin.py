@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import UserTG, Address
+from .models import UserTG, Address, Introduction
 
 
 class AddressInline(admin.TabularInline):
@@ -9,7 +9,7 @@ class AddressInline(admin.TabularInline):
 
 class UserTGAdmin(admin.ModelAdmin):
     list_display = ('user', 'user_full_name', 'user_email_address', 'role',
-                    'profile', 'confirm_code', 'address_count', 'is_active')
+                    'profile', 'introduction', 'confirm_code', 'address_count', 'is_active')
     # list_display_links = ('user_addresses',)
     list_editable = ('confirm_code', )
     # readonly_fields = ('last_edit_time',)
@@ -28,6 +28,10 @@ class UserTGAdmin(admin.ModelAdmin):
     inlines = [
         AddressInline,
     ]
+
+
+class IntroductionAdmin(admin.ModelAdmin):
+    list_display = ('pk', 'title', 'number')
 
 
 class AddressAdmin(admin.ModelAdmin):

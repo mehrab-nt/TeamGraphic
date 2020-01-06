@@ -16,11 +16,25 @@ class MainMenu(models.Model):
 # دعوت به همکاری
 
 
+def background_image_directory_path(instance, filename):
+    return './interface/static/img/main/background-{0}.jpg'.format(instance.title)
+
+
+def header_image_directory_path(instance, filename):
+    return './interface/static/img/main/header-{0}.jpg'.format(instance.title)
+
+
+class MainImage(models.Model):
+    title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)])
+    background = models.ImageField(upload_to=background_image_directory_path)
+    header = models.ImageField(upload_to=header_image_directory_path)
+
+
 def slide_show_directory_path(instance, filename):
-    return './interface/static/img/slide_show/{0}.jpg'.format(instance.title)
+    return './interface/static/img/slideshow/{0}.jpg'.format(instance.title)
 
 
-class SlidShow(models.Model):
+class SlideShow(models.Model):
     title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)], unique=True)
     image = models.ImageField(upload_to=slide_show_directory_path)
     rank = models.PositiveSmallIntegerField(blank=False, unique=True, validators=[validators.MinValueValidator(1),

@@ -23,6 +23,11 @@ class Role(models.TextChoices):
     IT = 'itm', 'مدیر سایت'
 
 
+class Introduction(models.Model):
+    title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)], unique=True)
+    number = models.PositiveSmallIntegerField(default=0, blank=False)
+
+
 class UserTG(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
     role = models.CharField(max_length=3, choices=Role.choices, default=Role.CUSTOMER)
@@ -36,6 +41,8 @@ class UserTG(models.Model):
     confirm_code = models.CharField(max_length=4, null=True)
     # email = models.CharField(blank=True, max_length=50, validators=[validators.EmailValidator()])
     profile = models.ImageField(upload_to=user_profile_directory_pass, blank=True, verbose_name='Profile Image')
+    introduction = models.ForeignKey('Introduction', on_delete=models.SET_NULL, null=True, blank=False,
+                                     related_name='all_user')
     # point = models.IntegerField(default=0)
     # reg_time = models.DateTimeField(default=timezone.now)
     # last_edit_time = models.DateTimeField(auto_now=True)
