@@ -31,7 +31,7 @@ class MainImage(models.Model):
 
 
 def slide_show_directory_path(instance, filename):
-    return './interface/static/img/slideshow/{0}.jpg'.format(instance.title)
+    return './interface/static/img/slideshow/{0}.jpg'.format(instance.rank)
 
 
 class SlideShow(models.Model):
@@ -39,11 +39,17 @@ class SlideShow(models.Model):
     image = models.ImageField(upload_to=slide_show_directory_path)
     rank = models.PositiveSmallIntegerField(blank=False, unique=True, validators=[validators.MinValueValidator(1),
                                                                                   validators.MaxValueValidator(100)])
-    link = models.CharField(max_length=20, validators=[validators.MinLengthValidator(2)])
+    link = models.CharField(max_length=20, validators=[validators.MinLengthValidator(1)], default='/')
     active = models.BooleanField(default=True)
     description = models.CharField(max_length=50, blank=True)
     time = models.FloatField(blank=False, validators=[validators.MinValueValidator(1),
                                                       validators.MaxValueValidator(10)])
+
+    def get_image_url(self):
+        return 'img/slideshow/{0}.jpg'.format(self.rank)
+
+    def get_absolute_url(self):
+        return '{0}'.format(self.link)
 # id / img / time / order / link
 
 

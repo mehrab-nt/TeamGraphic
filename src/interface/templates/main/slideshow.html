@@ -1,0 +1,16 @@
+{% load static %}
+<div class="slideshow">
+{% for slide in slideshow_list %}
+    <div class="slide">
+        <a href="{{ slide.get_absolute_url }}">
+            <img src="{% static slide.get_image_url %}" alt="{{ slide.title }}" style="width:100%">
+        </a>
+    </div>
+{% endfor %}
+    <a class="prev" onclick="plusSlides(-1)">❮</a>
+    <a class="next" onclick="plusSlides(1)">❯</a>
+</div>
+<script>
+    var slideIndex = 1;
+    showSlides(slideIndex);
+</script>

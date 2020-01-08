@@ -3,9 +3,10 @@ nav {
     width: 100%;
     background-color: #fafafa;
     box-shadow: 0px 2px 2px 0px rgba(0,0,0,0.1);
+    background-color: #eee;
 }
 
-nav div {
+nav div.base {
     width: 70%;
     float: right;
     margin-right: 15%;
@@ -23,47 +24,90 @@ nav li a, nav li a:visited {
     color: #171717;
     text-align: center;
     text-decoration: none;
-    font-size: 16px;
-    text-align: center;
-    text-decoration: none;
-    padding: 0px;
-    width: 105px;
+    font-size: 14px;
+    width: 84px;
+    padding: 4px;
     border-left: 1px solid #ffcc00;
-    margin: 10px 0px;
 }
 
 nav li a:hover, nav li a:active {
     background-color: #ffcc00;
     color: #171717;
     text-decoration: none;
-    font-weight: bold;
 }
 
 nav li p {
     color: #ffcc00;
 }
 
-@media screen and (max-width: 800px){
-    nav li a, nav li a:visited {
-        width: 15%;
-        font-size: 14px;
-    }
-    nav div {
+nav div.user {
+    float: left;
+}
+
+nav div.user input[type=text], nav div.user input[type=password]  {
+    margin: 0;
+    border: none;
+    font-size: 13px;
+    width: 80px;
+    padding: 5px;
+    background-color: white;
+}
+
+nav div.user button {
+    width: 40px;
+    float: left;
+    margin-top: 5px;
+    margin-right: 3 px;
+    padding: 5px;
+    background-color: #ffcc00;
+    color: #171717;
+    font-size: 14px;
+    border: none;
+    cursor: pointer;
+}
+
+@media screen and (max-width: 1000px) {
+    nav div.base {
         width: 100%;
         margin: 0;
     }
+
+    nav li a, nav li a:visited {
+        width: auto;
+        padding: 5px 7.5px;
+        font-size: 12px;
+    }
+
+    nav div.user input[type=text], nav div.user input[type=password]  {
+        font-size: 11px;
+        width: 75px;
+    }
+
+    nav div.user button {
+        width: 25px;
+        font-size: 12px;
+    }
 }
 
-@media screen and (max-width: 480px){
+@media screen and (max-width: 480px) {
     nav li a, nav li a:visited {
         margin: 2px 0px;
         border: 0px;
         width: 100%;
         padding: 2px 0px;
+        font-size: 13px;
     }
 
     nav div {
         width: 100%;
         margin: 0;
+    }
+
+    nav div.user input[type=text], nav div.user input[type=password]  {
+        display: none;
+    }
+
+    nav div.base button {
+        display: none;
     }
 }

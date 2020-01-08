@@ -1,0 +1,20 @@
+{% extends "main/base.html" %}
+{% load static %}
+{% block title %}
+    <title>ورود</title>
+{% endblock title %}
+
+{% block page %}
+    <div>
+        <h1>Login here :</h1>
+        <form method="post" action="{% url 'user:user_login' %}">
+            {% csrf_token %}
+            {# A more "HTML" way of creating the login form #}
+            <label for="username">Username:</label>
+            <input type="text" name="username" placeholder="Username">
+            <label for="password">Password:</label>
+            <input type="password" name="password" placeholder="Password">
+            <input type="submit" name="" value="Login">
+        </form>
+    </div>
+{% endblock page %}

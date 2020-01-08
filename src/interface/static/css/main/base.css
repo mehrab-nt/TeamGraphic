@@ -6,20 +6,20 @@
     font-style: normal
 }
 
-html
-{
+html {
     box-sizing:border-box
 }
 
-*, *:before, *:after
-{
+*, *:before, *:after {
     box-sizing:inherit
+    padding: 0px;
+    margin: 0px;
 }
 
-html
-{
+html {
     -ms-text-size-adjust:100%;
     -webkit-text-size-adjust:100%
+    margin: 0px;
 }
 
 body {
@@ -30,17 +30,22 @@ body {
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: cover;
-    margin: 0;
+    margin: 0px;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  margin-top: 0;
-  margin-bottom: 0.5rem;
+    margin-top: 0;
+    margin-bottom: 0.5rem;
 }
 
 p {
-  margin-top: 0;
-  margin-bottom: 1rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+}
+
+input {
+    margin: 0px;
+    padding: 0px;
 }
 
 a:link {
@@ -54,4 +59,8 @@ a:visited {
 
 a:hover, a:active{
     color: #ffcc00;
+}
+
+.cursor {
+    cursor: pointer;
 }

@@ -49,3 +49,4 @@ class AddressAdmin(admin.ModelAdmin):
 
 admin.site.register(UserTG, UserTGAdmin)
 admin.site.register(Address, AddressAdmin)
+admin.site.register(Introduction, IntroductionAdmin)

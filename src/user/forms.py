@@ -14,5 +14,4 @@ class UserForm(forms.ModelForm):
 class UserTGForm(forms.ModelForm):
     class Meta:
         model = UserTG
-        fields = ('profile',)
-
+        fields = ('profile', 'introduction')

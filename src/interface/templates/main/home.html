@@ -1,5 +1,21 @@
-{% extends "./base.html" %}
+{% extends "main/base.html" %}
 {% load static %}
 {% block title %}
     <title>چاپ و تبلیغات تیم گرافیک</title>
 {% endblock title %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/slideshow.css' %}">
+{% endblock stylesheet %}
+
+{% block js %}
+    <script src="{% static 'js/main/slideshow.js' %}"></script>
+{% endblock js %}
+
+{% block page %}
+    {% include "main/slideshow.html" %}
+    {{ user }}
+    <br>
+    {{ user.user_tg }}
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+{% endblock page %}

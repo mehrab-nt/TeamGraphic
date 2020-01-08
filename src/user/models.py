@@ -21,15 +21,20 @@ class Role(models.TextChoices):
     INTERNAL_MANAGEMENT = 'pre', 'مدیریت داخلی'
     ACCOUNTANT = 'acc', 'حسابدار'
     IT = 'itm', 'مدیر سایت'
+    NEW = 'new', 'عضو جدید'
 
 
 class Introduction(models.Model):
     title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)], unique=True)
     number = models.PositiveSmallIntegerField(default=0, blank=False)
 
+    def __str__(self):
+        return '{0}'.format(self.title)
+
 
 class UserTG(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True,
+                                related_name='user_tg')
     role = models.CharField(max_length=3, choices=Role.choices, default=Role.CUSTOMER)
     # role = models.ForeignKey('Role', on_delete=models.SET_NULL,
     #                          related_name='all_user')

@@ -5,11 +5,11 @@ section {
     width: 70%;
     height: auto;
     margin-right: 15%;
-    padding: 25px;
+    padding: 0px 0px;
     z-index: -1;
 }
 
-@media screen and (max-width: 800px){
+@media screen and (max-width: 1000px){
     section {
         width: 100%;
         margin-right: 0px;
