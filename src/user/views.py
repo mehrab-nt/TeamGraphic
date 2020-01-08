@@ -19,7 +19,7 @@ from django.contrib.auth.decorators import login_required
 def user_logout(request):
     logout(request)
     print('log out')
-    return render(request, 'main/home.html')
+    return HttpResponseRedirect('/')
 
 
 def user_signup(request):
@@ -62,12 +62,12 @@ def user_login(request):
         if user:
             if user.is_active:
                 login(request, user)
-                return render(request, 'main/home.html', {})
+                return HttpResponseRedirect('/')
             else:
-                return render(request, 'user/login.html', {})
+                return HttpResponseRedirect('/')
         else:
             print("Someone tried to login and failed.")
             print("They used username: {} and password: {}".format(username, password))
-            return render(request, 'main/home.html', {})
+            return HttpResponseRedirect('/')
     else:
-        return render(request, 'user/login.html', {})
+        return HttpResponseRedirect('/')

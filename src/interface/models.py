@@ -1,5 +1,7 @@
 from django.db import models
 from django.core import validators
+from django.dispatch import receiver
+import os
 
 
 class MainMenu(models.Model):
@@ -17,11 +19,11 @@ class MainMenu(models.Model):
 
 
 def background_image_directory_path(instance, filename):
-    return './interface/static/img/main/background-{0}.jpg'.format(instance.title)
+    return './interface/static/img/main/background-{0}.png'.format(instance.title)
 
 
 def header_image_directory_path(instance, filename):
-    return './interface/static/img/main/header-{0}.jpg'.format(instance.title)
+    return './interface/static/img/main/header-{0}.png'.format(instance.title)
 
 
 class MainImage(models.Model):
@@ -31,7 +33,7 @@ class MainImage(models.Model):
 
 
 def slide_show_directory_path(instance, filename):
-    return './interface/static/img/slideshow/{0}.jpg'.format(instance.rank)
+    return './interface/static/img/slideshow/{0}.png'.format(instance.rank)
 
 
 class SlideShow(models.Model):
@@ -46,11 +48,32 @@ class SlideShow(models.Model):
                                                       validators.MaxValueValidator(10)])
 
     def get_image_url(self):
-        return 'img/slideshow/{0}.jpg'.format(self.rank)
+        return 'img/slideshow/{0}.png'.format(self.rank)
 
     def get_absolute_url(self):
         return '{0}'.format(self.link)
 # id / img / time / order / link
+
+
+@receiver(models.signals.post_delete, sender=SlideShow)
+def auto_delete_slide_show_img_on_delete(sender, instance, **kwargs):
+    if instance.image:
+        if os.path.isfile(instance.image.path):
+            os.remove(instance.image.path)
+
+
+@receiver(models.signals.pre_save, sender=SlideShow)
+def auto_delete_slide_show_img_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return False
+    try:
+        old_image = SlideShow.objects.get(pk=instance.pk).image
+    except SlideShow.DoesNotExist:
+        return False
+    new_image = instance.image
+    if not old_image == new_image and old_image:
+        if os.path.isfile(old_image.path):
+            os.remove(old_image.path)
 
 
 class SpecialProductBox(models.Model):

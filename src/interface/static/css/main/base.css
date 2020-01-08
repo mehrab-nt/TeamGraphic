@@ -14,6 +14,9 @@ html {
     box-sizing:inherit
     padding: 0px;
     margin: 0px;
+    font-family: Yekan;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 html {
@@ -25,8 +28,6 @@ html {
 body {
     padding: 0px;
     color: black;
-    font-family: Yekan;
-    background-image: url('/static/img/main/!!!.jpg');
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: cover;

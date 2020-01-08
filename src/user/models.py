@@ -74,14 +74,14 @@ class UserTG(models.Model):
 
 
 @receiver(models.signals.post_delete, sender=UserTG)
-def auto_delete_classification_img_on_delete(sender, instance, **kwargs):
+def auto_delete_user_profile_img_on_delete(sender, instance, **kwargs):
     if instance.profile:
         if os.path.isfile(instance.profile.path):
             os.remove(instance.profile.path)
 
 
 @receiver(models.signals.pre_save, sender=UserTG)
-def auto_delete_classification_img_on_change(sender, instance, **kwargs):
+def auto_delete_user_profile_img_on_change(sender, instance, **kwargs):
     if not instance.user:
         return False
     try:

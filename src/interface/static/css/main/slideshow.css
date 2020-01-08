@@ -9,7 +9,7 @@
 }
 
 .slide img {
-    max-height: 450px;
+    transition: opacity 1s;
 }
 
 .cursor {
@@ -17,43 +17,52 @@
 }
 
 .prev, .next {
+    text-align: center;
     cursor: pointer;
     position: absolute;
     top: 40%;
-    width: auto;
-    padding: 16px;
-    color: white;
+    width: 30px;
+    padding: 7px;
+    color: #ffcc00;
     font-weight: bold;
-    font-size: 20px;
-    border-radius: 0 20px 20px 0;
+    font-size: 17px;
+    border-radius: 50px;
     user-select: none;
     -webkit-user-select: none;
+    left: -55px;
 }
 
 .next {
-    right: 0;
-    border-radius: 20px 0 0 20px;
+    left: auto;
+    right: -55px;
 }
 
 .prev:hover, .next:hover {
-    background-color: rgba(0, 0, 0, 0.5);
+    color: black;
+    background-color: rgba(0, 0, 0, 0.1);
 }
 
 @media screen and (max-width: 1000px){
     .prev, .next {
-        padding: 10px;
+        width: auto;
+        background-color: rgba(255, 255, 255, 0.4);
+        color: black;
+        left: 0;
+        padding: 8px;
         font-size: 16px;
         border-radius: 0 15px 15px 0;
     }
     .next {
+        left: auto;
+        right: 0;
         border-radius: 15px 0 0 15px;
     }
 }
 
 @media screen and (max-width: 480px){
     .prev, .next {
-        padding: 8px;
-        font-size: 14px;
+        padding: 5px;
+        font-size: 10px;
         border-radius: 0 12px 12px 0;
     }
     .next {

@@ -2,7 +2,7 @@ nav {
     float: right;
     width: 100%;
     background-color: #fafafa;
-    box-shadow: 0px 2px 2px 0px rgba(0,0,0,0.1);
+    box-shadow: 0px 4px 3px 0px rgba(0,0,0,0.2);
     background-color: #eee;
 }
 
@@ -12,57 +12,169 @@ nav div.base {
     margin-right: 15%;
 }
 
+nav .sub_menu {
+    display: none;
+}
+
 nav ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
 }
 
-nav li a, nav li a:visited {
+nav li a, nav li a:visited, .dropdown, .dropdown-user{
     float: right;
     display: block;
     color: #171717;
     text-align: center;
     text-decoration: none;
     font-size: 14px;
-    width: 84px;
+    width: 10%;
     padding: 4px;
     border-left: 1px solid #ffcc00;
+}
+
+.dropdown-user {
+    background-color: #ffcc00;
+    border: none;
+    float: left;
+    width: 30%;
 }
 
 nav li a:hover, nav li a:active {
     background-color: #ffcc00;
     color: #171717;
     text-decoration: none;
+    transition: 0.5s;
 }
 
 nav li p {
     color: #ffcc00;
 }
 
+.dropdown, .dropdown-user{
+    cursor: pointer;
+}
+
+.dropdown:hover, .dropdown-user:hover {
+    background-color: #ffcc00;
+}
+
+.dropdown:hover .dropdown-content, .dropdown-user:hover .dropdown-user-content {
+    display: block;
+}
+
+.dropdown-content, .dropdown-user-content {
+    margin-top :4px;
+    padding: 3px;
+    display: none;
+    position: absolute;
+    right: 15%;
+    background-color: #f1f1f1;
+    box-shadow: 0px 5px 8px 0px rgba(0,0,0,0.4);
+    z-index: 1;
+    width: 45%;
+}
+
+.dropdown-user-content {
+    left: 15%;
+    width: 10%;
+}
+
+.dropdown-content a, .dropdown-user-content a {
+    float: right;
+    width: 28%;
+    padding: 3px 1.66%;
+    margin: 3px 1%;
+    border: none;
+    border-bottom: 1px solid #ffcc00;
+    color: #171717;
+    text-align: right;
+    font-size: 13px;
+    text-decoration: none;
+    display: block;
+}
+
+.dropdown-user-content a
+{
+    border: none;
+    border-left: 3px solid #ffcc00;
+    font-size: 13px;
+    padding: 3px 4%;
+    margin: 3px 1%;
+    float: left;
+    width: 88%;
+    text-align: left;
+}
+
+.dropdown-content h2.cat {
+    float: right;
+    padding: 0px 1%;
+    margin: 3px 1%;
+    border: none;
+    border-right: 3px solid #ffcc00;
+    color: #171717;
+    text-align: right;
+    text-decoration: none;
+    display: block;
+    color: black;
+    font-size: 14px;
+    width: 96%;
+    cursor: default;
+}
+
 nav div.user {
     float: left;
+    width: 35%;
 }
 
 nav div.user input[type=text], nav div.user input[type=password]  {
-    margin: 0;
+    text-align: center;
+    margin-top: 0px;
+    margin-left: 3px;
     border: none;
     font-size: 13px;
-    width: 80px;
-    padding: 5px;
+    width: 30%;
+    height: 20px;
+    padding: 4px;
     background-color: white;
 }
 
 nav div.user button {
-    width: 40px;
+    text-align: center;
+    width: 50px;
+    height: 100%;
     float: left;
     margin-top: 5px;
-    margin-right: 3 px;
-    padding: 5px;
     background-color: #ffcc00;
     color: #171717;
-    font-size: 14px;
+    font-size: 13px;
     border: none;
+    cursor: pointer;
+    border-radius: 40px;
+}
+
+nav div.user input[type=text]:hover, nav div.user input[type=password]:hover, nav div.user button:hover {
+    box-shadow: 0px 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+nav div.user li p.welcome {
+    color: #171717;
+    border: none;
+    margin: 0;
+    float: left;
+    font-size: 13px;
+}
+
+nav div.user li p.welcome {
+    border: none;
+    padding: 4px 10px;
+}
+!!!
+nav div.user li p.welcome:hover {
+    background-color: transparent;
+    color: #ffcc00;
+    text-decoration: none;
     cursor: pointer;
 }
 
@@ -72,30 +184,120 @@ nav div.user button {
         margin: 0;
     }
 
-    nav li a, nav li a:visited {
+    nav li a, nav li a:visited, .dropdown, .dropdown-user  {
         width: auto;
-        padding: 5px 7.5px;
+        padding: 6px 10px;
         font-size: 12px;
+    }
+
+    .dropdown-content {
+        right: 0;
+        width: 60%;
+    }
+
+    .dropdown-content a {
+        padding: 2px 1.66%;
+        font-size: 11px;
+    }
+
+    .dropdown-user-content {
+        left: 0;
+        width: 20%;
+    }
+
+    .dropdown-user-content a {
+        border: none;
+        font-size: 13px;
+        padding: 3px 4%;
+        margin: 3px 1%;
+        width: 100%;
+        text-align: left;
+    }
+
+    nav div.user {
+        width: 37%;
     }
 
     nav div.user input[type=text], nav div.user input[type=password]  {
         font-size: 11px;
-        width: 75px;
     }
 
     nav div.user button {
-        width: 25px;
-        font-size: 12px;
+        width: 40px;
+    }
+
+    nav div.user li a {
+        width: auto;
+        padding: 6px 10px;
+    }
+
+    nav div.user li p.welcome {
+        width: auto;
+        padding: 8px 5px;
+        font-size: 10px;
     }
 }
 
 @media screen and (max-width: 480px) {
+    nav ul.top_menu li a.main_menu
+    {
+        display: none;
+    }
+
+    nav ul.responsive li a.main_menu {
+        display: block;
+    }
+
+    nav .sub_menu {
+        float: left;
+        display: block;
+        text-align: right;
+        padding: 2px 10px;
+        width: auto;
+        margin: 0;
+        font-size: 13px;
+    }
+
+    nav .active {
+        background-color: #ffcc00;
+    }
+
     nav li a, nav li a:visited {
         margin: 2px 0px;
-        border: 0px;
         width: 100%;
         padding: 2px 0px;
         font-size: 13px;
+    }
+
+    .dropdown {
+        margin: 0;
+        padding: 2px 0px;
+        font-size: 13px;
+        float: right;
+        width: 20%;
+    }
+
+    .dropdown-user, .welcome {
+        display: none;
+    }
+
+    .dropdown-user {
+        margin: 0;
+        padding: 2px 0px;
+        font-size: 13px;
+        float: left;
+        width: 20%;
+    }
+
+    .dropdown-content {
+        margin: 0;
+        right: 0;
+        width: 100%;
+    }
+
+    .dropdown-content a {
+        padding: 2px 1.66%;
+        font-size: 11px;
     }
 
     nav div {
