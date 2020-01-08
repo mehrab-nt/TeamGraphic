@@ -33,6 +33,25 @@ header img.logo:hover {
     max-width: 302px;
 }
 
+header div.phone {
+    float: left;
+    margin-left: 15%;
+    max-width: 700px;
+}
+
+header img.phone-img {
+    float: left;
+    margin-top: 10px;
+    max-width: 30px;
+}
+
+header .phone-num {
+    float: left;
+    margin: 0;
+    padding: 0;
+    margin-left: 5px;
+}
+
 @media screen and (max-width: 1000px){
     header {
 
