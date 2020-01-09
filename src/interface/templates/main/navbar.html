@@ -1,16 +1,18 @@
-<nav>
+<nav  id="navbar">
     <div class="base">
         <div class="user">
             {% if user.is_authenticated %}
                 <ul>
                     <li class="dropdown-user">پنل کاربری
                         <div class="dropdown-user-content">
-                            <a href="/logout">خروج</a>
-                            <a href="/logout">خروج</a>
-                            <a href="/logout">خروج</a>
+                            <a href="{% url 'user:user_orders' %}">مدیریت سفارشات</a>
+                            <a href="{% url 'user:user_profile' %}">تنظیمات</a>
+                            <a href="{% url 'user:user_logout' %}">خروج</a>
                         </div>
                     </li>
-                    <li><p class="welcome" href="javascript:void(0)">{{ user.first_name }} عزیز خوش آمدی</p></li>
+                    <li class="welcome-content">
+                        <p class="welcome" href="javascript:void(0)">{{ user.first_name }} عزیز خوش آمدی</p>
+                    </li>
 <!--                    <li><a href="/logout">خروج</a></li>-->
                 </ul>
             {% else %}
@@ -31,17 +33,22 @@
             <li><a class="sub_menu" href="javascript:void(0)" onclick="mobileNavbar(this)">:: منو سایت</a></li>
             <li class="dropdown">محصولات
                 <div class="dropdown-content">
-                    <h2 class="cat">افست</h2>
-                    <a href="#">Link 1</a>
-                    <a href="#">Link 2</a>
-                    <h2 class="cat">افست</h2>
+                    {% for item in classifications %}
+                        <h2 class="cat">{{ item.title }}</h2>
+                        {% for sub_item in item.all_category.all %}
+                            <a href="#">{{ sub_item.title }}</a>
+                        {% endfor %}
+                    {% endfor %}
                 </div>
             </li>
-
-            <li><a class="main_menu" href="javascript:void(0)">تعرفه قیمت</a></li>
-            <li><a class="main_menu" href="javascript:void(0)">طراحی</a></li>
-            <li><a class="main_menu" href="javascript:void(0)">بلاگ</a></li>
-            <li><a class="main_menu" href="javascript:void(0)">درباره ما</a></li>
+            {% for menu in main_menu %}
+                <li><a class="main_menu" href="javascript:void(0)">{{ menu.title }}</a></li>
+            {% endfor %}
         </ul>
     </div>
+    <script>
+        window.onscroll = function() {stickyNavbar()};
+        var navbar = document.getElementById("navbar");
+        var sticky = navbar.offsetTop;
+    </script>
 </nav>

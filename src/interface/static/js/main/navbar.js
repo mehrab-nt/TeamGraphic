@@ -13,3 +13,11 @@ function mobileNavbar(arg) {
     arg.className = "sub_menu";
   }
 }
+
+function stickyNavbar() {
+  if (window.pageYOffset >= sticky) {
+    navbar.classList.add("sticky")
+  } else {
+    navbar.classList.remove("sticky");
+  }
+}

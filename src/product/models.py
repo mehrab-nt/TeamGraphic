@@ -19,7 +19,7 @@ class Classification(models.Model):
     icon = models.ImageField(upload_to=classification_icon_directory_pass, blank=False)
     preview = models.ImageField(upload_to=classification_preview_directory_pass, blank=True)
     description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
-    order = models.PositiveSmallIntegerField(default=0)
+    order = models.PositiveSmallIntegerField(default=0, unique=True)
 
     def __str__(self):
         return 'کلاس:‌ {0}'.format(self.title)
@@ -64,12 +64,13 @@ def category_preview_directory_pass(instance, filename):
 
 class Category(models.Model):
     id = models.CharField(primary_key=True, max_length=3, validators=[validators.MinLengthValidator(3)])
-    title = models.CharField(max_length=20, default='جدید', blank=False, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, default='جدید', blank=False, validators=[validators.MinLengthValidator(2)])
     icon = models.ImageField(upload_to=category_icon_directory_pass, blank=False)
     preview = models.ImageField(upload_to=category_preview_directory_pass, blank=True)
-    classification = models.ForeignKey('Classification', on_delete=models.SET_NULL, null=True)
+    classification = models.ForeignKey('Classification', on_delete=models.SET_NULL, null=True,
+                                       related_name='all_category')
     description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
-    order = models.PositiveSmallIntegerField(default=0)
+    order = models.PositiveSmallIntegerField(default=0, unique=True)
 
     def __str__(self):
         return 'دسته: {0}'.format(self.title)

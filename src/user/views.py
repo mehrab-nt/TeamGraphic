@@ -71,3 +71,15 @@ def user_login(request):
             return HttpResponseRedirect('/')
     else:
         return HttpResponseRedirect('/')
+
+
+@login_required
+def user_orders(request):
+
+    return HttpResponseRedirect('/')
+
+
+@login_required
+def user_profile(request):
+
+    return HttpResponseRedirect('/')

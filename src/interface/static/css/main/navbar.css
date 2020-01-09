@@ -4,6 +4,8 @@ nav {
     background-color: #fafafa;
     box-shadow: 0px 4px 3px 0px rgba(0,0,0,0.2);
     background-color: #eee;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 nav div.base {
@@ -28,17 +30,30 @@ nav li a, nav li a:visited, .dropdown, .dropdown-user{
     color: #171717;
     text-align: center;
     text-decoration: none;
-    font-size: 14px;
-    width: 10%;
+    font-size: 13.5px;
+    width: 9%;
     padding: 4px;
     border-left: 1px solid #ffcc00;
 }
 
+.sticky {
+    position: fixed;
+    top: 0;
+}
+
 .dropdown-user {
-    background-color: #ffcc00;
-    border: none;
+    height: 30px;
+    margin-top: 3px;
+    padding:0;
     float: left;
-    width: 30%;
+    width: 120px;
+    text-align: center;
+    background-color: #ffcc00;
+    color: #171717;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    border-radius: 40px;
 }
 
 nav li a:hover, nav li a:active {
@@ -79,6 +94,7 @@ nav li p {
 .dropdown-user-content {
     left: 15%;
     width: 10%;
+    margin-top: 2px;
 }
 
 .dropdown-content a, .dropdown-user-content a {
@@ -95,8 +111,7 @@ nav li p {
     display: block;
 }
 
-.dropdown-user-content a
-{
+.dropdown-user-content a {
     border: none;
     border-left: 3px solid #ffcc00;
     font-size: 13px;
@@ -125,7 +140,7 @@ nav li p {
 
 nav div.user {
     float: left;
-    width: 35%;
+    width: 40%;
 }
 
 nav div.user input[type=text], nav div.user input[type=password]  {
@@ -134,7 +149,7 @@ nav div.user input[type=text], nav div.user input[type=password]  {
     margin-left: 3px;
     border: none;
     font-size: 13px;
-    width: 30%;
+    width: 33%;
     height: 20px;
     padding: 4px;
     background-color: white;
@@ -142,7 +157,7 @@ nav div.user input[type=text], nav div.user input[type=password]  {
 
 nav div.user button {
     text-align: center;
-    width: 50px;
+    width: 60px;
     height: 100%;
     float: left;
     margin-top: 5px;
@@ -163,16 +178,15 @@ nav div.user li p.welcome {
     border: none;
     margin: 0;
     float: left;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 nav div.user li p.welcome {
     border: none;
-    padding: 4px 10px;
+    padding: 5px 4px;
 }
-!!!
-nav div.user li p.welcome:hover {
-    background-color: transparent;
+
+nav div.user li.welcome-content:hover p.welcome {
     color: #ffcc00;
     text-decoration: none;
     cursor: pointer;
@@ -184,10 +198,16 @@ nav div.user li p.welcome:hover {
         margin: 0;
     }
 
-    nav li a, nav li a:visited, .dropdown, .dropdown-user  {
+    nav li a, nav li a:visited, .dropdown {
         width: auto;
         padding: 6px 10px;
         font-size: 12px;
+    }
+
+    .dropdown-user {
+        padding-top: 2px;
+        font-size: 12px;
+        width: 90px;
     }
 
     .dropdown-content {
@@ -197,7 +217,7 @@ nav div.user li p.welcome:hover {
 
     .dropdown-content a {
         padding: 2px 1.66%;
-        font-size: 11px;
+        font-size: 12px;
     }
 
     .dropdown-user-content {
@@ -206,35 +226,32 @@ nav div.user li p.welcome:hover {
     }
 
     .dropdown-user-content a {
-        border: none;
-        font-size: 13px;
+        font-size: 11px;
         padding: 3px 4%;
         margin: 3px 1%;
-        width: 100%;
+        width: 90%;
         text-align: left;
     }
 
     nav div.user {
-        width: 37%;
+        width: 45%;
     }
 
     nav div.user input[type=text], nav div.user input[type=password]  {
         font-size: 11px;
+        width: 30%;
     }
 
     nav div.user button {
-        width: 40px;
-    }
-
-    nav div.user li a {
-        width: auto;
-        padding: 6px 10px;
+        width: 50px;
+        font-size: 12px;
+        padding: 1px 0px;
     }
 
     nav div.user li p.welcome {
         width: auto;
-        padding: 8px 5px;
-        font-size: 10px;
+        padding: 7px 5px;
+        font-size: 11px;
     }
 }
 
@@ -246,6 +263,8 @@ nav div.user li p.welcome:hover {
 
     nav ul.responsive li a.main_menu {
         display: block;
+        border-top: 1px solid #ffcc00;
+        margin: 0;
     }
 
     nav .sub_menu {
@@ -256,6 +275,7 @@ nav div.user li p.welcome:hover {
         width: auto;
         margin: 0;
         font-size: 13px;
+        border: none;
     }
 
     nav .active {
@@ -277,16 +297,29 @@ nav div.user li p.welcome:hover {
         width: 20%;
     }
 
-    .dropdown-user, .welcome {
-        display: none;
+    nav div.user li p.welcome {
+        width: auto;
+        padding: 3px 5px;
+        font-size: 11px;
     }
 
     .dropdown-user {
         margin: 0;
-        padding: 2px 0px;
-        font-size: 13px;
-        float: left;
-        width: 20%;
+        width: 80px;
+        padding-top: 1px;
+    }
+
+    .dropdown-user-content {
+        left: 0;
+        width: 30%;
+    }
+
+    .dropdown-user-content a {
+        font-size: 11px;
+        padding: 3px 4%;
+        margin: 3px 1%;
+        width: 90%;
+        text-align: left;
     }
 
     .dropdown-content {
@@ -305,11 +338,20 @@ nav div.user li p.welcome:hover {
         margin: 0;
     }
 
+    nav div.user {
+        width: 100%;
+        padding-bottom: 3px;
+        box-shadow: 0px 2px 3px 0px rgba(0,0,0,0.1);
+    }
+
     nav div.user input[type=text], nav div.user input[type=password]  {
-        display: none;
+        width: 30%;
+        max-width: 100px;
     }
 
     nav div.base button {
-        display: none;
+        font-size: 11px;
+        padding: 2px 0px;
+        width: 48px;
     }
 }

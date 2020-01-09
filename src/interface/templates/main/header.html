@@ -4,7 +4,18 @@
         <img class="logo" src="{% static 'img/main/logo.png' %}">
         <div class="phone">
             <img class="phone-img" src="{% static 'img/main/phone.png' %}">
-            <p class="phone-num">۰۲۱-۴۴۰۴۴۸۸۱<br>۰۲۱-۴۴۰۴۴۸۲۷</p>
+                <p class="phone-num">۰۲۱-<span class="phone-num-imp"> ۴۴۰۴۴ </span><span class="phone-num-imp-other">۸۲۷</span>
+                <br>۰۲۱-<span class="phone-num-imp"> ۴۴۰۴۴ </span><span class="phone-num-imp-other">۸۸۱</span></p>
         </div>
+    </div>
+    <div class="user-option">
+    {% if user.is_authenticated %}
+        <button class="cart" onclick="document.getElementById('signup').style.display='block'">سبد خرید</button>
+        <div class="cart-icon"><img src="{% static 'img/main/cart.png' %}"></div>
+
+    {% else %}
+        <button class="signup" onclick="document.getElementById('signup').style.display='block'">ثبت نام</button>
+        <button class="forget" onclick="document.getElementById('signup').style.display='block'">فراموشی رمز عبور</button>
+    {% endif %}
     </div>
 </header>

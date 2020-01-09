@@ -1,9 +1,66 @@
 @font-face {
     font-family: 'Yekan';
     src: url('fonts/Yekan/Yekan.eot');
-    src: url('fonts/Yekan/Yekan.eot?#iefix') format('embedded-opentype'), url('fonts/Yekan/Yekan.woff') format('woff'), url('fonts/Yekan/Yekan.ttf') format('truetype'), url('fonts/Yekan/Yekan.svg#BYekan') format('svg');
+    src: url('fonts/Yekan/Yekan.eot?#iefix') format('embedded-opentype'),
+    url('fonts/Yekan/Yekan.woff') format('woff'),
+    url('fonts/Yekan/Yekan.ttf') format('truetype'),
+    url('fonts/Yekan/Yekan.svg#BYekan') format('svg');
     font-weight: normal;
     font-style: normal
+}
+
+@font-face {
+  font-family: Sahel;
+  src: url('fonts/Sahel/Sahel.eot');
+  src: url('fonts/Sahel/Sahel.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Sahel/Sahel.woff') format('woff'),
+       url('fonts/Sahel/Sahel.ttf') format('truetype');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: Sahel;
+  src: url('fonts/Sahel/Sahel-Bold.eot');
+  src: url('fonts/Sahel/Sahel-Bold.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Sahel/Sahel-Bold.woff') format('woff'),
+       url('fonts/Sahel/Sahel-Bold.ttf') format('truetype');
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: Sahel;
+  src: url('fonts/Sahel/Sahel-Black.eot');
+  src: url('fonts/Sahel/Sahel-Black.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Sahel/Sahel-Black.woff') format('woff'),
+       url('fonts/Sahel/Sahel-Black.ttf') format('truetype');
+  font-weight: 900;
+}
+
+@font-face {
+  font-family: Shabnam;
+  src: url('fonts/Shabnam/Shabnam.eot');
+  src: url('fonts/Shabnam/Shabnam.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Shabnam/Shabnam.woff') format('woff'),
+       url('fonts/Shabnam/Shabnam.ttf') format('truetype');
+  font-weight: normal;
+}
+
+@font-face {
+  font-family: Shabnam;
+  src: url('fonts/Shabnam/Shabnam-Bold.eot');
+  src: url('fonts/Shabnam/Shabnam-Bold.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Shabnam/Shabnam-Bold.woff') format('woff'),
+       url('fonts/Shabnam/Shabnam-Bold.ttf') format('truetype');
+  font-weight: bold;
+}
+
+@font-face {
+  font-family: Shabnam;
+  src: url('fonts/Shabnam/Shabnam-Light.eot');
+  src: url('fonts/Shabnam/Shabnam-Light.eot?#iefix') format('embedded-opentype'),
+       url('fonts/Shabnam/Shabnam-Light.woff') format('woff'),
+       url('fonts/Shabnam/Shabnam-Light.ttf') format('truetype');
+  font-weight: 300;
 }
 
 html {
@@ -15,8 +72,6 @@ html {
     padding: 0px;
     margin: 0px;
     font-family: Yekan;
-    user-select: none;
-    -webkit-user-select: none;
 }
 
 html {

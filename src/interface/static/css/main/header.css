@@ -7,6 +7,8 @@ header {
     width: 100%;
     height: 10%;
     padding: 0px;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 header h1 {
@@ -26,37 +28,120 @@ header img.logo {
     float: right;
     margin-right: 15%;
     margin-top: 10px;
-    max-width: 300px;
+    max-width: 370px;
 }
 
 header img.logo:hover {
-    max-width: 302px;
+    max-width: 372px;
 }
 
 header div.phone {
     float: left;
     margin-left: 15%;
     max-width: 700px;
+    font-family: Shabnam;
+    font-weight: bold;
 }
 
 header img.phone-img {
     float: left;
-    margin-top: 10px;
-    max-width: 30px;
+    margin-top: 12px;
+    max-width: 40px;
 }
 
-header .phone-num {
+header p.phone-num {
     float: left;
-    margin: 0;
-    padding: 0;
+    font-size: 20px;
+    margin-top: 5px;
     margin-left: 5px;
 }
 
+header p.phone-num span.phone-num-imp, header p.phone-num span.phone-num-imp-other {
+    min-weight: 1000px;
+    text-align: justify;
+    font-weight: bold;
+}
+
+header p.phone-num span.phone-num-imp-other {
+    font-size: 20px;
+    color: #171717;
+}
+
+header p.phone-num span.phone-num-imp:hover {
+    color: #ffcc00;
+}
+
+header div.user-option {
+    height: 30px;
+    float: left;
+    margin-left: 15%;
+    width: 70%;
+    margin-bottom: 3px;
+}
+
+header div.user-option button.signup, header div.user-option button.login {
+    height: 30px;
+    padding: 0;
+    float: left;
+    width: 60px;
+    text-align: center;
+    background-color: #ffcc00;
+    color: #171717;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    border-radius: 40px;
+}
+
+header div.user-option button.login  {
+    display: none;
+}
+
+header div.user-option button.signup:hover, header div.user-option button.login:hover {
+    box-shadow: 0px 2px 2px 0px rgba(0,0,0,0.1);
+}
+
+header div.user-option button.forget {
+    padding-left: 5px;
+    float: left;
+    width: auto;
+    text-align: center;
+    background-color: white;
+    color: #171717;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+}
+
+header div.user-option button.forget:hover {
+    color: #ffcc00;
+}
+
+header div.user-option button.cart {
+    height: 30px;
+    padding: 0;
+    float: left;
+    width: 120px;
+    text-align: center;
+    background-color: #ffcc00;
+    color: #171717;
+    font-size: 13px;
+    border: none;
+    cursor: pointer;
+    border-radius: 40px;
+}
+
+header div.user-option div.cart-icon {
+    float: left;
+    height: auto;
+}
+
+header div.user-option div.cart-icon img {
+    float: left;
+    max-height: 29px;
+}
+
 @media screen and (max-width: 1000px){
-    header {
-
-    }
-
     header h1
     {
         font-size: 24px;
@@ -65,11 +150,37 @@ header .phone-num {
     header img.logo {
         margin-right: 0;
         margin-top: 10px;
-        max-width: 270px;
+        max-width: 280px;
     }
 
     header img.logo:hover {
-        max-width: 272px;
+        max-width: 282px;
+    }
+
+    header div.phone {
+        float: left;
+        margin-left: 0;
+        max-width: 700px;
+    }
+
+    header div.user-option {
+        margin: 0;
+        margin-bottom: 3px;
+    }
+
+    header div.user-option button.signup {
+        font-size: 12px;
+        width: 50px;
+    }
+
+    header div.user-option button.forget  {
+        padding-top: 4px;
+        font-size: 11px;
+    }
+
+    header div.user-option button.cart  {
+        width: 90px;
+        font-size: 12px;
     }
 }
 
@@ -80,14 +191,53 @@ header .phone-num {
     }
 
     header img.logo {
-        float: none;
+        margin: 0;
         display: block;
-        margin: auto;
         margin-top: 20px;
-        max-width: 250px;
+        max-width: 49%;
     }
 
     header img.logo:hover {
-        max-width: 252px;
+        max-width: 50%;
+    }
+
+    header div.phone {
+        margin: 0;
+        margin-top: 10px;
+        max-width: 50%;
+    }
+
+    header img.phone-img {
+        margin-top: 10px;
+        max-width: 33px;
+    }
+
+    header p.phone-num {
+        margin-left: 0;
+        font-size: 16px;
+    }
+
+    header p.phone-num span.phone-num-imp {
+        font-size: 18px;
+    }
+
+    header div.user-option button.signup  {
+        font-size: 11px;
+        width: 48px;
+    }
+
+    header div.user-option button.forget  {
+        padding-top: 4px;
+        font-size: 10px;
+    }
+
+    header div.user-option button.cart  {
+        width: 80px;
+    }
+
+    header div.user-option button.login  {
+        font-size: 11px;
+        width: 48px;
+        display: block;
     }
 }
