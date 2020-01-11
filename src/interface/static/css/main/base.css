@@ -63,12 +63,8 @@
   font-weight: 300;
 }
 
-html {
-    box-sizing:border-box
-}
-
 *, *:before, *:after {
-    box-sizing:inherit
+    box-sizing:border-box;
     padding: 0px;
     margin: 0px;
     font-family: Yekan;
@@ -86,6 +82,7 @@ body {
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: cover;
+    background-color: #f8f8f8;
     margin: 0px;
 }
 

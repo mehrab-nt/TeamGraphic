@@ -1,0 +1,28 @@
+{% extends "main/home.html" %}
+{% load static %}
+{% block title %}
+    <title>تیم گرافیک | {{ category.title }}</title>
+{% endblock title %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/main/products.css' %}">
+{% endblock stylesheet %}
+
+{% block page %}
+    {% for item in products.all %}
+        <div class="product-item">
+            {{ item.title }}
+        </div>
+    {% endfor %}
+
+    {{ category }}
+    <br>
+    {{ products.all }}
+
+<br>    <br>    <br>
+    {{ user }}
+    <br>
+    <p>دسته</p>
+    {{ user.user_tg }}
+    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+{% endblock page %}

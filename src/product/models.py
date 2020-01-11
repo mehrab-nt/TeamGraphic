@@ -1,6 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.dispatch import receiver
+from django.urls import reverse
 from django.core import validators
 import os
 
@@ -74,6 +75,9 @@ class Category(models.Model):
 
     def __str__(self):
         return 'دسته: {0}'.format(self.title)
+
+    def geturl(self):
+        return reverse("product:category_show", kwargs={"category_id": self.id})
 
 
 @receiver(models.signals.post_delete, sender=Category)
@@ -161,7 +165,8 @@ class Product(models.Model):
     id = models.CharField(max_length=6, primary_key=True, validators=[validators.MinLengthValidator(6)])
     title = models.CharField(max_length=77, blank=False, validators=[validators.MinLengthValidator(3)])
     preview = models.ImageField(upload_to=product_preview_directory_path, blank=False)
-    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True)
+    category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True,
+                                 related_name='all_product')
     # vector = models.ImageField(upload_to=product_vector_directory_path, blank=True)
     properties = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
     brief_intro = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
@@ -190,9 +195,9 @@ def auto_delete_product_img_on_delete(sender, instance, **kwargs):
     if instance.preview:
         if os.path.isfile(instance.preview.path):
             os.remove(instance.preview.path)
-    if instance.vector:
-        if os.path.isfile(instance.vector.path):
-            os.remove(instance.vector.path)
+    # if instance.vector:
+    #     if os.path.isfile(instance.vector.path):
+    #         os.remove(instance.vector.path)
 
 
 @receiver(models.signals.pre_save, sender=Product)
@@ -201,17 +206,17 @@ def auto_delete_product_img_on_change(sender, instance, **kwargs):
         return False
     try:
         old_preview = TemplateFile.objects.get(pk=instance.id).preview
-        old_vector = TemplateFile.objects.get(pk=instance.id).vector
+        # old_vector = TemplateFile.objects.get(pk=instance.id).vector
     except TemplateFile.DoesNotExist:
         return False
     new_preview = instance.preview
     if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
             os.remove(old_preview.path)
-    new_vector = instance.vector
-    if not old_vector == new_vector:
-        if os.path.isfile(old_vector.path) and old_vector:
-            os.remove(old_vector.path)
+    # new_vector = instance.vector
+    # if not old_vector == new_vector:
+    #     if os.path.isfile(old_vector.path) and old_vector:
+    #         os.remove(old_vector.path)
 
 
 class Side(models.TextChoices):

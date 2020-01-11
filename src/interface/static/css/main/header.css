@@ -2,7 +2,7 @@ header {
     background-repeat: no-repeat;
     background-attachment: fixed;
     background-size: cover;
-    background-color: #fafafa;
+    background-color: #f8f8f8;
     float:right;
     width: 100%;
     height: 10%;
@@ -21,7 +21,7 @@ header h1 {
 
 header div {
     height: 100px;
-    background-color: white;
+    background-color: transparent;
 }
 
 header img.logo {
@@ -51,15 +51,17 @@ header img.phone-img {
 
 header p.phone-num {
     float: left;
-    font-size: 20px;
-    margin-top: 5px;
+    font-size: 22px;
+    margin-top: 11px;
     margin-left: 5px;
+    line-height: 1.5;
 }
 
 header p.phone-num span.phone-num-imp, header p.phone-num span.phone-num-imp-other {
     min-weight: 1000px;
     text-align: justify;
     font-weight: bold;
+    letter-spacing: 1px;
 }
 
 header p.phone-num span.phone-num-imp-other {
@@ -106,7 +108,7 @@ header div.user-option button.forget {
     float: left;
     width: auto;
     text-align: center;
-    background-color: white;
+    background-color: transparent;
     color: #171717;
     font-size: 13px;
     border: none;
@@ -141,6 +143,129 @@ header div.user-option div.cart-icon img {
     max-height: 29px;
 }
 
+header div.signup-form {
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.9);
+    padding: 0;
+    padding-top: 60px;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+}
+
+.modal-content {
+    background-color: transparent;
+    margin: auto;
+    width: 70%;
+    padding: 0;
+    border-radius: 25px;
+    position: relative;
+}
+
+.modal-content .pop-up-img {
+    width: 100%;
+    position: absolute;
+    margin: auto;
+}
+
+.head-form-container {
+    text-align: center;
+    width: 100%;
+    margin-left: 0;
+    position: relative;
+    background-color: transparent;
+    border-radius: 15px;
+    z-index: 3;
+}
+
+.context-form-container {
+    background-color: transparent;
+    position: absolute;
+    text-align: center;
+    width: 400px;
+    margin: 150px 100px 0px;
+    padding: 15px 10px;
+    border-radius: 15px;
+    height: auto;
+    z-index: 2;
+}
+
+.context-form-container input {
+    float: left;
+    text-align: right;
+    width: 60%;
+    padding: 2px 10px;
+    margin-top: 13px;
+    border-radius: 17px;
+    background-color: #ffcc44;
+    border: 2px solid #000;;
+}
+
+.context-form-container label {
+    float: right;
+    text-align: left;
+    width: 40%;
+    padding: 0px 10px;
+    margin-top: 17px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.context-form-container .confirm-button {
+    font-size: 16px;
+    font-weight: bold;
+    text-align: center;
+    float: right;
+    margin: 30px 40% 0px;
+    border: none;
+    background-color: #ffcc00;
+    color: #000;
+    width: auto;
+    padding: 0px 20px;
+    height: 40px;
+    border-radius: 25px;
+    box-shadow: -1px -1px 0px 2px rgba(0,0,0,1);
+}
+
+.context-form-container .confirm-button:hover {
+    background-color: #ffbb22;
+    border-radius: 18px;
+    cursor: pointer;
+}
+
+.close {
+    position: absolute;
+    right: 10px;
+    top: 30px;
+    color: white;
+    font-size: 53px;
+    font-weight: bold;
+}
+
+.close:hover, .close:focus {
+    color: #ffcc00;
+    cursor: pointer;
+}
+
+.animate {
+    -webkit-animation: animatezoom 0.6s;
+    animation: animatezoom 0.6s
+}
+
+@-webkit-keyframes animatezoom {
+    from {-webkit-transform: scale(0)}
+    to {-webkit-transform: scale(1)}
+}
+
+@keyframes animatezoom {
+    from {transform: scale(0)}
+    to {transform: scale(1)}
+}
+
 @media screen and (max-width: 1000px){
     header h1
     {
@@ -149,12 +274,12 @@ header div.user-option div.cart-icon img {
 
     header img.logo {
         margin-right: 0;
-        margin-top: 10px;
-        max-width: 280px;
+        margin-top: 15px;
+        max-width: 260px;
     }
 
     header img.logo:hover {
-        max-width: 282px;
+        max-width: 262px;
     }
 
     header div.phone {
@@ -182,6 +307,12 @@ header div.user-option div.cart-icon img {
         width: 90px;
         font-size: 12px;
     }
+
+    .modal-content {
+        margin: 120px auto 25% auto;
+        border: 1px solid #888;
+        width: 40%;
+    }
 }
 
 @media screen and (max-width: 480px){
@@ -193,7 +324,7 @@ header div.user-option div.cart-icon img {
     header img.logo {
         margin: 0;
         display: block;
-        margin-top: 20px;
+        margin-top: 15px;
         max-width: 49%;
     }
 
@@ -203,22 +334,25 @@ header div.user-option div.cart-icon img {
 
     header div.phone {
         margin: 0;
-        margin-top: 10px;
+        margin-top: 0px;
         max-width: 50%;
     }
 
     header img.phone-img {
-        margin-top: 10px;
+        margin-top: 12px;
         max-width: 33px;
     }
 
     header p.phone-num {
-        margin-left: 0;
         font-size: 16px;
     }
 
     header p.phone-num span.phone-num-imp {
         font-size: 18px;
+    }
+
+    header p.phone-num span.phone-num-imp-other {
+        font-size: 17px;
     }
 
     header div.user-option button.signup  {

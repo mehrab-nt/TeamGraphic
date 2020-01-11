@@ -5,7 +5,7 @@
                 <ul>
                     <li class="dropdown-user">پنل کاربری
                         <div class="dropdown-user-content">
-                            <a href="{% url 'user:user_orders' %}">مدیریت سفارشات</a>
+                            <a href="#">مدیریت سفارشات</a>
                             <a href="{% url 'user:user_profile' %}">تنظیمات</a>
                             <a href="{% url 'user:user_logout' %}">خروج</a>
                         </div>
@@ -18,9 +18,9 @@
             {% else %}
                 <form method="post" action="{% url 'user:user_login' %}">
                     {% csrf_token %}
-                    {# A more "HTML" way of creating the login form #}
                     <input type="text" name="username" placeholder="شماره موبایل" required="required">
                     <input type="password" name="password" placeholder="رمز عبور" required="required">
+                    <input tupe="text" name="current" hidden="hidden" value="{{ req.path }}">
                     <button type="submit" name="" value="Login">ورود</button>
                 </form>
 <!--                    <ul class="fast_login_mob">-->
@@ -36,7 +36,7 @@
                     {% for item in classifications %}
                         <h2 class="cat">{{ item.title }}</h2>
                         {% for sub_item in item.all_category.all %}
-                            <a href="#">{{ sub_item.title }}</a>
+                            <a href="{{ sub_item.geturl }}">{{ sub_item.title }}</a>
                         {% endfor %}
                     {% endfor %}
                 </div>

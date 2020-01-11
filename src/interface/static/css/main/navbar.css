@@ -31,8 +31,8 @@ nav li a, nav li a:visited, .dropdown, .dropdown-user{
     text-align: center;
     text-decoration: none;
     font-size: 13.5px;
-    width: 9%;
-    padding: 4px;
+    width: auto;
+    padding: 4px 15px;
     border-left: 1px solid #ffcc00;
 }
 
@@ -148,9 +148,9 @@ nav div.user input[type=text], nav div.user input[type=password]  {
     margin-top: 0px;
     margin-left: 3px;
     border: none;
-    font-size: 13px;
+    font-size: 12px;
     width: 33%;
-    height: 20px;
+    height: 25px;
     padding: 4px;
     background-color: white;
 }
@@ -200,7 +200,7 @@ nav div.user li.welcome-content:hover p.welcome {
 
     nav li a, nav li a:visited, .dropdown {
         width: auto;
-        padding: 6px 10px;
+        padding: 6px 8px;
         font-size: 12px;
     }
 
@@ -256,6 +256,10 @@ nav div.user li.welcome-content:hover p.welcome {
 }
 
 @media screen and (max-width: 480px) {
+    nav div.base {
+        max-height: 100%;
+    }
+
     nav ul.top_menu li a.main_menu
     {
         display: none;
