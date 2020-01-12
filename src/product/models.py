@@ -11,12 +11,12 @@ def classification_icon_directory_pass(instance, filename):
 
 
 def classification_preview_directory_pass(instance, filename):
-    return './product/static/img/classification/{0}/{1}-preview.jpg'.format(instance.id, instance.id)
+    return './product/static/img/classification/{0}/{1}-preview.png'.format(instance.id, instance.id)
 
 
 class Classification(models.Model):
     id = models.CharField(primary_key=True, max_length=3, validators=[validators.MinLengthValidator(3)])
-    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, unique=True, blank=False, validators=[validators.MinLengthValidator(3)])
     icon = models.ImageField(upload_to=classification_icon_directory_pass, blank=False)
     preview = models.ImageField(upload_to=classification_preview_directory_pass, blank=True)
     description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
@@ -154,7 +154,7 @@ def auto_delete_template_file_on_change(sender, instance, **kwargs):
 
 
 def product_preview_directory_path(instance, filename):
-    return './product/static/img/product/{0}/{1}-preview.jpg'.format(instance.id, instance.id)
+    return './product/static/img/product/{0}/{1}-preview.png'.format(instance.id, instance.id)
 
 
 def product_vector_directory_path(instance, filename):
@@ -168,13 +168,16 @@ class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True,
                                  related_name='all_product')
     # vector = models.ImageField(upload_to=product_vector_directory_path, blank=True)
-    properties = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
-    brief_intro = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
+    properties = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(100)])
+    brief_intro = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(10)])
     long_intro = models.TextField(max_length=5000, blank=True, validators=[validators.MinLengthValidator(10)])
     guidance = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
     template_file = models.ForeignKey('TemplateFile', on_delete=models.SET_NULL, null=True, blank=True,
                                       related_name='product_template')
-    design_feature = models.BooleanField(blank=False)
+    design_base = models.BooleanField(default=False)
+    design_film = models.BooleanField(default=False)
+    design_gold = models.BooleanField(default=False)
+    design_form = models.BooleanField(default=False)
     # point
     # point result
     # comment
@@ -188,6 +191,51 @@ class Product(models.Model):
 
     def __str__(self):
         return '{0}-{1}'.format(self.id, self.title)
+
+    def preview_url(self):
+        return 'img/product/{0}/{1}-preview.png'.format(self.id, self.id)
+
+    def min_price(self):
+        min_price = 0
+        for tmp in self.selling_options.all():
+            if min_price:
+                if tmp.sale_price < min_price:
+                    min_price = tmp.sale_price
+            else:
+                min_price = tmp.sale_price
+        return min_price
+
+    def min_ready(self):
+        min_ready = 0
+        for tmp in self.selling_options.all():
+            if min_ready:
+                if tmp.ready.duration < min_ready:
+                    min_ready = tmp.ready.duration
+            else:
+                min_ready = tmp.ready.duration
+        return min_ready
+
+    def max_ready(self):
+        max_ready = 0
+        for tmp in self.selling_options.all():
+            if max_ready:
+                if tmp.ready.duration > max_ready:
+                    max_ready = tmp.ready.duration
+            else:
+                max_ready = tmp.ready.duration
+        return max_ready
+
+    def file_number(self):
+        num = 0
+        if self.design_base:
+            num += 1
+        if self.design_film:
+            num += 1
+        if self.design_form:
+            num += 1
+        if self.design_gold:
+            num += 1
+        return num
 
 
 @receiver(models.signals.post_delete, sender=Product)
@@ -205,13 +253,15 @@ def auto_delete_product_img_on_change(sender, instance, **kwargs):
     if not instance.id:
         return False
     try:
-        old_preview = TemplateFile.objects.get(pk=instance.id).preview
+        old_preview = Product.objects.get(pk=instance.id).preview
         # old_vector = TemplateFile.objects.get(pk=instance.id).vector
-    except TemplateFile.DoesNotExist:
+    except Product.DoesNotExist:
+        print('1')
         return False
     new_preview = instance.preview
     if not old_preview == new_preview and old_preview:
         if os.path.isfile(old_preview.path):
+            print('2')
             os.remove(old_preview.path)
     # new_vector = instance.vector
     # if not old_vector == new_vector:
@@ -285,13 +335,12 @@ class Design(models.Model):
     title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
     preview = models.ImageField(upload_to=design_preview_directory_path, blank=False)
     vector = models.ImageField(upload_to=design_vector_directory_path, blank=True)
-    base = models.BooleanField(default=False)
     category = models.ForeignKey('Category', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='design_inf')
     price = models.PositiveIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(10000),
                                                                             validators.MaxValueValidator(1000000)])
-    low_price = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(5000),
-                                                                    validators.MaxValueValidator(500000)])
+    # low_price = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(5000),
+    #                                                                 validators.MaxValueValidator(500000)])
     max_time = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(5),
                                                                          validators.MaxValueValidator(300)])
     duration = models.PositiveSmallIntegerField(blank=False, validators=[validators.MinValueValidator(0),

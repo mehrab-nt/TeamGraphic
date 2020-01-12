@@ -7,7 +7,7 @@ import os
 
 class CartStatus(models.TextChoices):
     Record = 'rec', 'در حال ثبت'
-    Check = 'chk', 'در حال بررسی'
+    Check = 'chk', 'ثبت شده و در حال بررسی'
     Preparation = 'pre', 'آماده سازی'
     Ready = 'rdy', 'آماده تحویل'
     Delivery = 'del', 'آماده ارسال'
@@ -37,26 +37,74 @@ class Cart(models.Model):
         return 'Cart-{0}'.format(self.cart_id)
 
 
+class DesignFeature(models.TextChoices):
+    NEW_DESIGN = 'new', 'سفارش طراحی'
+    SEND_FILE = 'snd', 'ارسال فایل طرح'
+    OLD_DESIGN = 'old', 'سفارش مجدد طرح قبلی'
+    NONE = 'non', 'بدون طرح'
+
+
 class Order(models.Model):
     order_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
     cart = models.ForeignKey('Cart', on_delete=models.SET_NULL, null=True, blank=False,
                              related_name='cart_orders')
     status = models.ForeignKey('Status', on_delete=models.SET_NULL, null=True, blank=False,
                                related_name='sub_orders')
-    # product = models.ForeignKey('Product', on_delete=models.SET_NULL, null=True, blank=False,
-    #                             related_name='in_orders')
-    design_feature = models.BooleanField(blank=False, default=False)
+    product = models.ForeignKey('product.Product', on_delete=models.SET_NULL, null=True, blank=False,
+                                related_name='product_in_orders')
+    design_feature = models.CharField(max_length=3, blank=False,
+                                      choices=DesignFeature.choices, default=DesignFeature.SEND_FILE)
+    design = models.ForeignKey('product.Design', on_delete=models.SET_NULL, null=True, blank=True,
+                               related_name='design_in_orders')
+    older_order = models.ForeignKey('Order', on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name='top_order')
     count = models.IntegerField(default=1, blank=False, validators=[validators.MinValueValidator(1),
                                                                     validators.MaxValueValidator(10)])
     description = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(10)])
     duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
                                                                        validators.MaxValueValidator(30)])
     ready_date = models.DateField(blank=False)
-    cost = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
-                                                                validators.MaxValueValidator(99999999)])
+    product_cost = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(0),
+                                                                       validators.MaxValueValidator(99999999)])
+    design_cost = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(0),
+                                                                      validators.MaxValueValidator(99999999)])
+    tot_cost = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(0),
+                                                                   validators.MaxValueValidator(99999999)])
 
     def __str__(self):
         return 'Order-{0}'.format(self.order_id)
+
+    def number_of_file(self):
+        if self.design_feature != 'non':
+            return self.product.file_number()
+        else:
+            return 0
+
+
+class FileName(models.TextChoices):
+    FRONT = 'front', 'رو'
+    BACK = 'back', 'پشت'
+    FRONT_FILM = 'front_film', 'فیلم رو'
+    BACK_FILM = 'back_film', 'فیلم پشت'
+    FRONT_GOLD = 'front_gold', 'طلاکوب رو'
+    BACK_GOLD = 'back_gold', 'طلاکوب پشت'
+    FRONT_FORM = 'front_form', 'قالب رو'
+    BACK_FORM = 'back_form', 'قالب پشت'
+
+
+def order_upload_file_directory_path(instance, filename):
+    return './order/static/file/orders/{0}_{1}_{2}/{3}_{4}.jpg'\
+        .format(timezone.datetime.now().year, timezone.datetime.now().month, timezone.datetime.now().day,
+                instance.user.username, instance.order.order_id)
+
+
+class UploadFile(models.Model):
+    title = models.CharField(max_length=22, blank=False, choices=FileName.choices)
+    user = models.ForeignKey('user.UserTG', on_delete=models.CASCADE, blank=True, null=True,
+                             related_name='user_files')
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, blank=True, null=True,
+                              related_name='order_files')
+    file = models.ImageField(upload_to=order_upload_file_directory_path, blank=False)
 
 
 class Type(models.TextChoices):

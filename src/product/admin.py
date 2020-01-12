@@ -8,8 +8,8 @@ class SellingOptionInline(admin.TabularInline):
 
 
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'preview', 'category', 'brief_intro', 'guidance', 'design_feature')
-    list_editable = ('title', 'category', 'design_feature')
+    list_display = ('id', 'title', 'preview', 'category', 'brief_intro', 'guidance', 'design_base')
+    list_editable = ('title', 'category')
     # fieldsets = (
     #
     # )
@@ -29,8 +29,8 @@ class CategoryAdmin(admin.ModelAdmin):
 
 
 class DesignAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'preview', 'vector', 'category', 'price', 'low_price', 'max_time', 'duration')
-    list_editable = ('title', 'category', 'price', 'low_price', 'max_time', 'duration')
+    list_display = ('id', 'title', 'preview', 'vector', 'category', 'price', 'max_time', 'duration')
+    list_editable = ('title', 'category', 'price', 'max_time', 'duration')
 
 
 admin.site.register(Classification, ClassificationAdmin)

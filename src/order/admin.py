@@ -20,8 +20,8 @@ class CartAdmin(admin.ModelAdmin):
 
 class OrderAdmin(admin.ModelAdmin):
     list_display = ('order_id', 'cart', 'status', 'design_feature', 'count',
-                    'description', 'cost', 'duration', 'ready_date')
-    list_editable = ('status', 'design_feature', 'description', 'cost', 'duration')
+                    'description', 'product_cost', 'design_cost', 'tot_cost', 'duration', 'ready_date')
+    list_editable = ('status', 'design_feature', 'description', 'duration')
 
 
 class StatusAdmin(admin.ModelAdmin):

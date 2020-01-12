@@ -17,7 +17,8 @@
 
     {% else %}
         <button class="signup" onclick="document.getElementById('signup').style.display='block'">ثبت نام</button>
-        <button class="forget" onclick="document.getElementById('forget').style.display='block'">فراموشی رمز عبور</button>
+        <button class="guest" onclick="document.getElementById('signup').style.display='block'">مهمان عزیز ثبت نام نکرده اید؟</button>
+        <button class="forget" onclick="document.getElementById('forget').style.display='block'">( فراموشی رمز عبور )</button>
     {% endif %}
     </div>
     {% if registered %}
@@ -27,18 +28,14 @@
             <div class="modal-content animate">
                 <form enctype="multipart/form-data" method="post" action="{% url 'user:user_signup' %}">
                     {% csrf_token %}
-                    <div class="head-form-container">
+                    <div>
                         <span onclick="document.getElementById('signup').style.display='none'" class="close" title="بستن">&times;</span>
                     </div>
                     <div class="context-form-container">
-                        <label for="username">شماره موبایل</label>
-                        <input type="text" name="username" required="required" minlength="11" maxlength="11">
-                        <label for="username">رمز عبور</label>
-                        <input type="password" name="password" minlength="8" maxlength="15" required="required">
-                        <label for="username">نام</label>
-                        <input type="text" name="first_name" required="required" minlength="3" maxlength="20">
-                        <label for="username">نام خانوادگی</label>
-                        <input type="text" name="last_name" required="required" minlength="3" maxlength="20">
+                        <label for="username"><input type="text" name="username" required="required" minlength="11" maxlength="11">شماره موبایل</label>
+                        <label for="password"><input type="password" name="password" required="required" minlength="8" maxlength="15">رمز عبور</label>
+                        <label for="first_name"><input type="text" name="first_name" required="required" minlength="3" maxlength="20">نام</label>
+                        <label for="last_name"><input type="text" name="last_name" required="required" minlength="3" maxlength="20">نام خانوادگی</label>
                         <input tupe="text" name="current" hidden="hidden" value="{{ req.path }}">
                         <input class="confirm-button" type="submit" name="" value="تایید">
                     </div>
@@ -54,8 +51,7 @@
                         <span onclick="document.getElementById('forget').style.display='none'" class="close" title="بستن">&times;</span>
                     </div>
                     <div class="context-form-container">
-                        <label for="username">شماره موبایل</label>
-                        <input type="text" name="username" required="required" minlength="11" maxlength="11">
+                        <label for="username"><input type="text" name="username" required="required" minlength="11" maxlength="11">شماره موبایل</label>
                         <div style="display: none;">
                             <label for="username">کد دریافتی</label>
                             <input type="number" name="confirm" required="required" value="">

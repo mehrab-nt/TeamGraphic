@@ -1,28 +1,37 @@
 {% extends "main/home.html" %}
 {% load static %}
+{% load interface_tag %}
+
+{% block meta %}
+    <meta name="keywords" content="teamgraphic">
+{% endblock meta %}
+
 {% block title %}
     <title>تیم گرافیک | {{ category.title }}</title>
 {% endblock title %}
 
 {% block stylesheet %}
-    <link rel="stylesheet" type="text/css" href="{% static 'css/main/products.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_box.css' %}">
 {% endblock stylesheet %}
 
 {% block page %}
+    <div class="category">
+        <h1>{{ category.title }}</h1>
+    </div>
     {% for item in products.all %}
         <div class="product-item">
-            {{ item.title }}
+            <img class="product-img" src="{% static item.preview_url %}">
+            <h2 class="product-name">{{ item.title }}</h2>
+            <div class="product-ready">
+                {% if item.min_ready == item.max_ready %}
+                    <p>تحویل {{ item.min_ready|per_num }} روزه کاری</p>
+                {% else %}
+                    <p>تحویل از {{ item.min_ready|per_num }} تا {{ item.max_ready|per_num }} روزه کاری</p>
+                {% endif %}
+            </div>
+            <div class="product-min-price">
+                <p>قیمت از <span class="price">{{ item.min_price|per_num }}</span> تومان </p>
+            </div>
         </div>
     {% endfor %}
-
-    {{ category }}
-    <br>
-    {{ products.all }}
-
-<br>    <br>    <br>
-    {{ user }}
-    <br>
-    <p>دسته</p>
-    {{ user.user_tg }}
-    <br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 {% endblock page %}

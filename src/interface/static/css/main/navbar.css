@@ -99,7 +99,7 @@ nav li p {
 
 .dropdown-content a, .dropdown-user-content a {
     float: right;
-    width: 28%;
+    width: 31.33%;
     padding: 3px 1.66%;
     margin: 3px 1%;
     border: none;
@@ -116,13 +116,13 @@ nav li p {
     border-left: 3px solid #ffcc00;
     font-size: 13px;
     padding: 3px 4%;
-    margin: 3px 1%;
+    margin: 3px 0;
     float: left;
-    width: 88%;
+    width: 100%;
     text-align: left;
 }
 
-.dropdown-content h2.cat {
+.dropdown-content strong.cat {
     float: right;
     padding: 0px 1%;
     margin: 3px 1%;
@@ -228,8 +228,6 @@ nav div.user li.welcome-content:hover p.welcome {
     .dropdown-user-content a {
         font-size: 11px;
         padding: 3px 4%;
-        margin: 3px 1%;
-        width: 90%;
         text-align: left;
     }
 
@@ -315,15 +313,12 @@ nav div.user li.welcome-content:hover p.welcome {
 
     .dropdown-user-content {
         left: 0;
-        width: 30%;
+        width: 40%;
     }
 
     .dropdown-user-content a {
         font-size: 11px;
         padding: 3px 4%;
-        margin: 3px 1%;
-        width: 90%;
-        text-align: left;
     }
 
     .dropdown-content {

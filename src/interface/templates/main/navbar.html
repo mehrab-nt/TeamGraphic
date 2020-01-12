@@ -34,7 +34,7 @@
             <li class="dropdown">محصولات
                 <div class="dropdown-content">
                     {% for item in classifications %}
-                        <h2 class="cat">{{ item.title }}</h2>
+                        <strong class="cat">{{ item.title }}</strong>
                         {% for sub_item in item.all_category.all %}
                             <a href="{{ sub_item.geturl }}">{{ sub_item.title }}</a>
                         {% endfor %}
