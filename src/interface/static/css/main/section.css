@@ -1,16 +1,23 @@
 section {
-    position: relative;
+    float: left;
     background-color: transparent;
-    float:right;
-    width: 70%;
+    width: 100%;
     height: auto;
-    margin-right: 15%;
     padding: 0px 0px;
-    z-index: -1;
+    z-index: 0;
 }
 
-@media screen and (max-width: 1000px){
-    section {
+article {
+    position: relative;
+    background-color: transparent;
+    width: 1200px;
+    height: auto;
+    margin: auto;
+    padding: 0px 0px;
+}
+
+@media screen and (max-width: 1250px){
+    article {
         width: 100%;
         margin-right: 0px;
     }

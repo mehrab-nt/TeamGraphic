@@ -1,11 +1,13 @@
 {% extends "main/base.html" %}
 {% load static %}
+{% load interface_tag %}
 {% block title %}
     <title>چاپ و تبلیغات تیم گرافیک</title>
 {% endblock title %}
 
 {% block stylesheet %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/slideshow.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_box.css' %}">
 {% endblock stylesheet %}
 
 {% block js %}
@@ -15,9 +17,24 @@
 
 {% block page %}
     {% include "main/slideshow.html" %}
-    {{ user }}
-    <br>
-    {{ user.user_tg }}
-    <br>
-<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
+    <div class="category">
+        <h1>محصولات چاپ تیم گرافیک</h1>
+        {% for item in category %}
+        <a class="product-item" href="{{ item.geturl }}">
+            <img class="product-img" src="{% static item.preview_url %}" alt="{{ item.title }}">
+            <h2 class="product-name">{{ item.title }}</h2>
+<!--                <div class="product-ready">-->
+<!--                    {% if item.min_ready == item.max_ready %}-->
+<!--                        <p>تحویل {{ item.min_ready|per_num }} روزه کاری</p>-->
+<!--                    {% else %}-->
+<!--                        <p>تحویل از {{ item.min_ready|per_num }} تا {{ item.max_ready|per_num }} روزه کاری</p>-->
+<!--                    {% endif %}-->
+<!--                </div>-->
+<!--                <div class="product-min-price">-->
+<!--                    <p>قیمت از <span class="price">{{ item.min_price|per_num }}</span> تومان </p>-->
+<!--                </div>-->
+        </a>
+        {% endfor %}
+    </div>
+<br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br><br>
 {% endblock page %}

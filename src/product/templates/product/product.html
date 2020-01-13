@@ -1,0 +1,41 @@
+{% extends "main/home.html" %}
+{% load static %}
+{% load interface_tag %}
+
+{% block meta %}
+    <meta name="keywords" content="teamgraphic ,تیم گرافیک ,{{ product.title }}">
+{% endblock meta %}
+
+{% block title %}
+    <title>تیم گرافیک | {{ product.title }}</title>
+{% endblock title %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_selling.css' %}">
+{% endblock stylesheet %}
+
+{% block page %}
+    {% include "product/order_level.html" %}
+<!--    {% block active-level %}-->
+<!--    <script>-->
+<!--        document.getElementById('level1-2').setAttribute("class" ,"active-middle-level");-->
+<!--        document.getElementById('level2').setAttribute("class" ,"active-level");-->
+<!--    </script>-->
+<!--    {% endblock active-level %}-->
+    <div class="selling">
+        <div class="product-side">
+            <div class="product-container">
+                <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
+                <h1>{{ product.title }}</h1>
+            </div>
+            <div class="intro-container">
+                {{ product.guidance|safe }}
+            </div>
+        </div>
+        <div class="product-main">
+            {% for item in selling_options.all %}
+            <p>{{ item.sale_price }} {{ item.count }} {{ item.ready }} {{ item.size }} {{ item.side }}</p>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock page %}

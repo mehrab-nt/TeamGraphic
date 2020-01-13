@@ -1,0 +1,99 @@
+div.selling {
+    float: right;
+    width: 100%;
+    margin: 10px 0px;
+}
+
+div.product-side {
+    float: left;
+    width: 30%;
+    border-right: 2px solid rgb(0,0,0,0.1);
+    padding: 5px 15px 5px 0px;
+}
+
+div.product-side .product-container, div.product-side .intro-container {
+    float: left;
+    width: 100%;
+    color: #171717;
+    font-size: 14px;
+    display: block;
+    margin-bottom: 10px;
+    height: auto;
+    padding: 0.5vw 0.2vw 0.3vw;
+    background-color: #fff;
+    text-align: center;
+    border-radius: 1vw;
+    border: 0.15vw solid white;
+    box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.1);
+}
+
+div.product-side .product-container:hover {
+    transition: 0.5s;
+    padding: 0.3vw 0.2vw 0.5vw;
+    box-shadow: 0px 0px 12px 3px rgba(0,0,0,0.2);
+    border: 0.15vw solid #ffcc00;
+}
+
+div.product-side .intro-container:hover {
+    transition: 0.5s;
+    box-shadow: 0px 0px 8px 3px rgba(0,0,0,0.2);
+}
+
+div.product-side .product-container .product-img {
+    width: 100%;
+    border-radius: 1vw;
+    border: 2px solid transparent;
+}
+
+div.product-side h1 {
+    text-align: center;
+    font-size: 110%;
+    padding: 5px;
+}
+
+div.product-side .intro-container ul {
+    float: right;
+    direction: rtl;
+    text-align: right;
+    margin-right: 25px;
+}
+
+div.product-side .intro-container ul {
+    list-style-type: none;
+    float: right;
+    direction: rtl;
+    text-align: right;
+    margin: 0px;
+    padding: 0;
+}
+
+div.product-side .intro-container li {
+    margin-right: 10px;
+    word-spacing: 2px;
+}
+
+div.product-side .intro-container li:hover {
+    color: #ffcc00;
+}
+
+div.product-main {
+    float: right;
+    width: 70%;
+    padding: 5px 0px 5px 15px;
+}
+
+@media screen and (max-width: 1250px) {
+    div.selling {
+        width: 100%;
+        padding: 0 15px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    div.product-side {
+        float: left;
+        width: 50%;
+        border-right: 2px solid rgb(0,0,0,0.1);
+        padding: 5px 15px 5px 0px;
+    }
+}

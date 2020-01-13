@@ -110,10 +110,6 @@ a:visited {
     color: gray;
 }
 
-a:hover, a:active{
-    color: #ffcc00;
-}
-
 .cursor {
     cursor: pointer;
 }

@@ -3,7 +3,7 @@
 {% load interface_tag %}
 
 {% block meta %}
-    <meta name="keywords" content="teamgraphic">
+    <meta name="keywords" content="teamgraphic ,تیم گرافیک ,{{ category.title }}">
 {% endblock meta %}
 
 {% block title %}
@@ -17,10 +17,9 @@
 {% block page %}
     <div class="category">
         <h1>{{ category.title }}</h1>
-    </div>
-    {% for item in products.all %}
-        <div class="product-item">
-            <img class="product-img" src="{% static item.preview_url %}">
+        {% for item in products.all %}
+        <a class="product-item" href="{{ item.geturl }}">
+            <img class="product-img" src="{% static item.preview_url %}" alt="{{ item.title }}">
             <h2 class="product-name">{{ item.title }}</h2>
             <div class="product-ready">
                 {% if item.min_ready == item.max_ready %}
@@ -32,6 +31,7 @@
             <div class="product-min-price">
                 <p>قیمت از <span class="price">{{ item.min_price|per_num }}</span> تومان </p>
             </div>
-        </div>
-    {% endfor %}
+        </a>
+        {% endfor %}
+    </div>
 {% endblock page %}

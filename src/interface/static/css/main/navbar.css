@@ -6,12 +6,13 @@ nav {
     background-color: #eee;
     user-select: none;
     -webkit-user-select: none;
+    z-index: 2;
 }
 
 nav div.base {
-    width: 70%;
-    float: right;
-    margin-right: 15%;
+    width: 1200px;
+    margin: auto;
+    position: relative;
 }
 
 nav .sub_menu {
@@ -60,7 +61,7 @@ nav li a:hover, nav li a:active {
     background-color: #ffcc00;
     color: #171717;
     text-decoration: none;
-    transition: 0.5s;
+    transition: 0.3s;
 }
 
 nav li p {
@@ -68,6 +69,7 @@ nav li p {
 }
 
 .dropdown, .dropdown-user{
+    transition: 0.3s;
     cursor: pointer;
 }
 
@@ -84,16 +86,16 @@ nav li p {
     padding: 3px;
     display: none;
     position: absolute;
-    right: 15%;
+    right: 0;
     background-color: #f1f1f1;
     box-shadow: 0px 5px 8px 0px rgba(0,0,0,0.4);
     z-index: 1;
-    width: 45%;
+    width: 800px;
 }
 
 .dropdown-user-content {
-    left: 15%;
-    width: 10%;
+    left: 0;
+    width: 300px;
     margin-top: 2px;
 }
 
@@ -192,7 +194,7 @@ nav div.user li.welcome-content:hover p.welcome {
     cursor: pointer;
 }
 
-@media screen and (max-width: 1000px) {
+@media screen and (max-width: 1250px) {
     nav div.base {
         width: 100%;
         margin: 0;

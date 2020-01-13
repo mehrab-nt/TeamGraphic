@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="author" content="MahdiYar">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="چاپ و تبلیغات تیم گرافیک :: سفارش آنلاین محصولات چاپی افست - دیجیتال - لارج فرمت">
+    <meta name="description" content="چاپ و تبلیغات تیم گرافیک , سفارش آنلاین محصولات چاپی افست , دیجیتال , لارج فرمت">
 
     {% block meta %}
         <meta name="keywords" content="تیم گرافیک, پرینت, ریسو, پاکت, پوستر, کارت ویزیت, تراکت, تبلیغات, چاپ, teamgraphic">
@@ -14,12 +14,13 @@
     {% block title %}
         <title>تیم گرافیک - TeamGraphic</title>
     {% endblock title %}
+
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/base.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/navbar.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/header.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/footer.css' %}">
     <link rel="stylesheet" type="text/css" href="{% static 'css/main/section.css' %}">
-    <!-- <link rel="stylesheet" type="text/css" href="{% static 'css/main/w3.css' %}">-->
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/order_level.css' %}">
 
     {% block stylesheet %}
         <!-- replace me!!! -->
@@ -46,13 +47,15 @@
     {% endblock navbar %}
 
     <section>
+        <article>
         {% block page %}
-        <br><br><br><br><br><br><br>
-        <br><br><br><br><br><br><br>
-        <br><br><br><br><br><br><br>
-        <br><br><br><br><br><br><br>
-        <br><br><br><br><br><br><br>
+            <br><br><br><br><br><br><br>
+            <br><br><br><br><br><br><br>
+            <br><br><br><br><br><br><br>
+            <br><br><br><br><br><br><br>
+            <br><br><br><br><br><br><br>
         {% endblock page %}
+        </article>
     </section>
 
     {% block footer %}

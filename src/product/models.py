@@ -60,7 +60,7 @@ def category_icon_directory_pass(instance, filename):
 
 
 def category_preview_directory_pass(instance, filename):
-    return './product/static/img/category/{0}/{1}-preview.jpg'.format(instance.id, instance.id)
+    return './product/static/img/category/{0}/{1}-preview.png'.format(instance.id, instance.id)
 
 
 class Category(models.Model):
@@ -72,12 +72,16 @@ class Category(models.Model):
                                        related_name='all_category')
     description = models.TextField(max_length=2020, blank=True, validators=[validators.MinLengthValidator(3)])
     order = models.PositiveSmallIntegerField(default=0, unique=True)
+    main = models.BooleanField(default=False)
 
     def __str__(self):
         return 'دسته: {0}'.format(self.title)
 
     def geturl(self):
         return reverse("product:category_show", kwargs={"category_id": self.id})
+
+    def preview_url(self):
+        return 'img/category/{0}/{1}-preview.png'.format(self.id, self.id)
 
 
 @receiver(models.signals.post_delete, sender=Category)
@@ -178,6 +182,9 @@ class Product(models.Model):
     design_film = models.BooleanField(default=False)
     design_gold = models.BooleanField(default=False)
     design_form = models.BooleanField(default=False)
+    services = models.ManyToManyField('Service', db_index=True, blank=False,
+                                      related_name="all_service", through='ProductServices')
+
     # point
     # point result
     # comment
@@ -191,6 +198,9 @@ class Product(models.Model):
 
     def __str__(self):
         return '{0}-{1}'.format(self.id, self.title)
+
+    def geturl(self):
+        return reverse("product:product_show", kwargs={"product_id": self.id})
 
     def preview_url(self):
         return 'img/product/{0}/{1}-preview.png'.format(self.id, self.id)
@@ -269,6 +279,40 @@ def auto_delete_product_img_on_change(sender, instance, **kwargs):
     #         os.remove(old_vector.path)
 
 
+class Service(models.Model):
+    title = models.CharField(max_length=30, blank=False, validators=[validators.MinLengthValidator(2)])
+    cost = models.PositiveIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(1000),
+                                                                           validators.MaxValueValidator(1000000)])
+    description = models.CharField(max_length=300, blank=True, validators=[validators.MinLengthValidator(3)])
+
+    def __str__(self):
+        return '{0}'.format(self.title)
+
+
+class ProductServices(models.Model):
+    product = models.ForeignKey('Product', on_delete=models.CASCADE,
+                                related_name="product_all_service")
+    service = models.ForeignKey('Service', on_delete=models.CASCADE,
+                                related_name="for_product")
+    difference = models.IntegerField(default=0, blank=False)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return '{0}-{1}'.format(self.service.title, self.product.title)
+
+
+class OrderProductServices(models.Model):
+    order = models.ForeignKey('order.Order', on_delete=models.CASCADE,
+                              related_name="order_all_services")
+    product_service = models.ForeignKey('ProductServices', on_delete=models.CASCADE,
+                                        related_name="number_in_order")
+    number = models.PositiveSmallIntegerField(default=1, blank=False, validators=[validators.MinValueValidator(1),
+                                                                                  validators.MaxValueValidator(1000)])
+
+    def __str__(self):
+        return '{0}-{1}'.format(self.pk, self.product_service)
+
+
 class Side(models.TextChoices):
     EMP = 0, 'غیر فعال'
     ONE = 1, 'یک رو'
@@ -298,6 +342,9 @@ class Size(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
+    class Meta:
+        ordering = ['-len']
+
 
 class Ready(models.Model):
     title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
@@ -305,6 +352,9 @@ class Ready(models.Model):
 
     def __str__(self):
         return '{0}'.format(self.title)
+
+    class Meta:
+        ordering = ['-duration']
 
 
 class Color(models.Model):
@@ -424,4 +474,7 @@ class SellingOption(models.Model):
 
     def __str__(self):
         return '{0}'.format(self.product)
+
+    class Meta:
+        ordering = ['size', 'ready', 'count', 'side', ]
 

@@ -20,15 +20,17 @@ header h1 {
 }
 
 header div {
+    width: 1200px;
     height: 100px;
     background-color: transparent;
+    margin: auto;
 }
 
 header img.logo {
     float: right;
-    margin-right: 15%;
     margin-top: 10px;
     max-width: 370px;
+    transition: 0.3s;
 }
 
 header img.logo:hover {
@@ -37,7 +39,6 @@ header img.logo:hover {
 
 header div.phone {
     float: left;
-    margin-left: 15%;
     max-width: 700px;
     font-family: Shabnam;
     font-weight: bold;
@@ -58,7 +59,7 @@ header p.phone-num {
 }
 
 header p.phone-num span.phone-num-imp, header p.phone-num span.phone-num-imp-other {
-    min-weight: 1000px;
+    min-width: 200px;
     text-align: justify;
     font-weight: bold;
     letter-spacing: 1px;
@@ -75,9 +76,8 @@ header p.phone-num span.phone-num-imp:hover {
 
 header div.user-option {
     height: 30px;
-    float: left;
-    margin-left: 15%;
-    width: 70%;
+    width: 1200px;
+    margin: auto;
     margin-bottom: 3px;
 }
 
@@ -97,6 +97,7 @@ header div.user-option button.signup, header div.user-option button.login {
 
 header div.user-option button.login  {
     display: none;
+    transition: 0.3s;
 }
 
 header div.user-option button.signup:hover, header div.user-option button.login:hover {
@@ -135,10 +136,10 @@ header div.user-option button.cart {
     border: none;
     cursor: pointer;
     border-radius: 40px;
+    transition: 0.3s;
 }
 
 header div.user-option div.cart-icon {
-    float: left;
     height: auto;
 }
 
@@ -259,7 +260,11 @@ header div.signup-form {
     to {transform: scale(1)}
 }
 
-@media screen and (max-width: 1000px){
+@media screen and (max-width: 1250px){
+    header div {
+        width: 100%;
+    }
+
     header h1
     {
         font-size: 24px;
@@ -268,22 +273,25 @@ header div.signup-form {
     header img.logo {
         margin-right: 5px;
         margin-top: 15px;
-        max-width: 260px;
+        width: 33%;
+        min-width: 250px;
     }
 
     header img.logo:hover {
-        max-width: 262px;
+        width: 34%;
     }
 
     header div.phone {
         float: left;
         margin-left: 5px;
-        max-width: 700px;
+        width: auto;
     }
 
     header div.user-option {
         margin: 0;
         margin-bottom: 3px;
+        float: left;
+        width: 100%;
     }
 
     header div.user-option button.signup {
@@ -340,11 +348,12 @@ header div.signup-form {
         padding-right: 5px;
         display: block;
         margin-top: 27px;
-        max-width: 49%;
+        width: 49%;
+        min-width: 100px;
     }
 
     header img.logo:hover {
-        max-width: 50%;
+        width: 50%;
     }
 
     header div.phone {

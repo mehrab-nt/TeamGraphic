@@ -1,0 +1,36 @@
+{% load static %}
+<div class="order-level">
+    <div id="level1" class="default-level">
+    مشخصات محصول
+    </div>
+    <div id="level1-2" class="default-middle-level">
+         <p>❮</p>
+    </div>
+    <div id="level2" class="default-level">
+    فـــرم طــراحی
+    </div>
+    <div id="level2-3" class="default-middle-level">
+         <p>❮</p>
+    </div>
+    <div id="level3" class="default-level">
+    بررسی ویرایش
+    </div>
+    <div id="level3-4" class="default-middle-level">
+         <p>❮</p>
+    </div>
+    <div id="level4" class="default-level">
+    نحـوه ارســال
+    </div>
+    <div id="level4-5" class="default-middle-level">
+         <p>❮</p>
+    </div>
+    <div id="level5" class="default-level">
+    پـرداخـت ثـــبـت
+    </div>
+</div>
+
+{% block active-level %}
+    <script>
+        document.getElementById('level1').setAttribute("class" ,"active-level");
+    </script>
+{% endblock active-level %}

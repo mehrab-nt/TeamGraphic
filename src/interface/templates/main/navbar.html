@@ -20,7 +20,7 @@
                     {% csrf_token %}
                     <input type="text" name="username" placeholder="شماره موبایل" required="required">
                     <input type="password" name="password" placeholder="رمز عبور" required="required">
-                    <input tupe="text" name="current" hidden="hidden" value="{{ req.path }}">
+                    <input type="text" name="current" hidden="hidden" value="{{ req.path }}">
                     <button type="submit" name="" value="Login">ورود</button>
                 </form>
 <!--                    <ul class="fast_login_mob">-->

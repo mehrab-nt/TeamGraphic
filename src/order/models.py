@@ -70,6 +70,8 @@ class Order(models.Model):
                                                                       validators.MaxValueValidator(99999999)])
     tot_cost = models.PositiveIntegerField(blank=True, validators=[validators.MinValueValidator(0),
                                                                    validators.MaxValueValidator(99999999)])
+    product_services = models.ManyToManyField('product.ProductServices', db_index=True, blank=True,
+                                              related_name="in_orders", through='product.OrderProductServices')
 
     def __str__(self):
         return 'Order-{0}'.format(self.order_id)
