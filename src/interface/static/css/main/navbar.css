@@ -31,9 +31,9 @@ nav li a, nav li a:visited, .dropdown, .dropdown-user{
     color: #171717;
     text-align: center;
     text-decoration: none;
-    font-size: 13.5px;
+    font-size: 14px;
     width: auto;
-    padding: 4px 15px;
+    padding: 7px 17px;
     border-left: 1px solid #ffcc00;
 }
 
@@ -44,8 +44,8 @@ nav li a, nav li a:visited, .dropdown, .dropdown-user{
 
 .dropdown-user {
     height: 30px;
-    margin-top: 3px;
-    padding:0;
+    margin-top: 7px;
+    padding: 0;
     float: left;
     width: 120px;
     text-align: center;
@@ -147,12 +147,12 @@ nav div.user {
 
 nav div.user input[type=text], nav div.user input[type=password]  {
     text-align: center;
-    margin-top: 0px;
+    margin-top: 7px;
     margin-left: 3px;
     border: none;
     font-size: 12px;
     width: 33%;
-    height: 25px;
+    height: 30px;
     padding: 4px;
     background-color: white;
 }
@@ -162,7 +162,7 @@ nav div.user button {
     width: 60px;
     height: 100%;
     float: left;
-    margin-top: 5px;
+    margin-top: 8px;
     background-color: #ffcc00;
     color: #171717;
     font-size: 13px;
@@ -185,7 +185,7 @@ nav div.user li p.welcome {
 
 nav div.user li p.welcome {
     border: none;
-    padding: 5px 4px;
+    padding: 8px 4px;
 }
 
 nav div.user li.welcome-content:hover p.welcome {
@@ -202,7 +202,7 @@ nav div.user li.welcome-content:hover p.welcome {
 
     nav li a, nav li a:visited, .dropdown {
         width: auto;
-        padding: 6px 8px;
+        padding: 6px 12px;
         font-size: 12px;
     }
 
@@ -210,6 +210,7 @@ nav div.user li.welcome-content:hover p.welcome {
         padding-top: 2px;
         font-size: 12px;
         width: 90px;
+        margin-top: 3px;
     }
 
     .dropdown-content {
@@ -238,11 +239,14 @@ nav div.user li.welcome-content:hover p.welcome {
     }
 
     nav div.user input[type=text], nav div.user input[type=password]  {
+        margin-top: 2px;
         font-size: 11px;
         width: 30%;
+        height: 26px;
     }
 
     nav div.user button {
+        margin-top: 5px;
         width: 50px;
         font-size: 12px;
         padding: 1px 0px;

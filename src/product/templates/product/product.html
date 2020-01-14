@@ -33,9 +33,95 @@
             </div>
         </div>
         <div class="product-main">
-            {% for item in selling_options.all %}
-            <p>{{ item.sale_price }} {{ item.count }} {{ item.ready }} {{ item.size }} {{ item.side }}</p>
-            {% endfor %}
+            {% if size %}
+                <div id="size-container">
+                    <div class="head-option">
+                        <img src="{% static 'img/main/icon-color.png' %}">
+                        <p>: ابعـاد چاپ</p>
+                    </div>
+                    {% for item in size %}
+                        <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                                            <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                                            <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                                            <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                                            <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                                            <div id="size-item" class="default-item">
+                            <p>{{ item }}</p>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div id="ready-container">
+                <div class="head-option-left">
+                    <p>تاریخ تحویل</p>
+                </div>
+                {% for item in ready %}
+                    <div id="ready-item" class="default-item">
+                        {% if item.duration %}
+                        <p>{{ item }}<br>{{ item.duration|per_num }}<br>روزکاری</p>
+<!--                            {{ ready_date }}-->
+                        {% else %}
+                        <p>{{ item }}<br>امروز</p>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+            <div id="count-container">
+                <div class="head-option">
+                    <img src="{% static 'img/main/icon-color.png' %}">
+                    <p>: تیراژ</p>
+                </div>
+<!--                <div class="head-option side">-->
+<!--                    <p>یک رو</p>-->
+<!--                </div>-->
+<!--                <div class="head-option side">-->
+<!--                    <p>دو رو</p>-->
+<!--                </div>-->
+                {% for item in selling_options.all %}
+                    <div id="count-item" class="default-item">
+                        <p>{{ item.count|per_num }}</p>
+                    </div>
+<!--                    <div id="option-price-item" class="default-item">-->
+<!--                        <button>!!!</button>-->
+<!--                        <p>{{ item.sale_price }}</p>-->
+<!--                    </div>-->
+                {% endfor %}
+            </div>
+            <div id="price-container">
+                {% if side_num == 2 %}
+                    <div class="head-option side1">
+                        <p>دو رو</p>
+                    </div>
+                    <div class="head-option side2">
+                        <p>یک رو</p>
+                    </div>
+                {% else %}
+                    <div class="head-option side0">
+                        {% if side_type != 0 %}
+                            <p>دو رو</p>
+                        {% else %}
+                            <p>قیمت</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                {% for item in selling_options.all %}
+                <label id="price-item" class="default-item price-item{{ item.side }}">
+                    <input type="radio" name="product_sale" value="{{ item.id }}">
+                    <span class="checkmark"></span>
+                    <p><span class="toman">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>
+                </label>
+                {% endfor %}
+            </div>
         </div>
     </div>
 {% endblock page %}

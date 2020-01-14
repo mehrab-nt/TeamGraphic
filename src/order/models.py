@@ -60,7 +60,7 @@ class Order(models.Model):
                                     related_name='top_order')
     count = models.IntegerField(default=1, blank=False, validators=[validators.MinValueValidator(1),
                                                                     validators.MaxValueValidator(10)])
-    description = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(10)])
+    description = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(3)])
     duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
                                                                        validators.MaxValueValidator(30)])
     ready_date = models.DateField(blank=False)

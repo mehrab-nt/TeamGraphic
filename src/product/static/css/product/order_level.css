@@ -41,7 +41,7 @@ div.active-middle-level {
 }
 
 div.default-middle-level p, div.active-middle-level p {
-    margin-top: -18px;
+    margin-top: -17.5px;
     text-align: center;
     color: #ccc;
     font-size: 18px;

@@ -319,24 +319,16 @@ class Side(models.TextChoices):
     TWO = 2, 'دو رو'
 
 
-class Cut(models.Model):
-    title = models.CharField(max_length=10, blank=False, validators=[validators.MinLengthValidator(3)])
-    cut_margin = models.FloatField(blank=False, validators=[validators.MinValueValidator(0),
-                                                            validators.MaxValueValidator(1)])
-    safe_margin = models.FloatField(blank=False, validators=[validators.MinValueValidator(0),
-                                                             validators.MaxValueValidator(1)])
-    # vector
-
-    def __str__(self):
-        return '{0}'.format(self.title)
-
-
 class Size(models.Model):
-    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(3)])
+    title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(2)])
     len = models.FloatField(blank=False, verbose_name='length', validators=[validators.MinValueValidator(2),
                                                                             validators.MaxValueValidator(100)])
     wid = models.FloatField(blank=False, verbose_name='width', validators=[validators.MinValueValidator(2),
                                                                            validators.MaxValueValidator(100)])
+    cut_margin = models.FloatField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                       validators.MaxValueValidator(1)])
+    safe_margin = models.FloatField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+                                                                        validators.MaxValueValidator(1)])
     description = models.CharField(max_length=50, blank=True, validators=[validators.MinLengthValidator(10)])
 
     def __str__(self):
@@ -476,5 +468,5 @@ class SellingOption(models.Model):
         return '{0}'.format(self.product)
 
     class Meta:
-        ordering = ['size', 'ready', 'count', 'side', ]
+        ordering = ['size', 'ready', 'count', '-side', ]
 
