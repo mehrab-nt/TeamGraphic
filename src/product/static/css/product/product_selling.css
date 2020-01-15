@@ -2,6 +2,7 @@ div.selling {
     float: right;
     width: 100%;
     margin: 10px 0px;
+  counter-reset: section;
 }
 
 div.product-side {
@@ -110,6 +111,12 @@ div .head-option-left {
 div .head-option img, div .head-option-left img {
     float: right;
     max-width: 25%;
+    transition: transform 1s;
+}
+
+div .head-option img:hover, div .head-option-left img:hover {
+  -webkit-transform: rotate(180deg);
+  transform: rotate(180deg);
 }
 
 div .head-option-left img {
@@ -129,11 +136,15 @@ div .head-option-left p {
     font-weight: bold;
 }
 
-div #size-container {
+div #size-container , div #service-container {
     width: 100%;
     float: right;
     margin-bottom: 10px;
     border-bottom: 2px solid rgb(0,0,0,0.03);
+}
+
+div #service-container {
+    border-top: 2px solid rgb(0,0,0,0.03);
 }
 
 div #size-item {
@@ -148,6 +159,19 @@ div #size-item {
     border-radius: 15px;
     padding: 15px 2px;
     text-align: center;
+}
+
+div #service-item {
+    width: 500px;
+    height: 40px;
+    float: right;
+    border-style: solid;
+    border-width: 2px;
+    margin: 25px 5px 5px;
+    border-radius: 15px;
+    padding: 0px 5% 0px 7px;
+    text-align: right;
+    position: relative;
 }
 
 div #ready-container {
@@ -217,7 +241,9 @@ div #price-item {
     padding-left: 10px;
 }
 
-div #price-item span.price {
+span.price {
+    float: left;
+    line-height: 2;
     font-weight: bold;
     letter-spacing: 1px;
     font-size: 18px;
@@ -225,8 +251,14 @@ div #price-item span.price {
 }
 
 span.toman {
+    font-size: 13px;
     padding: 4px 3px;
     float: left;
+}
+
+span.hint {
+    font-size: 12px;
+    color: #333;
 }
 
 div .price-item1 {
@@ -238,7 +270,7 @@ div .price-item2, div .price-item0 {
 }
 
 /* Hide the browser's default radio button */
-#price-item input {
+#price-item input, #service-item input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
@@ -257,13 +289,13 @@ div .price-item2, div .price-item0 {
 }
 
 /* On mouse-over, add a grey background color */
-#price-item:hover input ~ .checkmark {
+#price-item:hover input ~ .checkmark, #service-item:hover input ~ .checkmark {
     border: 2px solid #bbb;
     background-color: #eee;
 }
 
 /* When the radio button is checked, add a blue background */
-#price-item input:checked ~ .checkmark {
+#price-item input:checked ~ .checkmark, #service-item input:checked ~ .checkmark {
     background-color: #ffcc00;
     border: 2px solid #ffcc00;
 }
@@ -276,21 +308,22 @@ div .price-item2, div .price-item0 {
 }
 
 /* Show the indicator (dot/circle) when checked */
-#price-item input:checked ~ .checkmark:after {
+#price-item input:checked ~ .checkmark:after, #service-item input:checked ~ .checkmark:after {
     display: block;
 }
 
 /* Style the indicator (dot/circle) */
-#price-item .checkmark:after {
- 	top: 7.5px;
-	left: 7.5px;
-	width: 10px;
-	height: 10px;
+#price-item .checkmark:after, #service-item .checkmark:after {
+ 	top: 30%;
+	left: 30%;
+	width: 40%;
+	height: 40%;
 	border-radius: 50%;
 	background: white;
 }
 
 div .default-item {
+    background-color: white;
     border-color: #ddd;
 }
 
@@ -311,12 +344,17 @@ div .active-item:hover {
 
 @media screen and (max-width: 1250px) {
     div.selling {
-        width: 100%;
         padding: 0 0.2vw;
+        margin: 0px;
+    }
+
+    div.product-main {
+        padding: 0 1vw 0;
     }
 
     div .head-option, div .head-option-left {
         width: 100%;
+        padding: 0;
     }
 
     div .head-option img {
@@ -353,7 +391,7 @@ div .active-item:hover {
         float: right;
         border-style: solid;
         border-width: 0.3vw;
-        margin: 5px 0.3vw 10px;
+        margin: 0px 0.3vw 10px;
         padding: 1.3vw 0;
         border-radius: 1.4vw;
     }
@@ -399,13 +437,29 @@ div .active-item:hover {
         padding-left: 1vw;
     }
 
-    div #price-item span.price {
+    div #service-item {
+        font-size: 1.3vw;
+        width: 60%;
+        height: 3.4vw;
+        float: right;
+        border-width: 0.25vw;
+        margin: 0 0 10px;
+        border-radius: 1.4vw;
+        padding: 0px 4.2vw 0px 1vw;
+    }
+
+    span.price {
         font-size: 1.6vw;
         padding: 0 0.5vw;
     }
 
     span.toman {
-        padding: 0.4vw 0.2vw;
+        font-size: 1.3vw;
+        padding: 0.2vw 0.2vw;
+    }
+
+    span.hint {
+        font-size: 1.2vw;
     }
 
     div .price-item1 {
@@ -434,21 +488,158 @@ div .active-item:hover {
     #price-item input:checked ~ .checkmark {
         border-width: 0.25vw;
     }
-
-    /* Style the indicator (dot/circle) */
-    #price-item .checkmark:after {
-        top: 0.65vw;
-        left: 0.65vw;
-        width: 1vw;
-        height: 1vw;
-    }
 }
 
 @media screen and (max-width: 480px) {
     div.product-side {
+        width: 100%;
+        border: none;
+        margin: 0;
+        padding: 5px 5px 5px 5px;
+    }
+
+    div.product-side .product-container {
+        float: right;
+        width: 49%;
+        font-size: 3vw;
+    }
+
+    div.product-side .intro-container {
         float: left;
-        width: 50%;
-        border-right: 2px solid rgb(0,0,0,0.1);
-        padding: 5px 15px 5px 0px;
+        width: 49%;
+        height: 29vw;
+        font-size: 2.8vw;
+        overflow: auto;
+    }
+
+    div.product-main {
+        width: 100%;
+        padding: 5px;
+    }
+
+    div .head-option {
+        width: 100vw;
+    }
+
+    div .head-option img {
+        max-width: 5vw;
+    }
+
+    div .head-option p, div .head-option-left p {
+        font-size: 2.4vw;
+        padding-right: 1.5vw;
+    }
+
+    div .head-option-left p {
+        text-align: center;
+        margin: 0;
+        margin-bottom: 8px;
+    }
+
+    div .side1 {
+        width: 30%;
+        margin-right: 7.5vw;
+    }
+
+    div .side2 {
+        width: 20%;
+        margin-right: 11vw;
+    }
+
+    div .side0 {
+        margin-right: 7.5vw;
+    }
+
+    div #size-item {
+        font-size: 2.2vw;
+        width: 13vw;
+        height: 13vw;
+        border-width: 0.5vw;
+        margin: 0px 0.5vw 10px;
+        padding: 2.2vw 0;
+        border-radius: 1.6vw;
+    }
+
+    div #ready-container {
+        width: 25%;
+    }
+
+    div #ready-item {
+        font-size: 2.5vw;
+        height: 15vw;
+        border-width: 0.5vw;
+        margin: 0px 1.4vw 8px;
+        padding: 1.2vw 0;
+        border-radius: 1.6vw;
+    }
+
+    div #count-container {
+        width: 17%;
+    }
+
+    div #count-item {
+        font-size: 2.6vw;
+        width: 100%;
+        height: 6vw;
+        border-width: 0.4vw;
+        border-radius: 1.6vw;
+        padding-top: 1.5vw;
+    }
+
+    div #price-container {
+        width: 52%;
+        margin-right: 0.7vw;
+    }
+
+    div #price-item {
+        font-size: 2.3vw;
+        height: 6vw;
+        border-width: 0.4vw;
+        border-radius: 1.6vw;
+        width: 47%;
+        padding: 0;
+        padding-left: 1.2vw;
+    }
+
+    div #service-item {
+        font-size: 2.5vw;
+        width: 72%;
+        height: 6vw;
+        float: right;
+        border-width: 0.5vw;
+        border-radius: 1.6vw;
+        padding: 0 6.2vw 0px 7px;
+    }
+
+    span.price {
+        font-size: 2.8vw;
+        padding: 0 0.5vw;
+    }
+
+    span.toman {
+        font-size: 2.4vw;
+    }
+
+    span.hint {
+        font-size: 2.2vw;
+    }
+
+    /* Create a custom radio button */
+    .checkmark {
+        top: 0.5vw;
+        right: 1vw;
+        height: 4.5vw;
+        width: 4.5vw;
+        border-width: 0.4vw;
+    }
+
+    /* On mouse-over, add a grey background color */
+    #price-item:hover input ~ .checkmark {
+        border-width: 0.4vw;
+    }
+
+    /* When the radio button is checked, add a blue background */
+    #price-item input:checked ~ .checkmark {
+        border-width: 0.4vw;
     }
 }

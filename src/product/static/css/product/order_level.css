@@ -17,7 +17,7 @@ div.default-level, div.active-level {
     border-radius: 100px;
     border: 4px solid #ccc;
     padding-top: 12px;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 div.active-level {
@@ -32,7 +32,7 @@ div.default-middle-level, div.active-middle-level {
     background-color: #ccc;
     max-height: 4px;
     margin-top: 41px;
-    opacity: 0.5;
+    opacity: 0.6;
 }
 
 div.active-middle-level {
@@ -41,10 +41,10 @@ div.active-middle-level {
 }
 
 div.default-middle-level p, div.active-middle-level p {
-    margin-top: -17.5px;
+    margin-top: -22px;
     text-align: center;
     color: #ccc;
-    font-size: 18px;
+    font-size: 22px;
 }
 
 div.active-middle-level p {
@@ -80,6 +80,11 @@ div.active-middle-level p {
 }
 
 @media screen and (max-width: 1250px) {
+    div.order-level {
+        margin: 5vw 0 3vw;
+        height: auto;
+    }
+
     div.default-level, div.active-level {
         font-size: 1.75vw;
         width: 9vw;

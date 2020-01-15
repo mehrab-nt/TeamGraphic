@@ -27,14 +27,55 @@ header div {
 }
 
 header img.logo {
+    position: relative;
     float: right;
     margin-top: 10px;
     max-width: 370px;
     transition: 0.3s;
+    -webkit-animation-name: logo-drop;
+    -webkit-animation-duration: 4s;
+    animation-name: logo-drop;
+    animation-duration: 3s;
+    animation-delay: 2s;
+    animation-timing-function: ease-out;
+    animation-play-state: paused;
+    z-index: 2;
 }
 
 header img.logo:hover {
-    max-width: 372px;
+    max-width: 380px;
+}
+
+@-webkit-keyframes logo-drop {
+    0%   {top:0;}
+    5%  {top:45px;}
+    10%  {top:25px;}
+    15%  {top:45px;}
+    20%  {top:31px;}
+    25%  {top:45px;}
+    30%  {top:36px;}
+    35%  {top:45px;}
+    40%  {top:40px;}
+    45%  {top:45px;}
+    50%  {top:43px;}
+    60%  {top:45px;}
+    100% {top:0px;}
+}
+
+@keyframes logo-drop {
+    0%   {top:0;}
+    5%  {top:45px;}
+    10%  {top:30px;}
+    15%  {top:45px;}
+    20%  {top:35px;}
+    25%  {top:45px;}
+    30%  {top:39px;}
+    35%  {top:45px;}
+    40%  {top:42px;}
+    45%  {top:45px;}
+    50%  {top:43px;}
+    55%  {top:45px;}
+    100% {top:0px;}
 }
 
 header div.phone {
@@ -48,6 +89,22 @@ header img.phone-img {
     float: left;
     margin-top: 12px;
     max-width: 40px;
+    animation: shake 0.5s;
+    animation-iteration-count: 5;
+}
+
+@keyframes shake {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-2px, 0px) rotate(1deg); }
+    30% { transform: translate(2px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-2px, 1px) rotate(0deg); }
+    70% { transform: translate(2px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
 }
 
 header p.phone-num {

@@ -283,7 +283,8 @@ class Service(models.Model):
     title = models.CharField(max_length=30, blank=False, validators=[validators.MinLengthValidator(2)])
     cost = models.PositiveIntegerField(default=0, blank=False, validators=[validators.MinValueValidator(1000),
                                                                            validators.MaxValueValidator(1000000)])
-    description = models.CharField(max_length=300, blank=True, validators=[validators.MinLengthValidator(3)])
+    duration = models.PositiveSmallIntegerField(default=0, blank=False, validators=[validators.MaxValueValidator(30)])
+    hint = models.CharField(max_length=300, blank=True, validators=[validators.MinLengthValidator(3)])
 
     def __str__(self):
         return '{0}'.format(self.title)
@@ -308,6 +309,7 @@ class OrderProductServices(models.Model):
                                         related_name="number_in_order")
     number = models.PositiveSmallIntegerField(default=1, blank=False, validators=[validators.MinValueValidator(1),
                                                                                   validators.MaxValueValidator(1000)])
+    description = models.CharField(max_length=300, blank=True, validators=[validators.MinLengthValidator(3)])
 
     def __str__(self):
         return '{0}-{1}'.format(self.pk, self.product_service)

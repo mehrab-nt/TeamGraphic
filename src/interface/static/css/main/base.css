@@ -113,3 +113,21 @@ a:visited {
 .cursor {
     cursor: pointer;
 }
+
+::-moz-selection { /* Code for Firefox */
+    color: Black;
+    background: rgb(255, 180, 0, 0.7);
+}
+
+::selection {
+    color: Black;
+    background: rgb(255, 180, 0, 0.7);
+}
+
+.color-brand {
+    color: #ffcc00;
+}
+
+.color-hint {
+    color: #555;
+}

@@ -19,8 +19,8 @@ class ProductAdmin(admin.ModelAdmin):
 
 
 class ServiceAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'cost', 'description')
-    list_editable = ('title', 'cost', 'description')
+    list_display = ('id', 'title', 'cost', 'hint', 'duration')
+    list_editable = ('title', 'cost', 'hint', 'duration')
 
 
 class ProductServicesAdmin(admin.ModelAdmin):
@@ -29,7 +29,7 @@ class ProductServicesAdmin(admin.ModelAdmin):
 
 
 class OrderProductServicesAdmin(admin.ModelAdmin):
-    list_display = ('id', 'order', 'product_service', 'number')
+    list_display = ('id', 'order', 'product_service', 'number', 'description')
     list_editable = ('order', 'product_service', 'number')
 
 

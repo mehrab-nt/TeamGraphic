@@ -31,6 +31,9 @@
             <div class="intro-container">
                 {{ product.guidance|safe }}
             </div>
+            <div class="intro-container">
+                <button value="submit">تایید</button>
+            </div>
         </div>
         <div class="product-main">
             {% if size %}
@@ -41,21 +44,6 @@
                     </div>
                     {% for item in size %}
                         <div id="size-item" class="default-item">
-                            <p>{{ item }}</p>
-                        </div>
-                                            <div id="size-item" class="default-item">
-                            <p>{{ item }}</p>
-                        </div>
-                                            <div id="size-item" class="default-item">
-                            <p>{{ item }}</p>
-                        </div>
-                                            <div id="size-item" class="default-item">
-                            <p>{{ item }}</p>
-                        </div>
-                                            <div id="size-item" class="default-item">
-                            <p>{{ item }}</p>
-                        </div>
-                                            <div id="size-item" class="default-item">
                             <p>{{ item }}</p>
                         </div>
                     {% endfor %}
@@ -81,20 +69,10 @@
                     <img src="{% static 'img/main/icon-color.png' %}">
                     <p>: تیراژ</p>
                 </div>
-<!--                <div class="head-option side">-->
-<!--                    <p>یک رو</p>-->
-<!--                </div>-->
-<!--                <div class="head-option side">-->
-<!--                    <p>دو رو</p>-->
-<!--                </div>-->
                 {% for item in selling_options.all %}
                     <div id="count-item" class="default-item">
                         <p>{{ item.count|per_num }}</p>
                     </div>
-<!--                    <div id="option-price-item" class="default-item">-->
-<!--                        <button>!!!</button>-->
-<!--                        <p>{{ item.sale_price }}</p>-->
-<!--                    </div>-->
                 {% endfor %}
             </div>
             <div id="price-container">
@@ -118,10 +96,27 @@
                 <label id="price-item" class="default-item price-item{{ item.side }}">
                     <input type="radio" name="product_sale" value="{{ item.id }}">
                     <span class="checkmark"></span>
-                    <p><span class="toman">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>
+                    <p><span class="toman color-hint">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>
                 </label>
                 {% endfor %}
             </div>
+            {% if services %}
+                <div id="service-container">
+                    <div class="head-option">
+                        <img src="{% static 'img/main/icon-color.png' %}">
+                        <p>: خدمات </p>
+                    </div>
+                    {% for item in services %}
+                    <label id="service-item" class="default-item">
+                        <input type="checkbox" name="{{ item.id }}">
+                        <span class="checkmark"></span>
+                        <p>{{ item.service.title }} <span class="hint">({{ item.service.hint }})</span>
+                            <span class="toman color-hint">تومان</span><span class="price">{{ item.service.cost|per_num }} +</span>
+                            <span class="toman color-hint" style="padding-left: 8px;">روزکاری</span><span class="price">{{ item.service.duration|per_num }} +</span></p>
+                    </label>
+                    {% endfor %}
+                </div>
+            {% endif %}
         </div>
     </div>
 {% endblock page %}

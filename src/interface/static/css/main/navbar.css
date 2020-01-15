@@ -23,6 +23,8 @@ nav ul {
     list-style-type: none;
     margin: 0;
     padding: 0;
+    overflow: hidden;
+    max-height: 43px;
 }
 
 nav li a, nav li a:visited, .dropdown, .dropdown-user{
@@ -35,6 +37,10 @@ nav li a, nav li a:visited, .dropdown, .dropdown-user{
     width: auto;
     padding: 7px 17px;
     border-left: 1px solid #ffcc00;
+}
+
+nav li:last-child a {
+    border-left: none;
 }
 
 .sticky {
@@ -150,11 +156,17 @@ nav div.user input[type=text], nav div.user input[type=password]  {
     margin-top: 7px;
     margin-left: 3px;
     border: none;
+    border-radius: 4px;
     font-size: 12px;
     width: 33%;
     height: 30px;
     padding: 4px;
     background-color: white;
+    transition: width 0.4s ease-in-out;
+}
+
+nav div.user input[type=text]:focus, nav div.user input[type=password]:focus  {
+    width: 36%;
 }
 
 nav div.user button {
@@ -198,6 +210,10 @@ nav div.user li.welcome-content:hover p.welcome {
     nav div.base {
         width: 100%;
         margin: 0;
+    }
+
+    nav ul {
+        max-height: 37px;
     }
 
     nav li a, nav li a:visited, .dropdown {
@@ -261,7 +277,13 @@ nav div.user li.welcome-content:hover p.welcome {
 
 @media screen and (max-width: 480px) {
     nav div.base {
-        max-height: 100%;
+
+    }
+
+    nav ul
+    {
+        overflow: visible;
+        max-height: initial;
     }
 
     nav ul.top_menu li a.main_menu
@@ -351,7 +373,6 @@ nav div.user li.welcome-content:hover p.welcome {
 
     nav div.user input[type=text], nav div.user input[type=password]  {
         width: 30%;
-        max-width: 100px;
     }
 
     nav div.base button {

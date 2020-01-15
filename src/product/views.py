@@ -62,7 +62,7 @@ def product_show(request, product_id):
         'selling_options': product.selling_options.all(),
         'size': size,
         'ready': ready,
-        'services': product.product_all_service.all(),
+        'services': product.product_all_service.all().filter(active=True),
         'side_num': side_num,
         'side_type': side[0],
     }
