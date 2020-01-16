@@ -155,6 +155,7 @@ nav div.user {
 }
 
 nav div.user input[type=text], nav div.user input[type=password]  {
+    float: left;
     text-align: center;
     margin-top: 7px;
     margin-left: 3px;
@@ -258,8 +259,8 @@ nav div.user li.welcome-content:hover p.welcome {
     }
 
     nav div.user input[type=text], nav div.user input[type=password]  {
-        margin-top: 2px;
-        font-size: 11px;
+        margin-top: 6px;
+        font-size: 12.5px;
         width: 30%;
         height: 26px;
     }
@@ -375,7 +376,9 @@ nav div.user li.welcome-content:hover p.welcome {
     }
 
     nav div.user input[type=text], nav div.user input[type=password]  {
+        margin-top: 5px;
         width: 30%;
+        font-size: 11px;
     }
 
     nav div.base button {

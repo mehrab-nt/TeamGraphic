@@ -21,6 +21,9 @@
         <a class="product-item" href="{{ item.geturl }}">
             <img class="product-img" src="{% static item.preview_url %}" alt="{{ item.title }}">
             <h2 class="product-name">{{ item.title }}</h2>
+            {% if item.brief_intro %}
+            <div class="tooltip"><span class="icon">?</span><p class="tooltiptext">{{ item.brief_intro }}</p></div>
+            {% endif %}
             <div class="product-ready">
                 {% if item.min_ready == item.max_ready %}
                     <p>تحویل {{ item.min_ready|per_num }} روزه کاری</p>

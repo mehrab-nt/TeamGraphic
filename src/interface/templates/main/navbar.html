@@ -18,10 +18,10 @@
             {% else %}
                 <form method="post" action="{% url 'user:user_login' %}">
                     {% csrf_token %}
+                    <button type="submit" name="" value="Login">ورود</button>
                     <input type="text" name="username" placeholder="شماره موبایل" required="required">
                     <input type="password" name="password" placeholder="رمز عبور" required="required">
                     <input type="text" name="current" hidden="hidden" value="{{ req.path }}">
-                    <button type="submit" name="" value="Login">ورود</button>
                 </form>
 <!--                    <ul class="fast_login_mob">-->
 <!--                        <li><a href="/login">ورود</a></li>-->

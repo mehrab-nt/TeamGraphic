@@ -237,7 +237,7 @@ header div.signup-form {
     position: absolute;
     width: 38%;
     margin-top: 13%;
-    margin-left: 8%;
+    margin-right: 54%;
     z-index: 2;
     height: 100%;
 }
@@ -265,6 +265,7 @@ header div.signup-form {
     font-size: 1vw;
     margin-top: 0.7vw;
     font-weight: bold;
+    text-align: left;
 }
 
 .context-form-container .confirm-button {
