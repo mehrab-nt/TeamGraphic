@@ -352,6 +352,21 @@ div .active-item:hover {
         padding: 0 1vw 0;
     }
 
+    div.product-side .product-container {
+        border-radius: 1.5vw;
+        font-size: 1.5vw;
+    }
+
+    div.product-side .product-container .product-img {
+        border-radius: 1.5vw;
+        border: 0.5vw solid transparent;
+    }
+
+    div.product-side .intro-container {
+        border-radius: 1.5vw;
+        font-size: 1.3vw;
+    }
+
     div .head-option, div .head-option-left {
         width: 100%;
         padding: 0;
@@ -502,9 +517,16 @@ div .active-item:hover {
         float: right;
         width: 49%;
         font-size: 3vw;
+        border-radius: 2.5vw;
+    }
+
+    div.product-side .product-container .product-img {
+        border-radius: 2.5vw;
+        border: 0.7vw solid transparent;
     }
 
     div.product-side .intro-container {
+        border-radius: 2.5vw;
         float: left;
         width: 49%;
         height: 29vw;
@@ -606,7 +628,7 @@ div .active-item:hover {
         width: 72%;
         height: 6vw;
         float: right;
-        border-width: 0.5vw;
+        border-width: 0.4vw;
         border-radius: 1.6vw;
         padding: 0 6.2vw 0px 7px;
     }

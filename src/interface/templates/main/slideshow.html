@@ -1,7 +1,7 @@
 {% load static %}
 <div class="slideshow">
 {% for slide in slideshow_list %}
-    <div class="slide">
+    <div class="slide fade">
         <a href="{{ slide.get_absolute_url }}">
             <img src="{% static slide.get_image_url %}" alt="{{ slide.title }}" style="width:100%">
         </a>

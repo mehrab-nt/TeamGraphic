@@ -10,6 +10,7 @@
 
 .slide img {
     transition: opacity 1s;
+    object-fit: cover;
 }
 
 .cursor {
@@ -40,6 +41,23 @@
 .prev:hover, .next:hover {
     color: black;
     background-color: rgba(0, 0, 0, 0.1);
+}
+
+.fade {
+    -webkit-animation-name: fade;
+    -webkit-animation-duration: 1s;
+    animation-name: fade;
+    animation-duration: 1s;
+}
+
+@-webkit-keyframes fade {
+    from {opacity: .4}
+    to {opacity: 1}
+}
+
+@keyframes fade {
+    from {opacity: .4}
+    to {opacity: 1}
 }
 
 @media screen and (max-width: 1250px){
