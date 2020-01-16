@@ -22,3 +22,6 @@ urlpatterns = [
     path('', include('product.urls',)),
     path('admin/', admin.site.urls),
 ]
+
+admin.site.site_header = 'پنل تیم گرافیک'
+admin.site.site_title = 'تیم گرافیک'

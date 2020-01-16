@@ -25,6 +25,11 @@ class Classification(models.Model):
     def __str__(self):
         return 'کلاس:‌ {0}'.format(self.title)
 
+    class Meta:
+        verbose_name = 'کلاس بندی'
+        verbose_name_plural = 'کلاس بندی'
+
+
 
 @receiver(models.signals.post_delete, sender=Classification)
 def auto_delete_classification_img_on_delete(sender, instance, **kwargs):
@@ -83,6 +88,10 @@ class Category(models.Model):
     def preview_url(self):
         return 'img/category/{0}/{1}-preview.png'.format(self.id, self.id)
 
+    class Meta:
+        verbose_name = 'دسته بندی'
+        verbose_name_plural = 'دسته بندی'
+
 
 @receiver(models.signals.post_delete, sender=Category)
 def auto_delete_category_img_on_delete(sender, instance, **kwargs):
@@ -135,6 +144,10 @@ class TemplateFile(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
+    class Meta:
+        verbose_name = 'فایل راهنما'
+        verbose_name_plural = 'فایل راهنما'
+
 
 @receiver(models.signals.post_delete, sender=TemplateFile)
 def auto_delete_template_file_on_delete(sender, instance, **kwargs):
@@ -185,6 +198,9 @@ class Product(models.Model):
     services = models.ManyToManyField('Service', db_index=True, blank=False,
                                       related_name="all_service", through='ProductServices')
 
+    class Meta:
+        verbose_name = 'محصولات'
+        verbose_name_plural = 'محصولات'
     # point
     # point result
     # comment
@@ -248,6 +264,20 @@ class Product(models.Model):
         return num
 
 
+def product_id_create(cat):
+    for num in range(100, 1000):
+        kay = '{0}{1}'.format(cat, str(num))
+        obj = 0
+        try:
+            obj = Product.objects.get(id=kay)
+        except Product.DoesNotExist:
+            pass
+        if not obj:
+            return kay
+    else:
+        return False
+
+
 @receiver(models.signals.post_delete, sender=Product)
 def auto_delete_product_img_on_delete(sender, instance, **kwargs):
     if instance.preview:
@@ -289,6 +319,10 @@ class Service(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
+    class Meta:
+        verbose_name = 'خدمات اختصاصی'
+        verbose_name_plural = 'خدمات اختصاصی'
+
 
 class ProductServices(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE,
@@ -300,6 +334,10 @@ class ProductServices(models.Model):
 
     def __str__(self):
         return '{0}-{1}'.format(self.service.title, self.product.title)
+
+    class Meta:
+        verbose_name = 'خدمات در محصول'
+        verbose_name_plural = 'خدمات در محصول'
 
 
 class OrderProductServices(models.Model):
@@ -313,6 +351,10 @@ class OrderProductServices(models.Model):
 
     def __str__(self):
         return '{0}-{1}'.format(self.pk, self.product_service)
+
+    class Meta:
+        verbose_name = 'خدمات در سفارش'
+        verbose_name_plural = 'خدمات در سفارش'
 
 
 class Side(models.TextChoices):
@@ -338,6 +380,8 @@ class Size(models.Model):
 
     class Meta:
         ordering = ['-len']
+        verbose_name = 'سایز'
+        verbose_name_plural = 'سایز'
 
 
 class Ready(models.Model):
@@ -349,6 +393,8 @@ class Ready(models.Model):
 
     class Meta:
         ordering = ['-duration']
+        verbose_name = 'فرم تحویل'
+        verbose_name_plural = 'فرم تحویل'
 
 
 class Color(models.Model):
@@ -358,12 +404,20 @@ class Color(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
+    class Meta:
+        verbose_name = 'رنگ ها'
+        verbose_name_plural = 'رنگ ها'
+
 
 class Quality(models.Model):
     title = models.CharField(max_length=20, blank=False, validators=[validators.MinLengthValidator(2)])
 
     def __str__(self):
         return '{0}'.format(self.title)
+
+    class Meta:
+        verbose_name = 'کیفیت چاپ'
+        verbose_name_plural = 'کیفیت چاپ'
 
 
 def design_preview_directory_path(instance, filename):
@@ -392,6 +446,10 @@ class Design(models.Model):
 
     def __str__(self):
         return '{0}'.format(self.title)
+
+    class Meta:
+        verbose_name = 'طراحی'
+        verbose_name_plural = 'طراحی'
 
 
 @receiver(models.signals.post_delete, sender=Design)
@@ -437,6 +495,10 @@ class Discount(models.Model):
     def __str__(self):
         return '{0}'.format(self.type)
 
+    class Meta:
+        verbose_name = 'تخفیفات'
+        verbose_name_plural = 'تخفیفات'
+
 
 class SellingOption(models.Model):
     product = models.ForeignKey('Product', on_delete=models.CASCADE, null=True, blank=False,
@@ -471,4 +533,6 @@ class SellingOption(models.Model):
 
     class Meta:
         ordering = ['size', 'ready', 'count', '-side', ]
+        verbose_name = 'گزینه های محصول'
+        verbose_name_plural = 'گزینه های محصول'
 

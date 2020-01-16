@@ -39,7 +39,7 @@ header img.logo {
     animation-delay: 2s;
     animation-timing-function: ease-out;
     animation-play-state: paused;
-    z-index: 2;
+    z-index: 3;
 }
 
 header img.logo:hover {
@@ -108,6 +108,7 @@ header img.phone-img {
 }
 
 header p.phone-num {
+    direction: ltr;
     float: left;
     font-size: 22px;
     margin-top: 11px;
@@ -214,7 +215,7 @@ header div.signup-form {
     padding: 0;
     padding-top: 60px;
     position: fixed;
-    z-index: 1;
+    z-index: 2;
     left: 0;
     top: 0;
 }

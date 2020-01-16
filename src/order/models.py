@@ -18,7 +18,7 @@ class CartStatus(models.TextChoices):
 
 
 class Cart(models.Model):
-    cart_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
+    cart_id = models.CharField(max_length=10, primary_key=True, validators=[validators.MinLengthValidator(10)])
     user = models.ForeignKey('user.UserTG', on_delete=models.CASCADE, blank=True, null=True,
                              related_name='user_carts')
     status = models.CharField(max_length=3, blank=False, choices=CartStatus.choices, default=CartStatus.Record)
@@ -36,6 +36,31 @@ class Cart(models.Model):
     def __str__(self):
         return 'Cart-{0}'.format(self.cart_id)
 
+    class Meta:
+        verbose_name = 'سبد خرید'
+        verbose_name_plural = 'سبد خرید'
+
+
+def cart_id_create(year):
+    try:
+        obj = Cart.objects.latest('cart_id')
+    except Cart.DoesNotExist:
+        return 'tg-{0}10000'.format(year)
+    kay_year = obj.cart_id[3:-5]
+    if kay_year == year:
+        new_kay = 'tg-{0}{1}'.format(year, str(int(obj.cart_id[-5:])+1))
+        try:
+            obj = Cart.objects.get(cart_id=new_kay)
+        except Cart.DoesNotExist:
+            return new_kay
+    else:
+        new_kay = '{0}1000'.format(year)
+        try:
+            obj = Cart.objects.get(cart_id=new_kay)
+        except Cart.DoesNotExist:
+            return new_kay
+    return cart_id_create(year)
+
 
 class DesignFeature(models.TextChoices):
     NEW_DESIGN = 'new', 'سفارش طراحی'
@@ -45,7 +70,7 @@ class DesignFeature(models.TextChoices):
 
 
 class Order(models.Model):
-    order_id = models.CharField(max_length=8, primary_key=True, validators=[validators.MinLengthValidator(8)])
+    order_id = models.CharField(max_length=6, primary_key=True, validators=[validators.MinLengthValidator(6)])
     cart = models.ForeignKey('Cart', on_delete=models.SET_NULL, null=True, blank=False,
                              related_name='cart_orders')
     status = models.ForeignKey('Status', on_delete=models.SET_NULL, null=True, blank=False,
@@ -82,6 +107,31 @@ class Order(models.Model):
         else:
             return 0
 
+    class Meta:
+        verbose_name = 'سفارش'
+        verbose_name_plural = 'سفارش'
+
+
+def order_id_create(year):
+    try:
+        obj = Order.objects.latest('order_id')
+    except Order.DoesNotExist:
+        return '{0}1000'.format(year)
+    kay_year = obj.order_id[:2]
+    if kay_year == year:
+        new_kay = '{0}{1}'.format(year, str(int(obj.cart_id[-4:])+1))
+        try:
+            obj = Order.objects.get(cart_id=new_kay)
+        except Order.DoesNotExist:
+            return new_kay
+    else:
+        new_kay = 'tg-{0}10000'.format(year)
+        try:
+            obj = Order.objects.get(cart_id=new_kay)
+        except Order.DoesNotExist:
+            return new_kay
+    return order_id_create(year)
+
 
 class FileName(models.TextChoices):
     FRONT = 'front', 'رو'
@@ -108,6 +158,10 @@ class UploadFile(models.Model):
                               related_name='order_files')
     file = models.ImageField(upload_to=order_upload_file_directory_path, blank=False)
 
+    class Meta:
+        verbose_name = 'فایل ها'
+        verbose_name_plural = 'فایل ها'
+
 
 class Type(models.TextChoices):
     Pos = 2, 'تایید'
@@ -128,6 +182,10 @@ class Status(models.Model):
 
     def __str__(self):
         return '{0}'.format(self.title)
+
+    class Meta:
+        verbose_name = 'وضعیت های سفارش'
+        verbose_name_plural = 'وضعیت های سفارش'
 
 
 @receiver(models.signals.post_delete, sender=Status)
@@ -165,6 +223,10 @@ class OrderAction(models.Model):
     def __str__(self):
         return '{0} change by {1}'.format(self.order.order_id, self.user)
 
+    class Meta:
+        verbose_name = 'تغییرات سفارش'
+        verbose_name_plural = 'تغییرات سفارش'
+
 
 class CartAction(models.Model):
     cart = models.ForeignKey('Cart', on_delete=models.CASCADE,
@@ -175,4 +237,8 @@ class CartAction(models.Model):
 
     def __str__(self):
         return '{0} change in {1}'.format(self.cart.cart_id, self.data)
+
+    class Meta:
+        verbose_name = 'تغییرات سبد خرید'
+        verbose_name_plural = 'تغییرات سبد خرید'
 

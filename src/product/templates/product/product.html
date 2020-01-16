@@ -40,7 +40,7 @@
                 <div id="size-container">
                     <div class="head-option">
                         <img src="{% static 'img/main/icon-color.png' %}">
-                        <p>: ابعـاد چاپ</p>
+                        <p>ابــعاد چاپ :</p>
                     </div>
                     {% for item in size %}
                         <div id="size-item" class="default-item">
@@ -56,10 +56,10 @@
                 {% for item in ready %}
                     <div id="ready-item" class="default-item">
                         {% if item.duration %}
-                        <p>{{ item }}<br>{{ item.duration|per_num }}<br>روزکاری</p>
+                        <p>{{ item }}<br><span class="hint">{{ item.duration|per_num }} روزکاری</span></p>
 <!--                            {{ ready_date }}-->
                         {% else %}
-                        <p>{{ item }}<br>امروز</p>
+                        <p>{{ item }}<br>آماده تحویل</p>
                         {% endif %}
                     </div>
                 {% endfor %}
@@ -67,7 +67,7 @@
             <div id="count-container">
                 <div class="head-option">
                     <img src="{% static 'img/main/icon-color.png' %}">
-                    <p>: تیراژ</p>
+                    <p>تیراژ :</p>
                 </div>
                 {% for item in selling_options.all %}
                     <div id="count-item" class="default-item">
@@ -104,7 +104,7 @@
                 <div id="service-container">
                     <div class="head-option">
                         <img src="{% static 'img/main/icon-color.png' %}">
-                        <p>: خدمات </p>
+                        <p>خدمات :</p>
                     </div>
                     {% for item in services %}
                     <label id="service-item" class="default-item">

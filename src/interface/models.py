@@ -10,6 +10,10 @@ class MainMenu(models.Model):
     rank = models.PositiveSmallIntegerField(unique=True, blank=False, validators=[validators.MinValueValidator(1),
                                                                                   validators.MaxValueValidator(20)])
     active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = 'منو اصلی'
+        verbose_name_plural = 'منو اصلی'
 # محصولات
 # تعرفه قیمت چاپ
 # درباره ما
@@ -30,6 +34,10 @@ class MainImage(models.Model):
     title = models.CharField(max_length=20, validators=[validators.MinLengthValidator(3)])
     background = models.ImageField(upload_to=background_image_directory_path)
     header = models.ImageField(upload_to=header_image_directory_path)
+
+    class Meta:
+        verbose_name = 'عکس های اصلی'
+        verbose_name_plural = 'عکس های اصلی'
 
 
 def slide_show_directory_path(instance, filename):
@@ -52,6 +60,10 @@ class SlideShow(models.Model):
 
     def get_absolute_url(self):
         return '{0}'.format(self.link)
+
+    class Meta:
+        verbose_name = 'اسلاید شو'
+        verbose_name_plural = 'اسلاید شو'
 # id / img / time / order / link
 
 
@@ -80,6 +92,10 @@ class SpecialProductBox(models.Model):
     rank = models.PositiveSmallIntegerField(blank=False, unique=True, validators=[validators.MinValueValidator(1),
                                                                                   validators.MaxValueValidator(1000)])
     product = models.ForeignKey('product.Product', on_delete=models.CASCADE, blank=False)
+
+    class Meta:
+        verbose_name = 'محصولات خاص'
+        verbose_name_plural = 'محصولات خاص'
 # id / title / product_id (foreign_key)  / order
 
 

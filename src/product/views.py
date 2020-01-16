@@ -4,7 +4,8 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from interface.views import base_context
-from .models import Category, Product
+from .models import Category, Product, product_id_create
+from order.models import cart_id_create
 from django.utils import timezone
 
 
@@ -28,6 +29,8 @@ def convert_date(date):
 
 
 def product_show(request, product_id):
+    print(product_id_create('vis'))
+    print(cart_id_create('98'))
     product = get_object_or_404(Product, id=product_id)
     context = base_context(request)
     size = [product.selling_options.all()[0].size]

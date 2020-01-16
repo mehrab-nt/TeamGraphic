@@ -18,6 +18,10 @@ class Delivery(models.Model):
     def __str__(self):
         return 'Delivery-{0}'.format(self.name)
 
+    class Meta:
+        verbose_name = 'ارسال ها'
+        verbose_name_plural = 'ارسال ها'
+
 
 # class Delivery(models.Model):
 #     type = models.ForeignKey('Delivery_Type', on_delete=models.SET_NULL)

@@ -31,6 +31,10 @@ class Introduction(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
+    class Meta:
+        verbose_name = 'ارتباط'
+        verbose_name_plural = 'ارتباط'
+
 
 class UserTG(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True,
@@ -71,6 +75,10 @@ class UserTG(models.Model):
         for num in self.user_addresses.all():
             counter += 1
         return counter
+
+    class Meta:
+        verbose_name = 'پروفایل کاربر'
+        verbose_name_plural = 'پروفایل کاربر'
 
 
 @receiver(models.signals.post_delete, sender=UserTG)
@@ -113,6 +121,10 @@ class Address(models.Model):
 
     def __str__(self):
         return 'User-{0}'.format(self.user.user.username)
+
+    class Meta:
+        verbose_name = 'آدرس'
+        verbose_name_plural = 'آدرس'
 
 
 # class Role_TG(models.Model):
