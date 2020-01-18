@@ -98,7 +98,7 @@
                     </div>
                 {% endif %}
                 {% for item in selling_options.all %}
-                <label id="price{{ item.id }}" class="price-item default-item price-item{{ item.side }}">
+                <label id="{{ item.id }}" class="price-item default-item price-item{{ item.side }} ready{{ item.ready.id }}size{{ item.size.id }}">
                     <input type="radio" name="product_sale" value="{{ item.id }}">
                     <span class="checkmark"></span>
                     <p><span class="toman color-hint">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>

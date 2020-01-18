@@ -161,10 +161,6 @@ div .size-item {
     text-align: center;
 }
 
-div #size-container div:nth-child(2) {
-
-}
-
 div #service-item {
     width: 500px;
     height: 40px;
@@ -239,7 +235,7 @@ div .price-item {
     border-width: 2px;
     border-radius: 15px;
     width: 220px;
-    display: block;
+    display: none;
     position: relative;
     cursor: pointer;
     padding-left: 10px;
