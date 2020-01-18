@@ -14,14 +14,19 @@
     <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_selling.css' %}">
 {% endblock stylesheet %}
 
+{% block js %}
+    <script src="{% static 'js/product/product.js' %}" defer="True"></script>
+{% endblock js %}
+
 {% block page %}
     {% include "product/order_level.html" %}
-<!--    {% block active-level %}-->
-<!--    <script>-->
-<!--        document.getElementById('level1-2').setAttribute("class" ,"active-middle-level");-->
-<!--        document.getElementById('level2').setAttribute("class" ,"active-level");-->
-<!--    </script>-->
-<!--    {% endblock active-level %}-->
+    {% block active-level %}
+        <script>
+            document.getElementById('level1').setAttribute("class" ,"active-level");
+    <!--        document.getElementById('level1-2').setAttribute("class" ,"active-middle-level");-->
+    <!--        document.getElementById('level2').setAttribute("class" ,"active-level");-->
+        </script>
+    {% endblock active-level %}
     <div class="selling">
         <div class="product-side">
             <div class="product-container">
@@ -43,7 +48,7 @@
                         <p>ابــعاد چاپ :</p>
                     </div>
                     {% for item in size %}
-                        <div id="size-item" class="default-item">
+                        <div id="size{{ item.id }}" class="size-item default-item" onclick="sizeChoose(this)">
                             <p>{{ item }}</p>
                         </div>
                     {% endfor %}
@@ -54,7 +59,7 @@
                     <p>تاریخ تحویل</p>
                 </div>
                 {% for item in ready %}
-                    <div id="ready-item" class="default-item">
+                    <div id="ready{{ item.id }}" class="ready-item default-item" onclick="readyChoose(this)">
                         {% if item.duration %}
                         <p>{{ item }}<br><span class="hint">{{ item.duration|per_num }} روزکاری</span></p>
 <!--                            {{ ready_date }}-->
@@ -70,7 +75,7 @@
                     <p>تیراژ :</p>
                 </div>
                 {% for item in selling_options.all %}
-                    <div id="count-item" class="default-item">
+                    <div id="count{{ item.id }}" class="count-item default-item">
                         <p>{{ item.count|per_num }}</p>
                     </div>
                 {% endfor %}
@@ -93,7 +98,7 @@
                     </div>
                 {% endif %}
                 {% for item in selling_options.all %}
-                <label id="price-item" class="default-item price-item{{ item.side }}">
+                <label id="price{{ item.id }}" class="price-item default-item price-item{{ item.side }}">
                     <input type="radio" name="product_sale" value="{{ item.id }}">
                     <span class="checkmark"></span>
                     <p><span class="toman color-hint">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>

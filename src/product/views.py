@@ -7,6 +7,7 @@ from interface.views import base_context
 from .models import Category, Product, product_id_create
 from order.models import cart_id_create
 from django.utils import timezone
+from django.core import serializers
 
 
 def category_show(request, category_id):
@@ -63,6 +64,7 @@ def product_show(request, product_id):
     tmp = {
         'product': product,
         'selling_options': product.selling_options.all(),
+        # 'selling_options': serializers.serialize('json', product.selling_options.all()),
         'size': size,
         'ready': ready,
         'services': product.product_all_service.all().filter(active=True),

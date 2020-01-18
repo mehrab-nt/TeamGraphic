@@ -1,3 +1,8 @@
+"use strict";
+window.onscroll = function() {stickyNavbar()};
+var navbar = document.getElementById("navbar");
+var sticky = navbar.offsetTop;
+
 function mobileNavbar(arg) {
   var x = document.getElementById("tg_top_menu");
   if (x.className === "top_menu") {

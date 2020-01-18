@@ -11,8 +11,9 @@
 {% endblock stylesheet %}
 
 {% block js %}
-    <script src="{% static 'js/main/slideshow.js' %}"></script>
-    <script src="{% static 'js/main/navbar.js' %}"></script>
+    <script src="{% static 'js/main/slideshow.js' %}" defer="true"></script>
+    <script src="{% static 'js/main/navbar.js' %}" defer="true"></script>
+    <script src="{% static 'js/main/signup.js' %}" defer="true"></script>
 {% endblock js %}
 
 {% block page %}
@@ -24,7 +25,7 @@
             <img class="product-img" src="{% static item.preview_url %}" alt="{{ item.title }}">
             <h2 class="product-name">{{ item.title }}</h2>
             {% if item.description %}
-            <div class="tooltip"><span class="icon">?</span><p class="tooltiptext">{{ item.description }}</p></div>
+            <div class="tooltip"><img src="{% static 'img/main/info.png' %}" alt="info"><p class="tooltiptext">{{ item.description }}</p></div>
             {% endif %}
 
 <!--                <div class="product-ready">-->

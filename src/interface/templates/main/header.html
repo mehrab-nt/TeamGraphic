@@ -26,16 +26,24 @@
     {% else %}
         <div id="signup" class="signup-form">
             <div class="modal-content animate">
-                <form enctype="multipart/form-data" method="post" action="{% url 'user:user_signup' %}">
+                <form name="signUp" enctype="multipart/form-data" onsubmit="" method="post" action="{% url 'user:user_signup' %}">
                     {% csrf_token %}
                     <div>
                         <span onclick="document.getElementById('signup').style.display='none'" class="close" title="بستن">&times;</span>
                     </div>
                     <div class="context-form-container">
-                        <label for="username"><input type="text" name="username" required="required" minlength="11" maxlength="11">شماره موبایل</label>
-                        <label for="password"><input type="password" name="password" required="required" minlength="8" maxlength="15">رمز عبور</label>
-                        <label for="first_name"><input type="text" name="first_name" required="required" minlength="3" maxlength="20">نام</label>
-                        <label for="last_name"><input type="text" name="last_name" required="required" minlength="3" maxlength="20">نام خانوادگی</label>
+                        <label for="username">
+                            <input id="username" type="text" name="username" required="required" minlength="11" maxlength="11" onchange="checkUsername(this)">
+                            شماره موبایل</label>
+                        <label for="password">
+                            <input id="password" type="password" name="password" required="required" minlength="8" maxlength="15">
+                            رمز عبور</label>
+                        <label for="firstName">
+                            <input id="firstName" type="text" name="first_name" required="required" minlength="3" maxlength="20">
+                            نام</label>
+                        <label for="lastName">
+                            <input id="lastName" type="text" name="last_name" required="required" minlength="3" maxlength="20">
+                            نام خانوادگی</label>
                         <input tupe="text" name="current" hidden="hidden" value="{{ req.path }}">
                         <input class="confirm-button" type="submit" name="" value="تایید">
                     </div>
@@ -51,9 +59,9 @@
                         <span onclick="document.getElementById('forget').style.display='none'" class="close" title="بستن">&times;</span>
                     </div>
                     <div class="context-form-container">
-                        <label for="username"><input type="text" name="username" required="required" minlength="11" maxlength="11">شماره موبایل</label>
+                        <label for="forget_username"><input id="forget_username" type="text" name="username" required="required" minlength="11" maxlength="11">شماره موبایل</label>
                         <div style="display: none;">
-                            <label for="username">کد دریافتی</label>
+                            <label for="confirm_code">کد دریافتی</label>
                             <input type="number" name="confirm" required="required" value="">
                             <input class="confirm-button" type="submit" name="" value="تایید">
                         </div>
@@ -66,4 +74,3 @@
         </div>
     {% endif %}
 </header>
-<script src="{% static 'js/main/signup.js' %}"></script>

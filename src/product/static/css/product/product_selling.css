@@ -147,7 +147,7 @@ div #service-container {
     border-top: 2px solid rgb(0,0,0,0.03);
 }
 
-div #size-item {
+div .size-item {
     font-size: 15px;
     line-height: 1.6;
     width: 85px;
@@ -159,6 +159,10 @@ div #size-item {
     border-radius: 15px;
     padding: 15px 2px;
     text-align: center;
+}
+
+div #size-container div:nth-child(2) {
+
 }
 
 div #service-item {
@@ -181,7 +185,7 @@ div #ready-container {
     border-right: 2px solid #ddd;
 }
 
-div #ready-item {
+div .ready-item {
     font-size: 15px;
     line-height: 1.6;
     width: 120px;
@@ -202,7 +206,7 @@ div #count-container {
     margin-bottom: 10px;
 }
 
-div #count-item {
+div .count-item {
     font-size: 18px;
     font-weight: bold;
     letter-spacing: 1px;
@@ -225,7 +229,7 @@ div #price-container {
     margin-bottom: 10px;
 }
 
-div #price-item {
+div .price-item {
     text-align: left;
     font-size: 13px;
     line-height: 1.8;
@@ -270,7 +274,7 @@ div .price-item2, div .price-item0 {
 }
 
 /* Hide the browser's default radio button */
-#price-item input, #service-item input {
+.price-item input, #service-item input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
@@ -289,13 +293,13 @@ div .price-item2, div .price-item0 {
 }
 
 /* On mouse-over, add a grey background color */
-#price-item:hover input ~ .checkmark, #service-item:hover input ~ .checkmark {
+.price-item:hover input ~ .checkmark, #service-item:hover input ~ .checkmark {
     border: 2px solid #bbb;
     background-color: #eee;
 }
 
 /* When the radio button is checked, add a blue background */
-#price-item input:checked ~ .checkmark, #service-item input:checked ~ .checkmark {
+.price-item input:checked ~ .checkmark, #service-item input:checked ~ .checkmark {
     background-color: #ffcc00;
     border: 2px solid #ffcc00;
 }
@@ -308,12 +312,12 @@ div .price-item2, div .price-item0 {
 }
 
 /* Show the indicator (dot/circle) when checked */
-#price-item input:checked ~ .checkmark:after, #service-item input:checked ~ .checkmark:after {
+.price-item input:checked ~ .checkmark:after, #service-item input:checked ~ .checkmark:after {
     display: block;
 }
 
 /* Style the indicator (dot/circle) */
-#price-item .checkmark:after, #service-item .checkmark:after {
+.price-item .checkmark:after, #service-item .checkmark:after {
  	top: 30%;
 	left: 30%;
 	width: 40%;
@@ -399,7 +403,7 @@ div .active-item:hover {
         margin-right: 7.5vw;
     }
 
-    div #size-item {
+    div .size-item {
         font-size: 1.2vw;
         width: 7vw;
         height: 7vw;
@@ -415,7 +419,7 @@ div .active-item:hover {
         width: 19%;
     }
 
-    div #ready-item {
+    div .ready-item {
         font-size: 1.2vw;
         width: 88%;
         height: 7vw;
@@ -429,7 +433,7 @@ div .active-item:hover {
         width: 18%;
     }
 
-    div #count-item {
+    div .count-item {
         font-size: 1.5vw;
         width: 100%;
         height: 3.4vw;
@@ -443,7 +447,7 @@ div .active-item:hover {
         margin-right: 0.5vw;
     }
 
-    div #price-item {
+    div .price-item {
         font-size: 1.1vw;
         height: 3.4vw;
         border-width: 0.25vw;
@@ -495,12 +499,12 @@ div .active-item:hover {
     }
 
     /* On mouse-over, add a grey background color */
-    #price-item:hover input ~ .checkmark {
+    .price-item:hover input ~ .checkmark {
         border-width: 0.25vw;
     }
 
     /* When the radio button is checked, add a blue background */
-    #price-item input:checked ~ .checkmark {
+    .price-item input:checked ~ .checkmark {
         border-width: 0.25vw;
     }
 }
@@ -572,7 +576,7 @@ div .active-item:hover {
         margin-right: 7.5vw;
     }
 
-    div #size-item {
+    div .size-item {
         font-size: 2.2vw;
         width: 13vw;
         height: 13vw;
@@ -586,7 +590,7 @@ div .active-item:hover {
         width: 25%;
     }
 
-    div #ready-item {
+    div .ready-item {
         font-size: 2.5vw;
         height: 15vw;
         border-width: 0.5vw;
@@ -599,7 +603,7 @@ div .active-item:hover {
         width: 17%;
     }
 
-    div #count-item {
+    div .count-item {
         font-size: 2.6vw;
         width: 100%;
         height: 6vw;
@@ -613,7 +617,7 @@ div .active-item:hover {
         margin-right: 0.7vw;
     }
 
-    div #price-item {
+    div .price-item {
         font-size: 2.3vw;
         height: 6vw;
         border-width: 0.4vw;
@@ -656,12 +660,12 @@ div .active-item:hover {
     }
 
     /* On mouse-over, add a grey background color */
-    #price-item:hover input ~ .checkmark {
+    .price-item:hover input ~ .checkmark {
         border-width: 0.4vw;
     }
 
     /* When the radio button is checked, add a blue background */
-    #price-item input:checked ~ .checkmark {
+    .price-item input:checked ~ .checkmark {
         border-width: 0.4vw;
     }
 }
