@@ -33,13 +33,6 @@
                 <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
                 <h1>{{ product.title }}</h1>
             </div>
-        <div id="submit-container">
-            {% if user.is_authenticated %}
-            <button type="submit" form="product-form"><span>ادامه</span></button>
-            {% else %}
-            <button onclick="signupFirstMassage()"><span>ادامه</span></button>
-            {% endif %}
-        </div>
             <div class="intro-container">
                 <div class="product-price-container">
                     <p><span class="price-title">چــــاپ: </span><span id="product-price">۰</span>تومان </p>
@@ -47,6 +40,13 @@
                     <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">۰</span>تومان </p>
                 </div>
 <!--                <button value="submit">قیمت نهایی و اطلاعات سفارش تایید میره آخر صفحه</button>-->
+            </div>
+            <div id="submit-container">
+                {% if user.is_authenticated %}
+                <button type="submit" form="product-form"><span>ادامه</span></button>
+                {% else %}
+                <button onclick="signupFirstMassage()"><span>ادامه</span></button>
+                {% endif %}
             </div>
             <div class="intro-container">
                 {{ product.guidance|safe }}

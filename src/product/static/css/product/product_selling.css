@@ -260,7 +260,7 @@ div #ready-container {
 }
 
 div .ready-item {
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1.6;
     width: 120px;
     height: 85px;
@@ -438,13 +438,13 @@ div #submit-container button {
     background-color: #ffcc00;
     padding: 3px;
     font-size: 18px;
-    transition: all 0.5s;
+    transition: padding 0.5s;
 }
 
 div #submit-container button span {
     display: inline-block;
     position: relative;
-    transition: 0.5s;
+    transition: padding 0.5s;
     line-height: 1px;
 }
 
@@ -484,6 +484,13 @@ div #submit-container button:hover span:after {
         padding: 0 1vw 0;
     }
 
+    div #guide-selling-product {
+        font-size: 1.5vw;
+        padding: 0.5vw 1vw 0vw;
+        border-radius: 1.5vw;
+        margin-top: 5px;
+    }
+
     div.product-side .product-container {
         border-radius: 1.5vw;
         font-size: 1.5vw;
@@ -492,6 +499,42 @@ div #submit-container button:hover span:after {
     div.product-side .product-container .product-img {
         border-radius: 1.5vw;
         border: 0.5vw solid transparent;
+    }
+
+    .product-price-container p {
+        margin: 0.4vw 0px;
+        word-spacing: 1vw;
+    }
+
+    .product-price-container p.total-price-container {
+        margin: 0.3vw 0px;
+        border-top: 0.15vw solid #bbb;
+        padding-top: 1vw;
+    }
+
+    #plus {
+        top: 0.2vw;
+        right: 5.5vw;
+        width: 2.7vw;
+        height: 2.7vw;
+        font-size: 2.2vw;
+        line-height: 2.7vw;
+    }
+
+    #product-price, #service-price, #total-price {
+        padding: 0.3vw 1vw;
+        font-size: 1.8vw;
+        letter-spacing: 0.2vw;
+        vertical-align: -0.2vw;
+        line-height: 1.4;
+        margin-left: 1vw;
+        width: 9.2vw;
+    }
+
+    .product-price-container span.price-title {
+        font-size: 1.3vw;
+        width: 9vw;
+        padding: 0px 1vw 0px 0.2vw;
     }
 
     div.product-side .intro-container {
@@ -532,7 +575,7 @@ div #submit-container button:hover span:after {
     }
 
     div .size-item {
-        font-size: 1.2vw;
+        font-size: 1.3vw;
         width: 7vw;
         height: 7vw;
         float: right;
@@ -548,7 +591,7 @@ div #submit-container button:hover span:after {
     }
 
     div .ready-item {
-        font-size: 1.2vw;
+        font-size: 1.4vw;
         width: 88%;
         height: 7vw;
         border-width: 0.3vw;
@@ -606,7 +649,7 @@ div #submit-container button:hover span:after {
     }
 
     span.hint {
-        font-size: 1.2vw;
+        font-size: 1.1vw;
     }
 
     div .price-item1 {
@@ -635,9 +678,37 @@ div #submit-container button:hover span:after {
     .price-item input:checked ~ .checkmark {
         border-width: 0.25vw;
     }
+
+    div #submit-container {
+        margin: 0.5vw 0;
+        padding-bottom: 0.5vw;
+    }
+
+    div #submit-container button {
+        width: 50%;
+        padding: 0;
+        font-size: 1.7vw;
+    }
+
+    div #submit-container button span:after {
+        font-size: 1.5vw;
+        letter-spacing: -0.5vw;
+    }
+
+    div #submit-container button:hover span {
+        padding-left: 1.7vw;
+    }
 }
 
 @media screen and (max-width: 480px) {
+
+    div #guide-selling-product {
+        font-size: 2.5vw;
+        padding: 2vw 2vw 0vw;
+        border-radius: 2.5vw;
+        margin-top: 0px;
+    }
+
     div.product-side {
         width: 100%;
         border: none;
@@ -657,11 +728,47 @@ div #submit-container button:hover span:after {
         border: 0.7vw solid transparent;
     }
 
+    .product-price-container p {
+        margin: 0.8vw 0px;
+        word-spacing: 2vw;
+    }
+
+    .product-price-container p.total-price-container {
+        margin: 0.3vw 0px;
+        border-top: 0.3vw solid #bbb;
+        padding-top: 1vw;
+    }
+
+    #plus {
+        top: 1.2vw;
+        right: 10vw;
+        width: 4vw;
+        height: 4vw;
+        font-size: 3.8vw;
+        line-height: 3.5vw;
+    }
+
+    #product-price, #service-price, #total-price {
+        padding: 0.5vw 2vw;
+        font-size: 3.5vw;
+        letter-spacing: 0.3vw;
+        vertical-align: -2px;
+        line-height: 1.4;
+        margin-left: 1vw;
+        width: 18vw;
+    }
+
+    .product-price-container span.price-title {
+        font-size: 2.5vw;
+        width: 15vw;
+        padding: 0px 2vw 0px 1vw;
+    }
+
     div.product-side .intro-container {
         border-radius: 2.5vw;
         float: left;
         width: 49%;
-        height: 29vw;
+        height: 25vw;
         font-size: 2.8vw;
         overflow: auto;
     }
@@ -705,12 +812,12 @@ div #submit-container button:hover span:after {
     }
 
     div .size-item {
-        font-size: 2.2vw;
+        font-size: 2.4vw;
         width: 13vw;
         height: 13vw;
         border-width: 0.5vw;
         margin: 0px 0.5vw 10px;
-        padding: 2.2vw 0;
+        padding: 2.2vw 0.2vw;
         border-radius: 1.6vw;
     }
 
@@ -795,5 +902,29 @@ div #submit-container button:hover span:after {
     /* When the radio button is checked, add a blue background */
     .price-item input:checked ~ .checkmark {
         border-width: 0.4vw;
+    }
+
+    div #submit-container {
+        float: left;
+        font-size: 2.8vw;
+        width: 49%;
+        margin: 0;
+        margin-bottom: 1.5vw;
+        padding: 0vw 0;
+    }
+
+    div #submit-container button {
+        width: 50%;
+        padding: 0;
+        font-size: 3vw;
+    }
+
+    div #submit-container button span:after {
+        font-size: 1.5vw;
+        letter-spacing: -0.5vw;
+    }
+
+    div #submit-container button:hover span {
+        padding-left: 1.7vw;
     }
 }
