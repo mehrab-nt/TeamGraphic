@@ -218,6 +218,9 @@ class Product(models.Model):
     def geturl(self):
         return reverse("product:product_show", kwargs={"product_id": self.id})
 
+    def geturl_l2(self):
+        return reverse("product:design_level", kwargs={"product_id": self.id})
+
     def preview_url(self):
         return 'img/product/{0}/{1}-preview.png'.format(self.id, self.id)
 
@@ -379,7 +382,7 @@ class Size(models.Model):
         return '{0}'.format(self.title)
 
     class Meta:
-        ordering = ['-len']
+        ordering = ['len']
         verbose_name = 'سایز'
         verbose_name_plural = 'سایز'
 
@@ -446,6 +449,7 @@ class Design(models.Model):
 
     def __str__(self):
         return '{0}'.format(self.title)
+
 
     class Meta:
         verbose_name = 'طراحی'

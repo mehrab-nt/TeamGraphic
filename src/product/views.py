@@ -30,8 +30,6 @@ def convert_date(date):
 
 
 def product_show(request, product_id):
-    print(product_id_create('vis'))
-    print(cart_id_create('98'))
     product = get_object_or_404(Product, id=product_id)
     context = base_context(request)
     size = [product.selling_options.all()[0].size]
@@ -73,3 +71,22 @@ def product_show(request, product_id):
     }
     context.update(tmp)
     return render(request, 'product/product.html', context)
+
+
+@login_required
+def design_level(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, id=product_id)
+        context = base_context(request)
+        tmp = {
+            'product': product,
+            'selling_options': product.selling_options.all(),
+            'services': product.product_all_service.all().filter(active=True),
+            'test1': request.POST.get('product_sale'),
+            'test2': request.POST.getlist('product_service'),
+        }
+        context.update(tmp)
+        return render(request, 'product/design_level.html', context)
+    if request.method == 'GET':
+        return product_show(request, product_id)
+

@@ -1,8 +1,8 @@
 div.selling {
     float: right;
     width: 100%;
-    margin: 10px 0px;
-  counter-reset: section;
+    margin: 0px 0px;
+    counter-reset: section;
 }
 
 div.product-side {
@@ -69,6 +69,65 @@ div.product-side .intro-container ul {
     padding: 0;
 }
 
+.product-price-container p {
+    position: relative;
+    margin: 4px 0;
+    padding: 0;
+    text-align: right;
+    word-spacing: 4px;
+}
+
+.product-price-container p.total-price-container {
+    margin: 7px 0px;
+    border-top: 1px solid #bbb;
+    padding-top: 13px;
+}
+
+#plus {
+    position: absolute;
+    top: 3px;
+    right: 75px;
+    display: inline-block;
+    background-color: #ffcc00;
+    border-radius: 50px;
+    width: 25px;
+    height: 25px;
+    text-align: center;
+    font-size: 18px;
+    font-weight: bold;
+    line-height: 1.4;
+}
+
+#product-price, #service-price, #total-price {
+    border: none;
+    content: '';
+    padding: 1px 5px;
+    font-size: 21px;
+    font-weight: bold;
+    letter-spacing: 1.5px;
+    vertical-align: -2px;
+    line-height: 1.4;
+    border-radius: 50px;
+    margin: 0;
+    margin-left: 8px;
+    width: 120px;
+    display: inline-block;
+    text-align: center;
+    background-color: #eee;
+}
+
+#total-price {
+    background-color: #ffcc00;
+}
+
+.product-price-container span.price-title {
+    font-size: 15px;
+    display: inline-block;
+    width: 105px;
+    margin: 0;
+    padding: 0px 10px 0px 5px;
+}
+
 div.product-side .intro-container li {
     margin-right: 10px;
     word-spacing: 2px;
@@ -115,8 +174,8 @@ div .head-option img, div .head-option-left img {
 }
 
 div .head-option img:hover, div .head-option-left img:hover {
-  -webkit-transform: rotate(180deg);
-  transform: rotate(180deg);
+    -webkit-transform: rotate(180deg);
+    transform: rotate(180deg);
 }
 
 div .head-option-left img {
@@ -134,6 +193,25 @@ div .head-option-left p {
     margin-left: 15px;
     text-align: center;
     font-weight: bold;
+}
+
+div #guide-selling-product {
+    width: 100%;
+    float: right;
+    margin-bottom: 10px;
+    border-bottom: 2px solid rgb(0,0,0,0.03);
+    color: #171717;
+    font-size: 14px;
+    padding: 0.5vw 1vw 0vw;
+    background-color: #fff;
+    border-radius: 0.7vw;
+    border: 0.15vw solid white;
+    box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.1);
+}
+
+div #guide-selling-product:hover {
+    transition: 0.5s;
+    box-shadow: 0px 0px 3px 1px rgba(0,0,0,0.2);
 }
 
 div #size-container , div #service-container {
@@ -216,6 +294,7 @@ div .count-item {
     border-radius: 15px;
     padding-top: 10px;
     text-align: center;
+    display: none;
 }
 
 div #price-container {
@@ -340,6 +419,59 @@ div .default-item:hover {
 div .active-item:hover {
     cursor: pointer;
     border-color: #ffbb00;
+}
+
+div #submit-container {
+    width: 100%;
+    float: right;
+    margin: 8px 0;
+    padding-bottom: 5px;
+}
+
+div #submit-container button {
+    display: block;
+    color: #000;
+    width: 170px;
+    margin: auto;
+    border: none;
+    border-radius: 50px;
+    background-color: #ffcc00;
+    padding: 3px;
+    font-size: 18px;
+    transition: all 0.5s;
+}
+
+div #submit-container button span {
+    display: inline-block;
+    position: relative;
+    transition: 0.5s;
+    line-height: 1px;
+}
+
+div #submit-container button span:after {
+    content: '❯❯  ';
+    position: absolute;
+    opacity: 0;
+    top: 0;
+    left: -15px;
+    transition: 0.5s;
+    letter-spacing: -7px;
+    font-size: 16px;
+}
+
+div #submit-container button:hover {
+    cursor: pointer;
+    border: none;
+    background-color: #f0c000;
+}
+
+div #submit-container button:hover span {
+    padding-left: 20px;
+}
+
+div #submit-container button:hover span:after {
+    opacity: 1;
+    left: 0;
 }
 
 @media screen and (max-width: 1250px) {

@@ -33,14 +33,38 @@
                 <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
                 <h1>{{ product.title }}</h1>
             </div>
+        <div id="submit-container">
+            {% if user.is_authenticated %}
+            <button type="submit" form="product-form"><span>ادامه</span></button>
+            {% else %}
+            <button onclick="signupFirstMassage()"><span>ادامه</span></button>
+            {% endif %}
+        </div>
             <div class="intro-container">
-                <button value="submit">قیمت نهایی و اطلاعات سفارش تایید میره آخر صفحه</button>
+                <div class="product-price-container">
+                    <p><span class="price-title">چــــاپ: </span><span id="product-price">۰</span>تومان </p>
+                    <p><span class="price-title">خدمات: </span><span id="service-price">۰</span>تومان <span id="plus">+</span></p>
+                    <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">۰</span>تومان </p>
+                </div>
+<!--                <button value="submit">قیمت نهایی و اطلاعات سفارش تایید میره آخر صفحه</button>-->
             </div>
             <div class="intro-container">
                 {{ product.guidance|safe }}
             </div>
         </div>
         <div class="product-main">
+            <div id="guide-selling-product">
+                <p><b>راهنما: </b><br>
+                {% if size %}
+                    ابعاد چاپ را انتخاب کرده سپس
+                {% endif %}
+                قیمت متناسب با تعداد یا تیراژ محصول قابل انتخاب است.
+                {% if ready %}
+                    <br>
+                    می توانید با انتخاب مدت زمان تحویل تفاوت قیمت ها را مشاهده کنید!
+                {% endif %}
+                </p>
+            </div>
             {% if size %}
                 <div id="size-container">
                     <div class="head-option">
@@ -56,7 +80,7 @@
             {% endif %}
             <div id="ready-container">
                 <div class="head-option-left">
-                    <p>تاریخ تحویل</p>
+                    <p>زمـان تحـویــل</p>
                 </div>
                 {% for item in ready %}
                     <div id="ready{{ item.id }}" class="ready-item default-item" onclick="readyChoose(this)">
@@ -74,54 +98,74 @@
                     <img src="{% static 'img/main/icon-color.png' %}">
                     <p>تیراژ :</p>
                 </div>
-                {% for item in selling_options.all %}
-                    <div id="count{{ item.id }}" class="count-item default-item">
-                        <p>{{ item.count|per_num }}</p>
-                    </div>
-                {% endfor %}
-            </div>
-            <div id="price-container">
                 {% if side_num == 2 %}
-                    <div class="head-option side1">
-                        <p>دو رو</p>
-                    </div>
-                    <div class="head-option side2">
-                        <p>یک رو</p>
-                    </div>
-                {% else %}
-                    <div class="head-option side0">
-                        {% if side_type != 0 %}
-                            <p>دو رو</p>
-                        {% else %}
-                            <p>قیمت</p>
+                    {% for item in selling_options.all %}
+                        {% if forloop.counter0|divisibleby:2 %}
+                            <div id="count{{ item.id }}" class="count-item default-item ready{{ item.ready.id }}size{{ item.size.id }}">
+                                <p>{{ item.count|per_num }}</p>
+                            </div>
                         {% endif %}
+                    {% endfor %}
+                {% else %}
+                    {% for item in selling_options.all %}
+                        <div id="count{{ item.id }}" class="count-item default-item ready{{ item.ready.id }}size{{ item.size.id }}">
+                            <p>{{ item.count|per_num }}</p>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <form enctype="multipart/form-data" method="post" action="{{ product.geturl_l2 }}" id="product-form">
+                {% csrf_token %}
+                <div id="price-container">
+                    {% if side_num == 2 %}
+                        <div class="head-option side1">
+                            <p>دو رو</p>
+                        </div>
+                        <div class="head-option side2">
+                            <p>یک رو</p>
+                        </div>
+                    {% else %}
+                        <div class="head-option side0">
+                            {% if side_type != 0 %}
+                                <p>دو رو</p>
+                            {% else %}
+                                <p>قیمت</p>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                        {% for item in selling_options.all %}
+                        <label id="{{ item.id }}"
+                               class="price-item default-item price-item{{ item.side }} ready{{ item.ready.id }}size{{ item.size.id }}">
+                            {% if product.min_price == item.sale_price %}
+                            <input type="radio" id="{{ item.sale_price }}" name="product_sale" value="{{ item.id }}"
+                                   class="price-check count{{ item.count }} price-def" onclick="setPrice(this)">
+                            {% else %}
+                            <input type="radio" id="{{ item.sale_price }}" name="product_sale" value="{{ item.id }}"
+                                   class="price-check count{{ item.count }}" onclick="setPrice(this)">
+                            {% endif %}
+                            <span class="checkmark"></span>
+                            <p><span class="toman color-hint">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>
+                        </label>
+                        {% endfor %}
+                </div>
+                {% if services %}
+                    <div id="service-container">
+                        <div class="head-option">
+                            <img src="{% static 'img/main/icon-color.png' %}">
+                            <p>خدمات :</p>
+                        </div>
+                        {% for item in services %}
+                        <label id="service-item" class="default-item">
+                            <input type="checkbox" class="service-check" id="{{ item.service.cost }}" value="{{ item.id }}" name="product_service" onclick="setServicePrice()">
+                            <span class="checkmark"></span>
+                            <p>{{ item.service.title }} <span class="hint">({{ item.service.hint }})</span>
+                                <span class="toman color-hint">تومان</span><span class="price">{{ item.service.cost|per_num }} +</span>
+                                <span class="toman color-hint" style="padding-left: 8px;">روزکاری</span><span class="price">{{ item.service.duration|per_num }} +</span></p>
+                        </label>
+                        {% endfor %}
                     </div>
                 {% endif %}
-                {% for item in selling_options.all %}
-                <label id="{{ item.id }}" class="price-item default-item price-item{{ item.side }} ready{{ item.ready.id }}size{{ item.size.id }}">
-                    <input type="radio" name="product_sale" value="{{ item.id }}">
-                    <span class="checkmark"></span>
-                    <p><span class="toman color-hint">تومان</span><span class="price">{{ item.sale_price|per_num }}</span></p>
-                </label>
-                {% endfor %}
-            </div>
-            {% if services %}
-                <div id="service-container">
-                    <div class="head-option">
-                        <img src="{% static 'img/main/icon-color.png' %}">
-                        <p>خدمات :</p>
-                    </div>
-                    {% for item in services %}
-                    <label id="service-item" class="default-item">
-                        <input type="checkbox" name="{{ item.id }}">
-                        <span class="checkmark"></span>
-                        <p>{{ item.service.title }} <span class="hint">({{ item.service.hint }})</span>
-                            <span class="toman color-hint">تومان</span><span class="price">{{ item.service.cost|per_num }} +</span>
-                            <span class="toman color-hint" style="padding-left: 8px;">روزکاری</span><span class="price">{{ item.service.duration|per_num }} +</span></p>
-                    </label>
-                    {% endfor %}
-                </div>
-            {% endif %}
+            </form>
         </div>
     </div>
 {% endblock page %}

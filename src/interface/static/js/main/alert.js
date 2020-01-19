@@ -13,11 +13,10 @@
 
 function alertClose(sig) {
   var div = sig.parentElement
+//  window.onmousemove = function(event) {
+//    div.style.opacity = "0";
+//    setTimeout(function(){ div.style.display = "none"; }, 600);
+//  }
   div.style.opacity = "0";
   setTimeout(function(){ div.style.display = "none"; }, 600);
-}
-
-function alertAutoClose(sig) {
-  sig.style.opacity = "0";
-  setTimeout(function(){ sig.style.display = "none"; }, 100);
 }

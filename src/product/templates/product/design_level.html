@@ -1,0 +1,46 @@
+{% extends "main/home.html" %}
+{% load static %}
+{% load interface_tag %}
+
+{% block meta %}
+    <meta name="keywords" content="teamgraphic ,تیم گرافیک ,{{ product.title }}">
+{% endblock meta %}
+
+{% block title %}
+    <title>تیم گرافیک | {{ product.title }}</title>
+{% endblock title %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_selling.css' %}">
+{% endblock stylesheet %}
+
+{% block js %}
+    <script src="{% static 'js/product/product.js' %}" defer="True"></script>
+{% endblock js %}
+
+{% block page %}
+    {% include "product/order_level.html" %}
+    {% block active-level %}
+        <script>
+            document.getElementById('level1').setAttribute("class" ,"active-level");
+            document.getElementById('level1-2').setAttribute("class" ,"active-middle-level");
+            document.getElementById('level2').setAttribute("class" ,"active-level");
+        </script>
+    {% endblock active-level %}
+    <div class="selling">
+        {{ test2 }}<br>{{ test1 }}
+        <div class="product-side">
+            <div class="product-container">
+                <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
+                <h1>{{ product.title }}</h1>
+            </div>
+            <div id="submit-container">
+                {% if user.is_authenticated %}
+                <button type="submit" form="product-form"><span>ادامه</span></button>
+                {% else %}
+                <button onclick="signupFirstMassage()"><span>ادامه</span></button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+{% endblock page %}
