@@ -192,10 +192,10 @@ window.addEventListener("load", function(){
 });
 
 function signupFirstMassage() {
-  var message, alert;
-  alert = document.getElementById("warning");
+  var message, alt;
+  alt = document.getElementById("warning");
   message = document.getElementById("warning-msg");
-  alert.style.display = "block";
-  alert.style.opacity = "0.9";
+  alt.style.visibility = "visible";
+  alt.style.opacity = "0.9";
   message.innerHTML = "لطفا ابتدا <b>وارد</b> شوید. (اکانت کاربری ندارد؟ به راحتی ثبت نام کنید!!)";
 }

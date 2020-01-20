@@ -40,13 +40,13 @@
                     <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">۰</span>تومان </p>
                 </div>
 <!--                <button value="submit">قیمت نهایی و اطلاعات سفارش تایید میره آخر صفحه</button>-->
-            </div>
-            <div id="submit-container">
-                {% if user.is_authenticated %}
-                <button type="submit" form="product-form"><span>ادامه</span></button>
-                {% else %}
-                <button onclick="signupFirstMassage()"><span>ادامه</span></button>
-                {% endif %}
+                <div id="submit-container">
+                    {% if user.is_authenticated %}
+                    <button type="submit" form="product-form"><span>ادامه</span></button>
+                    {% else %}
+                    <button onclick="signupFirstMassage()"><span>ادامه</span></button>
+                    {% endif %}
+                </div>
             </div>
             <div class="intro-container">
                 {{ product.guidance|safe }}
@@ -116,6 +116,7 @@
             </div>
             <form enctype="multipart/form-data" method="post" action="{{ product.geturl_l2 }}" id="product-form">
                 {% csrf_token %}
+                <input type="hidden" name="product" value="{{ product.id }}">
                 <div id="price-container">
                     {% if side_num == 2 %}
                         <div class="head-option side1">

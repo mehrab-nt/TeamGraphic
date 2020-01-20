@@ -29,6 +29,11 @@ div.product-side .product-container, div.product-side .intro-container {
     box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.1);
 }
 
+div.product-side .intro-container {
+    padding: 0.5vw 0vw 0vw;
+    border: none;
+}
+
 div.product-side .product-container:hover {
     transition: 0.5s;
     padding: 0.3vw 0.2vw 0.5vw;
@@ -54,19 +59,12 @@ div.product-side h1 {
 }
 
 div.product-side .intro-container ul {
-    float: right;
-    direction: rtl;
-    text-align: right;
-    margin-right: 25px;
-}
-
-div.product-side .intro-container ul {
     list-style-type: none;
     float: right;
     direction: rtl;
     text-align: right;
     margin: 0px;
-    padding: 0;
+    padding-bottom: 8px;
 }
 
 .product-price-container p {
@@ -110,7 +108,7 @@ div.product-side .intro-container ul {
     border-radius: 50px;
     margin: 0;
     margin-left: 8px;
-    width: 120px;
+    width: 130px;
     display: inline-block;
     text-align: center;
     background-color: #eee;
@@ -195,11 +193,10 @@ div .head-option-left p {
     font-weight: bold;
 }
 
-div #guide-selling-product {
+div #guide-selling-product, div #guide-design-product {
     width: 100%;
     float: right;
     margin-bottom: 10px;
-    border-bottom: 2px solid rgb(0,0,0,0.03);
     color: #171717;
     font-size: 14px;
     padding: 0.5vw 1vw 0vw;
@@ -207,9 +204,17 @@ div #guide-selling-product {
     border-radius: 0.7vw;
     border: 0.15vw solid white;
     box-shadow: 0px 0px 3px 0px rgba(0,0,0,0.1);
+    text-align: right;
 }
 
-div #guide-selling-product:hover {
+div #guide-design-product {
+    width: 97%;
+    margin: 0;
+    margin-right: 1.5%;
+    margin-top: 10px;
+}
+
+div #guide-selling-product:hover, div #guide-design-product:hover {
     transition: 0.5s;
     box-shadow: 0px 0px 3px 1px rgba(0,0,0,0.2);
 }
@@ -424,21 +429,21 @@ div .active-item:hover {
 div #submit-container {
     width: 100%;
     float: right;
-    margin: 8px 0;
-    padding-bottom: 5px;
+    margin-top: 5px;
+    padding: 0px;
 }
 
 div #submit-container button {
     display: block;
     color: #000;
-    width: 170px;
-    margin: auto;
+    width: 100%;
+    margin: 0;
     border: none;
-    border-radius: 50px;
     background-color: #ffcc00;
-    padding: 3px;
+    padding: 5px;
     font-size: 18px;
     transition: padding 0.5s;
+    border-radius: 0 0 1vw 1vw;
 }
 
 div #submit-container button span {
@@ -680,14 +685,13 @@ div #submit-container button:hover span:after {
     }
 
     div #submit-container {
-        margin: 0.5vw 0;
-        padding-bottom: 0.5vw;
+        margin: 0.7vw 0 0;
     }
 
     div #submit-container button {
-        width: 50%;
-        padding: 0;
+        padding: 0.2vw;
         font-size: 1.7vw;
+        border-radius: 0 0 1.5vw 1.5vw;
     }
 
     div #submit-container button span:after {
@@ -749,7 +753,7 @@ div #submit-container button:hover span:after {
     }
 
     #product-price, #service-price, #total-price {
-        padding: 0.5vw 2vw;
+        padding: 0.3vw 2vw;
         font-size: 3.5vw;
         letter-spacing: 0.3vw;
         vertical-align: -2px;
@@ -768,9 +772,10 @@ div #submit-container button:hover span:after {
         border-radius: 2.5vw;
         float: left;
         width: 49%;
-        height: 25vw;
-        font-size: 2.8vw;
-        overflow: auto;
+        height: auto;
+        max-height: 30vw;
+        font-size: 2.7vw;
+        overflow: hidden;
     }
 
     div.product-main {
@@ -905,18 +910,14 @@ div #submit-container button:hover span:after {
     }
 
     div #submit-container {
-        float: left;
         font-size: 2.8vw;
-        width: 49%;
-        margin: 0;
-        margin-bottom: 1.5vw;
-        padding: 0vw 0;
+        margin-top: 1vw;
     }
 
     div #submit-container button {
-        width: 50%;
         padding: 0;
         font-size: 3vw;
+        border-radius: 0 0 2.5vw 2.5vw;
     }
 
     div #submit-container button span:after {

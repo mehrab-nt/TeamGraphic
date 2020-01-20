@@ -193,22 +193,23 @@ a:visited {
     width: 500px;
     margin: auto;
     padding: 15px;
-    background-color: #f44336;
+    background-color: red;
     color: white;
-    opacity: 0.7;
+    opacity: 0.9;
     transition: opacity 0.6s;
     position: fixed;
     top: 111px;
     left: 50%;
     transform: translate(-50%, -50%);
-    display: none;
+    display: block;
+    visibility: hidden;
     z-index: 5;
     line-height: 1.2;
 }
 
 .alert.success {background-color: #4CAF50;}
 .alert.information {background-color: #ffcc00;}
-.alert.warning {background-color: red;}
+.alert.warning {background-color: #f44336;}
 
 .alert-closebtn {
     user-select: none;
@@ -224,7 +225,7 @@ a:visited {
 }
 
 .alert-closebtn:hover {
-  color: black;
+    color: black;
 }
 
 @media screen and (max-width: 1250px) {

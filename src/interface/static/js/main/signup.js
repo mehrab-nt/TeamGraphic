@@ -13,8 +13,8 @@ window.onclick = function(event) {
 }
 
 function checkUsername(username='') {
-  var message, alert;
-  alert = document.getElementById("error");
+  var message, alt;
+  alt = document.getElementById("error");
   message = document.getElementById("error-msg");
   try {
     if(isNaN(username.value)) throw "لطفا شماره موبایل صحیح وارد نمایید";
@@ -22,8 +22,8 @@ function checkUsername(username='') {
     if(username.value.length != 11) throw "لطفا شماره موبایل را کامل وارد نمایید";
   }
   catch(err) {
-    alert.style.display = "block";
-    alert.style.opacity = "0.9";
+    alt.style.visibility = "visible";
+    alt.style.opacity = "0.9";
     message.innerHTML = err;
     username.value = '';
   }

@@ -18,5 +18,5 @@ function alertClose(sig) {
 //    setTimeout(function(){ div.style.display = "none"; }, 600);
 //  }
   div.style.opacity = "0";
-  setTimeout(function(){ div.style.display = "none"; }, 600);
+  setTimeout(function(){ div.style.visibility = "hidden"; }, 600);
 }

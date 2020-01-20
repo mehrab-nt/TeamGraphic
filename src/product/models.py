@@ -228,10 +228,10 @@ class Product(models.Model):
         min_price = 0
         for tmp in self.selling_options.all():
             if min_price:
-                if tmp.sale_price < min_price:
-                    min_price = tmp.sale_price
+                if tmp.sale_price() < min_price:
+                    min_price = tmp.sale_price()
             else:
-                min_price = tmp.sale_price
+                min_price = tmp.sale_price()
         return min_price
 
     def min_ready(self):
@@ -492,8 +492,8 @@ class DiscountType(models.TextChoices):
 
 class Discount(models.Model):
     type = models.CharField(max_length=1, choices=DiscountType.choices, blank=False)
-    amount = models.FloatField(blank=False, validators=[validators.MinValueValidator(0.1),
-                                                        validators.MaxValueValidator(1000000)])
+    amount = models.FloatField(blank=False, validators=[validators.MinValueValidator(-999999),
+                                                        validators.MaxValueValidator(999999)])
     title = models.CharField(max_length=15, blank=False, validators=[validators.MinLengthValidator(3)])
 
     def __str__(self):
@@ -525,12 +525,22 @@ class SellingOption(models.Model):
     # color_mode
     quality = models.ForeignKey('Quality', on_delete=models.SET_NULL, null=True, blank=True,
                                 related_name='all_product')
+    auto_price = models.BooleanField(default=False)
     base_price = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
                                                                       validators.MaxValueValidator(99999999)])
     discount = models.ForeignKey('Discount', on_delete=models.SET_NULL, null=True, blank=True,
                                  related_name='all_product')
-    sale_price = models.PositiveIntegerField(blank=False, validators=[validators.MinValueValidator(1000),
-                                                                      validators.MaxValueValidator(99999999)])
+
+    def sale_price(self):
+        if self.discount:
+            if self.discount.type == '%':
+                return self.base_price + round((self.base_price * self.discount.amount / 100) / 1000) * 1000
+            elif self.discount.type == '$':
+                return round(self.base_price - self.discount.amount)
+            else:
+                return self.base_price
+        else:
+            return self.base_price
 
     def __str__(self):
         return '{0}'.format(self.product)

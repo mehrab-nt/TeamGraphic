@@ -12,10 +12,12 @@
 
 {% block stylesheet %}
     <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_selling.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/design_level.css' %}">
 {% endblock stylesheet %}
 
 {% block js %}
     <script src="{% static 'js/product/product.js' %}" defer="True"></script>
+    <script src="{% static 'js/product/design.js' %}" defer="True"></script>
 {% endblock js %}
 
 {% block page %}
@@ -28,18 +30,148 @@
         </script>
     {% endblock active-level %}
     <div class="selling">
-        {{ test2 }}<br>{{ test1 }}
         <div class="product-side">
             <div class="product-container">
                 <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
                 <h1>{{ product.title }}</h1>
             </div>
             <div id="submit-container">
-                {% if user.is_authenticated %}
-                <button type="submit" form="product-form"><span>ادامه</span></button>
-                {% else %}
-                <button onclick="signupFirstMassage()"><span>ادامه</span></button>
-                {% endif %}
+                <button type="submit" form="design-form"><span>تایید</span></button>
+            </div>
+        </div>
+        <div class="product-main">
+            <button class="tablink tab-right" onclick="openDesignForm('uFile', this)" id="defaultOpen">طرح دارم (آپلود فایل)</button>
+            <button class="tablink tab-left" onclick="openDesignForm('rFile', this)">طرح ندارم (سفارش طراحی)</button>
+            <div class="tabcontent" id="uFile">
+                <form enctype="multipart/form-data" method="post" action="#" id="design-form" onsubmit="return validateDesignForm()">
+                    <div id="guide-design-product">
+                        <p>فایل طرح های مربوطه را آپلود کنید:<br>
+                        فرمت مجاز برای تمامی فایل ها :‌ <b>JPG</b><br>
+                        حداکثر سایز هر فایل :‌ <b>10</b>Mb<br>
+                        لطفا با توجه به توضیحات مربوطه طرح مناسب ارسال نمایید تا بهترین کیفیت حاصل شود</p>
+                    </div>
+                    {% csrf_token %}
+                    {% if product_sale.side == '1' %}
+                        <div class="design-container">
+                            <div class="design-title-container">
+                                <p>فایل طرح رو</p>
+                            </div>
+                            <div class="upload-preview-container">
+                                <img class="upload-preview" id="base1">
+                            </div>
+                            <p id="pbase1" class="file-name"></p>
+                            <label for="ubase1">آپلود فایل</label>
+                            <input type="file" id="ubase1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                   onchange="previewUploadFile(this, 'base1')"  class="design-file" autocomplete="off">
+                        </div>
+                    {% elif product_sale.side == '2' %}
+                        <div class="design-container">
+                            <div class="design-title-container">
+                                <p>فایل طرح رو</p>
+                            </div>
+                            <div class="upload-preview-container">
+                                <img class="upload-preview" id="base1">
+                            </div>
+                            <p id="pbase1" class="file-name"></p>
+                            <label for="ubase1">آپلود فایل</label>
+                            <input type="file" id="ubase1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                   onchange="previewUploadFile(this, 'base1')"  class="design-file" autocomplete="off">
+                        </div>
+                        <div class="design-container">
+                            <div class="design-title-container">
+                                <p>فایل طرح پشت</p>
+                            </div>
+                            <div class="upload-preview-container">
+                                <img class="upload-preview" id="base2">
+                            </div>
+                            <p id="pbase2" class="file-name"></p>
+                            <label for="ubase2">آپلود فایل</label>
+                            <input type="file" id="ubase2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                   onchange="previewUploadFile(this, 'base2')"  class="design-file" autocomplete="off">
+                        </div>
+                        {% if product.design_film %}
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل فیلم رو</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="film1">
+                                </div>
+                                <p id="pfilm1" class="file-name"></p>
+                                <label for="ufilm1">آپلود فایل</label>
+                                <input type="file" id="ufilm1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'film1')"  class="design-file" autocomplete="off">
+                            </div>
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل فیلم پشت</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="film2">
+                                </div>
+                                <p id="pfilm2" class="file-name"></p>
+                                <label for="ufilm2">آپلود فایل</label>
+                                <input type="file" id="ufilm2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'film2')"  class="design-file" autocomplete="off">
+                            </div>
+                        {% endif %}
+                        {% if product.design_gold %}
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل طلاکوب رو</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="gold1">
+                                </div>
+                                <p id="pgold1" class="file-name"></p>
+                                <label for="ugold1">آپلود فایل</label>
+                                <input type="file" id="ugold1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'gold1')"  class="design-file" autocomplete="off">
+                            </div>
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل طلاکوب رو</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="gold2">
+                                </div>
+                                <p id="pgold2" class="file-name"></p>
+                                <label for="ugold2">آپلود فایل</label>
+                                <input type="file" id="ugold2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'gold2')"  class="design-file" autocomplete="off">
+                            </div>
+                        {% endif %}
+                        {% if product.design_form %}
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل قالب رو</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="form1">
+                                </div>
+                                <p id="pform1" class="file-name"></p>
+                                <label for="uform1">آپلود فایل</label>
+                                <input type="file" id="uform1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'form1')"  class="design-file" autocomplete="off">
+                            </div>
+                            <div class="design-container">
+                                <div class="design-title-container">
+                                    <p>فایل قالب رو</p>
+                                </div>
+                                <div class="upload-preview-container">
+                                    <img class="upload-preview" id="form2">
+                                </div>
+                                <p id="pform2" class="file-name"></p>
+                                <label for="uform2">آپلود فایل</label>
+                                <input type="file" id="uform2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                       onchange="previewUploadFile(this, 'form2')"  class="design-file" autocomplete="off">
+                            </div>
+                        {% endif %}
+                    {% endif %}
+                </form>
+            </div>
+            <div class="tabcontent" id="rFile">
+
             </div>
         </div>
     </div>

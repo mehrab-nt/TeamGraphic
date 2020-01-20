@@ -4,7 +4,7 @@ from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from interface.views import base_context
-from .models import Category, Product, product_id_create
+from .models import Category, Product, SellingOption, product_id_create
 from order.models import cart_id_create
 from django.utils import timezone
 from django.core import serializers
@@ -76,14 +76,13 @@ def product_show(request, product_id):
 @login_required
 def design_level(request, product_id):
     if request.method == 'POST':
-        product = get_object_or_404(Product, id=product_id)
+        product = get_object_or_404(Product, id=request.POST.get('product'))
+        product_sale = get_object_or_404(SellingOption, id=request.POST.get('product_sale'))
         context = base_context(request)
         tmp = {
             'product': product,
-            'selling_options': product.selling_options.all(),
-            'services': product.product_all_service.all().filter(active=True),
-            'test1': request.POST.get('product_sale'),
-            'test2': request.POST.getlist('product_service'),
+            'product_sale': product_sale,
+            'service_list': request.POST.getlist('product_service'),
         }
         context.update(tmp)
         return render(request, 'product/design_level.html', context)
