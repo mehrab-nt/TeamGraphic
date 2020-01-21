@@ -191,7 +191,7 @@ class Product(models.Model):
     guidance = models.TextField(max_length=777, blank=True, validators=[validators.MinLengthValidator(30)])
     template_file = models.ForeignKey('TemplateFile', on_delete=models.SET_NULL, null=True, blank=True,
                                       related_name='product_template')
-    design_base = models.BooleanField(default=False)
+    design_base = models.BooleanField(default=True)
     design_film = models.BooleanField(default=False)
     design_gold = models.BooleanField(default=False)
     design_form = models.BooleanField(default=False)
@@ -450,8 +450,8 @@ class Design(models.Model):
     def __str__(self):
         return '{0}'.format(self.title)
 
-
     class Meta:
+        ordering = ['price']
         verbose_name = 'طراحی'
         verbose_name_plural = 'طراحی'
 

@@ -96,7 +96,7 @@ div.product-side .intro-container ul {
     line-height: 1.4;
 }
 
-#product-price, #service-price, #total-price {
+#product-price, #service-price, #design-price, #total-price {
     border: none;
     content: '';
     padding: 1px 5px;
@@ -309,7 +309,7 @@ div #price-container {
     margin-bottom: 10px;
 }
 
-div .price-item {
+div .price-item, .design-item {
     text-align: left;
     font-size: 13px;
     line-height: 1.8;
@@ -323,6 +323,14 @@ div .price-item {
     position: relative;
     cursor: pointer;
     padding-left: 10px;
+}
+
+div .design-item {
+    width: 400px;
+    padding-left: 10px;
+    display: block;
+    margin: auto;
+    margin-top: 10px;
 }
 
 span.price {
@@ -354,7 +362,7 @@ div .price-item2, div .price-item0 {
 }
 
 /* Hide the browser's default radio button */
-.price-item input, #service-item input {
+.price-item input, #service-item input, #rFile input {
     position: absolute;
     opacity: 0;
     cursor: pointer;
@@ -373,13 +381,13 @@ div .price-item2, div .price-item0 {
 }
 
 /* On mouse-over, add a grey background color */
-.price-item:hover input ~ .checkmark, #service-item:hover input ~ .checkmark {
+.price-item:hover input ~ .checkmark, #service-item:hover input ~ .checkmark, .design-item:hover input ~ .checkmark {
     border: 2px solid #bbb;
     background-color: #eee;
 }
 
 /* When the radio button is checked, add a blue background */
-.price-item input:checked ~ .checkmark, #service-item input:checked ~ .checkmark {
+.price-item input:checked ~ .checkmark, #service-item input:checked ~ .checkmark, .design-item input:checked ~ .checkmark {
     background-color: #ffcc00;
     border: 2px solid #ffcc00;
 }
@@ -392,12 +400,12 @@ div .price-item2, div .price-item0 {
 }
 
 /* Show the indicator (dot/circle) when checked */
-.price-item input:checked ~ .checkmark:after, #service-item input:checked ~ .checkmark:after {
+.price-item input:checked ~ .checkmark:after, #service-item input:checked ~ .checkmark:after, .design-item input:checked ~ .checkmark:after {
     display: block;
 }
 
 /* Style the indicator (dot/circle) */
-.price-item .checkmark:after, #service-item .checkmark:after {
+.price-item .checkmark:after, #service-item .checkmark:after, .design-item .checkmark:after {
  	top: 30%;
 	left: 30%;
 	width: 40%;
@@ -407,8 +415,15 @@ div .price-item2, div .price-item0 {
 }
 
 div .default-item {
+    cursor: pointer;
     background-color: white;
     border-color: #ddd;
+}
+
+div .disabled-item {
+    cursor: not-allowed;
+    background-color: #ddd;
+    border-color: #aaa;
 }
 
 div .active-item {
@@ -417,7 +432,6 @@ div .active-item {
 }
 
 div .default-item:hover {
-    cursor: pointer;
     border-color: #bbb;
 }
 
@@ -479,6 +493,12 @@ div #submit-container button:hover span:after {
     left: 0;
 }
 
+div.product-properties {
+    width: 100%;
+    float: right;
+    margin-top: 100px;
+}
+
 @media screen and (max-width: 1250px) {
     div.selling {
         padding: 0 0.2vw;
@@ -526,7 +546,7 @@ div #submit-container button:hover span:after {
         line-height: 2.7vw;
     }
 
-    #product-price, #service-price, #total-price {
+    #product-price, #service-price, #design-price, #total-price {
         padding: 0.3vw 1vw;
         font-size: 1.8vw;
         letter-spacing: 0.2vw;
@@ -752,7 +772,7 @@ div #submit-container button:hover span:after {
         line-height: 3.5vw;
     }
 
-    #product-price, #service-price, #total-price {
+    #product-price, #service-price, #design-price, #total-price {
         padding: 0.3vw 2vw;
         font-size: 3.5vw;
         letter-spacing: 0.3vw;

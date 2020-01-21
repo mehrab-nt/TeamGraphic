@@ -19,7 +19,7 @@
 {% endblock js %}
 
 {% block page %}
-    {% include "product/order_level.html" %}
+    {% include "order/order_level.html" %}
     {% block active-level %}
         <script>
             document.getElementById('level1').setAttribute("class" ,"active-level");
@@ -33,18 +33,25 @@
                 <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
                 <h1>{{ product.title }}</h1>
             </div>
+<!--            <div class="intro-container">-->
+<!--                <ul>-->
+<!--                    <li id="choose-side"></li>-->
+<!--                    <li id="choose-size"></li>-->
+<!--                    <li id="choose-count"></li>-->
+<!--                    <li id="choose-ready"></li>-->
+<!--                </ul>-->
+<!--            </div>-->
             <div class="intro-container">
                 <div class="product-price-container">
                     <p><span class="price-title">چــــاپ: </span><span id="product-price">۰</span>تومان </p>
                     <p><span class="price-title">خدمات: </span><span id="service-price">۰</span>تومان <span id="plus">+</span></p>
                     <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">۰</span>تومان </p>
                 </div>
-<!--                <button value="submit">قیمت نهایی و اطلاعات سفارش تایید میره آخر صفحه</button>-->
                 <div id="submit-container">
                     {% if user.is_authenticated %}
-                    <button type="submit" form="product-form"><span>ادامه</span></button>
+                    <button type="submit" form="product-form"><span>تکمیل سفارش</span></button>
                     {% else %}
-                    <button onclick="signupFirstMassage()"><span>ادامه</span></button>
+                    <button onclick="signupFirstMassage()"><span>تکمیل سفارش</span></button>
                     {% endif %}
                 </div>
             </div>
@@ -73,7 +80,7 @@
                     </div>
                     {% for item in size %}
                         <div id="size{{ item.id }}" class="size-item default-item" onclick="sizeChoose(this)">
-                            <p>{{ item }}</p>
+                            {{ item }}
                         </div>
                     {% endfor %}
                 </div>
@@ -167,6 +174,22 @@
                     </div>
                 {% endif %}
             </form>
+        </div>
+    </div>
+    <div class="product-properties">
+            <button class="tablink four tab-right" onclick="openTabForm('long-pro', this, 0)" id="defaultOpen">بررسی تخصصی</button>
+            <button class="tablink four" onclick="openTabForm('pro-pro', this, 0)">مشخصات</button>
+        {% if product.template_file %}
+            <button class="tablink four" onclick="openTabForm('tem-pro', this, 0)">فایل راهنمای طراحی</button>
+        {% endif %}
+        <div class="tabcontent" id="long-pro">
+            {{ product.long_intro|safe }}
+        </div>
+        <div class="tabcontent" id="pro-pro">
+
+        </div>
+        <div class="tabcontent" id="tem-pro">
+
         </div>
     </div>
 {% endblock page %}

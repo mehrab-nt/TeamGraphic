@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Cart, Order, Status, OrderAction, CartAction
+from .models import Cart, Order, Status, OrderAction, CartAction, UploadFile
 
 
 class OrderInline(admin.TabularInline):
@@ -42,4 +42,5 @@ admin.site.register(Order, OrderAdmin)
 admin.site.register(Status, StatusAdmin)
 admin.site.register(OrderAction, OrderActionAdmin)
 admin.site.register(CartAction, CartActionAdmin)
+admin.site.register(UploadFile)
 

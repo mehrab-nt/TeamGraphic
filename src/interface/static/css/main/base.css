@@ -228,6 +228,57 @@ a:visited {
     color: black;
 }
 
+.tablink {
+    color: black;
+    float: right;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 0;
+    font-size: 15px;
+    width: 50%;
+    background-color: #ddd;
+}
+
+.four {
+    width: 25%;
+}
+
+/* Change background color of buttons on hover */
+.tablink:hover {
+    background-color: #bbb;
+    transition: 0.5s;
+}
+
+.tab-right {
+    border-radius: 0 15px 0 0;
+}
+
+.tab-left {
+    border-radius: 15px 0 0 0;
+}
+
+/* Set default styles for tab content */
+.tabcontent {
+    display: none;
+    text-align: center;
+    height: auto;
+    float: right;
+    width: 100%;
+    min-height: 300px;
+    border: 2px solid #ffcc00;
+    padding: 10px 15px;
+    background-color: rgb(255, 180, 0, 0.1)
+}
+
+.tabcontent ul {
+    list-style-type: none;
+    float: right;
+    direction: rtl;
+    text-align: right;
+    margin: 0px;
+}
+
 @media screen and (max-width: 1250px) {
     h1 {
         font-size: 1.7vw;

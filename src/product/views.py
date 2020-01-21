@@ -1,10 +1,10 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, get_list_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.http import HttpResponseRedirect, HttpResponse
 from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from interface.views import base_context
-from .models import Category, Product, SellingOption, product_id_create
+from .models import Category, Product, SellingOption, ProductServices, Design
 from order.models import cart_id_create
 from django.utils import timezone
 from django.core import serializers
@@ -78,11 +78,32 @@ def design_level(request, product_id):
     if request.method == 'POST':
         product = get_object_or_404(Product, id=request.POST.get('product'))
         product_sale = get_object_or_404(SellingOption, id=request.POST.get('product_sale'))
+        z = 1
+        if product_sale.count > 1:
+            z = int(str(product_sale.count)[0])
+            # for now :)
+        design = None
+        if product.design_base:
+            design_list = get_list_or_404(Design, category=product.category)
+            if product_sale.side == '1':
+                design = design_list[0]
+            elif product_sale.side == '2' and design_list.__len__() > 1:
+                design = design_list[1]
+        service_list = request.POST.getlist('product_service')
+        service_cost = 0
+        service = []
+        for tmp in service_list:
+            obj = get_object_or_404(ProductServices, id=tmp)
+            service.append(obj)
+            service_cost += obj.service.cost * z
         context = base_context(request)
         tmp = {
             'product': product,
             'product_sale': product_sale,
-            'service_list': request.POST.getlist('product_service'),
+            'service_list': service,
+            'service_id_list': service_list,
+            'design': design,
+            'product_cost': product_sale.sale_price() + service_cost,
         }
         context.update(tmp)
         return render(request, 'product/design_level.html', context)

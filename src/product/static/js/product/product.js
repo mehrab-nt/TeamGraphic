@@ -128,7 +128,7 @@ function setServicePrice() {
   val = 0;
   while (allService[j]) {
     if (allService[j].checked) {
-     val += Number(allService[j].id);
+      val += Number(allService[j].id);
     }
     j++;
   }
@@ -137,8 +137,8 @@ function setServicePrice() {
   var price = 0;
   while (allPrice[j]) {
     if (allPrice[j].checked) {
-     val *= Number(allPrice[j].className[17])
-     break;
+      val *= Number(allPrice[j].className[17])
+      break;
     }
     j++;
   }
@@ -168,6 +168,8 @@ window.addEventListener("load", function(){
     var size = document.getElementsByClassName("size-item active-item");
     var ready = document.getElementsByClassName("ready-item active-item");
     var tmp = ready[0].id + size[0].id;
+//    document.getElementById("choose-size").innerHTML = 'سایز: ' + size[0].innerHTML;
+//    document.getElementById("choose-ready").innerHTML = 'زمان تحویل: ' + ready[0].id;
     var temp = document.getElementsByClassName(tmp);
     var i = 0;
     while (temp[i]) {

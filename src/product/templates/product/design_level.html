@@ -7,7 +7,7 @@
 {% endblock meta %}
 
 {% block title %}
-    <title>تیم گرافیک | {{ product.title }}</title>
+    <title>تیم گرافیک | طراحی {{ product.title }}</title>
 {% endblock title %}
 
 {% block stylesheet %}
@@ -21,7 +21,7 @@
 {% endblock js %}
 
 {% block page %}
-    {% include "product/order_level.html" %}
+    {% include "order/order_level.html" %}
     {% block active-level %}
         <script>
             document.getElementById('level1').setAttribute("class" ,"active-level");
@@ -34,16 +34,58 @@
             <div class="product-container">
                 <img class="product-img" src="{% static product.preview_url %}" alt="{{ item.title }}">
                 <h1>{{ product.title }}</h1>
+                <p>
+                    {% if product_sale.size %}
+                    <b>سایز: </b>
+                    {{ product_sale.size }}
+                    <br>
+                    {% endif %}
+                    {% if product_sale.side == '2' %}
+                    <b>وجه: </b>
+                    دو رو
+                    <br>
+                    {% elif product_sale.side == '1' %}
+                    <b>وجه: </b>
+                    یک رو
+                    <br>
+                    {% endif %}
+                    {% if product_sale.ready %}
+                    <b>تحویل: </b>
+                    {{ product_sale.ready }}
+                    <br>
+                    {% endif %}
+                </p>
+                {% if service_list %}
+                    <p style="border-top: 1px solid #bbb;">
+                        <b>خدمات: </b>
+                        {% for item in service_list %}
+                        <br>
+                        {{ forloop.counter|per_num }}) {{ item.service }}
+                        {% endfor %}
+                    </p>
+                {% endif %}
             </div>
-            <div id="submit-container">
-                <button type="submit" form="design-form"><span>تایید</span></button>
+            <div class="intro-container">
+                <div class="product-price-container">
+                    <p><span class="price-title">سفارش: </span><span id="product-price">{{ product_cost|per_num }}</span>تومان </p>
+                    <p><span class="price-title">طراحی: </span><span id="design-price">۰</span>تومان <span id="plus">+</span></p>
+                    <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">{{ product_cost|per_num }}</span>تومان </p>
+                </div>
+                <div id="submit-container">
+                    <button id="design-submit" type="submit" form="upload-form" class="submit-but"><span>تکمیل سفارش</span></button>
+                </div>
             </div>
         </div>
         <div class="product-main">
-            <button class="tablink tab-right" onclick="openDesignForm('uFile', this)" id="defaultOpen">طرح دارم (آپلود فایل)</button>
-            <button class="tablink tab-left" onclick="openDesignForm('rFile', this)">طرح ندارم (سفارش طراحی)</button>
+            <button class="tablink tab-right" onclick="openTabForm('uFile', this, 1)" id="defaultOpen">طرح دارم (آپلود فایل)</button>
+            <button class="tablink tab-left" onclick="openTabForm('rFile', this, 1)">طرح ندارم (سفارش طراحی)</button>
             <div class="tabcontent" id="uFile">
-                <form enctype="multipart/form-data" method="post" action="#" id="design-form" onsubmit="return validateDesignForm()">
+                <form enctype="multipart/form-data" method="post" action="{% url 'order:cart_show' %}" id="upload-form"
+                      onsubmit="return validateUploadDesignForm()">
+                    <input type="hidden" name="mode" value="u">
+                    <input type="hidden" name="product" value="{{ product.id }}">
+                    <input type="hidden" name="product_sale" value="{{ product_sale.id }}">
+                    <input type="hidden" name="product_service" value="{{ service_id_list }}">
                     <div id="guide-design-product">
                         <p>فایل طرح های مربوطه را آپلود کنید:<br>
                         فرمت مجاز برای تمامی فایل ها :‌ <b>JPG</b><br>
@@ -61,7 +103,7 @@
                             </div>
                             <p id="pbase1" class="file-name"></p>
                             <label for="ubase1">آپلود فایل</label>
-                            <input type="file" id="ubase1" name="design_file" accept="image/*" style="visibility:hidden;"
+                            <input type="file" id="ubase1" name="base1" accept="image/*" style="visibility:hidden;"
                                    onchange="previewUploadFile(this, 'base1')"  class="design-file" autocomplete="off">
                         </div>
                     {% elif product_sale.side == '2' %}
@@ -74,7 +116,7 @@
                             </div>
                             <p id="pbase1" class="file-name"></p>
                             <label for="ubase1">آپلود فایل</label>
-                            <input type="file" id="ubase1" name="design_file" accept="image/*" style="visibility:hidden;"
+                            <input type="file" id="ubase1" name="base1" accept="image/*" style="visibility:hidden;"
                                    onchange="previewUploadFile(this, 'base1')"  class="design-file" autocomplete="off">
                         </div>
                         <div class="design-container">
@@ -86,7 +128,7 @@
                             </div>
                             <p id="pbase2" class="file-name"></p>
                             <label for="ubase2">آپلود فایل</label>
-                            <input type="file" id="ubase2" name="design_file" accept="image/*" style="visibility:hidden;"
+                            <input type="file" id="ubase2" name="base2" accept="image/*" style="visibility:hidden;"
                                    onchange="previewUploadFile(this, 'base2')"  class="design-file" autocomplete="off">
                         </div>
                         {% if product.design_film %}
@@ -99,7 +141,7 @@
                                 </div>
                                 <p id="pfilm1" class="file-name"></p>
                                 <label for="ufilm1">آپلود فایل</label>
-                                <input type="file" id="ufilm1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="ufilm1" name="film1" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'film1')"  class="design-file" autocomplete="off">
                             </div>
                             <div class="design-container">
@@ -111,7 +153,7 @@
                                 </div>
                                 <p id="pfilm2" class="file-name"></p>
                                 <label for="ufilm2">آپلود فایل</label>
-                                <input type="file" id="ufilm2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="ufilm2" name="film2" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'film2')"  class="design-file" autocomplete="off">
                             </div>
                         {% endif %}
@@ -125,7 +167,7 @@
                                 </div>
                                 <p id="pgold1" class="file-name"></p>
                                 <label for="ugold1">آپلود فایل</label>
-                                <input type="file" id="ugold1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="ugold1" name="gold1" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'gold1')"  class="design-file" autocomplete="off">
                             </div>
                             <div class="design-container">
@@ -137,7 +179,7 @@
                                 </div>
                                 <p id="pgold2" class="file-name"></p>
                                 <label for="ugold2">آپلود فایل</label>
-                                <input type="file" id="ugold2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="ugold2" name="gold2" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'gold2')"  class="design-file" autocomplete="off">
                             </div>
                         {% endif %}
@@ -151,7 +193,7 @@
                                 </div>
                                 <p id="pform1" class="file-name"></p>
                                 <label for="uform1">آپلود فایل</label>
-                                <input type="file" id="uform1" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="uform1" name="form1" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'form1')"  class="design-file" autocomplete="off">
                             </div>
                             <div class="design-container">
@@ -163,7 +205,7 @@
                                 </div>
                                 <p id="pform2" class="file-name"></p>
                                 <label for="uform2">آپلود فایل</label>
-                                <input type="file" id="uform2" name="design_file" accept="image/*" style="visibility:hidden;"
+                                <input type="file" id="uform2" name="form2" accept="image/*" style="visibility:hidden;"
                                        onchange="previewUploadFile(this, 'form2')"  class="design-file" autocomplete="off">
                             </div>
                         {% endif %}
@@ -171,7 +213,53 @@
                 </form>
             </div>
             <div class="tabcontent" id="rFile">
-
+                <form enctype="multipart/form-data" method="post" action="{% url 'order:cart_show' %}" id="design-form"
+                      onsubmit="return validateReqDesignForm()">
+                    {% csrf_token %}
+                    <input type="hidden" name="mode" value="r">
+                    <input type="hidden" name="product" value="{{ product.id }}">
+                    <input type="hidden" name="product_sale" value="{{ product_sale.id }}">
+                    <input type="hidden" name="product_service" value="{{ service_id_list }}">
+                    <div id="guide-design-product">
+                        <p>
+                            <b>طراحی تلگرامی:</b>
+                            <br>
+                            بعد از ثبت سفارش طراحان با شما تماس گرفته و توضیحات طرح مورد نظر شما را دریافت می کنند
+                            و به وسیله تلگرام با شما در ارتباط خواهند بود،
+                            که می توانید فایل های لازم ثل لوگو، عکس و ... را ارسال نمایید.
+                            <br>
+                            در نظر داشته باشید که بعد از هماهنگی های لازم، نهایتا تا ۲۴ ساعت آینده طرح برای شما راسال می شود.
+                            شما می توانید اصلاحات مجدد را با طراح هماهنگ کنید
+                            (اصلاحاتی که پایه اصلی یک طرح را تغییر دهد، طرح جدید محسوب شده و ملزم هزینه مجدد می شود،
+                            فلذا در انتخاب طرح خود در ابتدا دقت کامل فرمایید)
+                            <br>
+                            <b>مهم: </b>
+                            تاریخ تحویل نهایی سفارش بعد از اتمام طراحی و تسویه کامل مبلغ سفارش، مشخص می شود.
+                            <br>
+                            جهت تسریع فرایند طراحی می توانید قبل از تماس طراح، سایت های زیر را مشاهده کنید و اگر موردی رو پسندید با طراح هماهنگ کنید.
+                        </p>
+                        <p><b>نمونه های طراحی: </b></p>
+                        <a href="https://tarh.ir/" class="design-site" target="_blank">سایت ۱</a>
+                        <a href="https://www.parsgraphic.ir/" class="design-site" target="_blank">سایت ۲</a>
+                        <a href="http://toranjgraph.ir/" class="design-site" target="_blank">سایت ۳</a>
+                    </div>
+                    <label class="design-item default-item">
+                        <input type="checkbox" id="design-base" name="design" value="{{ design.id }}"
+                               class="price-check price-def" onclick="setDesignPrice(this, {{ design.price }}, {{ product_cost }})" autocomplete="off">
+                        <span class="checkmark"></span>
+                        <p style="margin-top: 3px; font-size: 16px; text-align: center;">طراحی تلگرامی: {{ design.title }}
+                            <span class="toman color-hint">تومان</span>
+                            <span class="price">+ {{ design.price|per_num }}</span>
+                        </p>
+                    </label>
+                    <label class="design-item default-item disabled-item">
+                        <input type="checkbox" id="design-base" name="design-base" value="{{ design.id }}" disabled="disabled"
+                               class="price-check price-def" onclick="setDesignPrice(this, {{ design.price }}, {{ product_cost }})" autocomplete="off">
+                        <span class="checkmark"></span>
+                        <p style="margin-top: 3px; font-size: 16px; text-align: center;">طراحی اختصاصی (بزودی)
+                        </p>
+                    </label>
+                </form>
             </div>
         </div>
     </div>

@@ -1,26 +1,3 @@
-document.getElementById("defaultOpen").click();
-
-function openDesignForm(mode, element) {
-  // Hide all elements with class="tabcontent" by default */
-  var i, tabcontent, tablinks;
-  tabcontent = document.getElementsByClassName("tabcontent");
-  for (i = 0; i < tabcontent.length; i++) {
-    tabcontent[i].style.display = "none";
-  }
-
-  // Remove the background color of all tablinks/buttons
-  tablinks = document.getElementsByClassName("tablink");
-  for (i = 0; i < tablinks.length; i++) {
-    tablinks[i].style.backgroundColor = "";
-  }
-
-  // Show the specific tab content
-  document.getElementById(mode).style.display = "block";
-
-  // Add the specific color to the button used to open the tab content
-  element.style.backgroundColor = "#ffcc00";
-}
-
 function previewUploadFile(element, imgId) {
   if (element.files.length > 0) {
     preview = document.getElementById(imgId);
@@ -82,7 +59,7 @@ function readImageFile(file) {
   reader.readAsDataURL(file);
 }
 
-function validateDesignForm() {
+function validateUploadDesignForm() {
   var x = document.getElementsByClassName("design-file");
   var i = 0;
   while (x[i]) {
@@ -95,5 +72,28 @@ function validateDesignForm() {
       return false;
     }
   i++;
+  }
+}
+
+function validateReqDesignForm() {
+  var x = document.getElementById("design-base");
+  if (!(x.checked)) {
+    alt = document.getElementById("error");
+    message = document.getElementById("error-msg");
+    alt.style.opacity = "0.9";
+    alt.style.visibility = "visible";
+    message.innerHTML = "لطفا یک گزینه جهت طراحی انتخاب کنید! یا اگر طرح دارید در منوی مربوطه فایل ها را آپلود نمایید...";
+    return false;
+  }
+}
+
+function setDesignPrice(element, designPrice, proPrice) {
+  if (element.checked) {
+      document.getElementById('design-price').innerHTML = setPerNum(designPrice);
+      document.getElementById('total-price').innerHTML = setPerNum(designPrice + proPrice);
+  }
+  else {
+      document.getElementById('design-price').innerHTML = '۰';
+      document.getElementById('total-price').innerHTML = setPerNum(proPrice);
   }
 }

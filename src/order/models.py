@@ -27,10 +27,11 @@ class Cart(models.Model):
     delivery = models.ForeignKey('delivery.Delivery', on_delete=models.SET_NULL, null=True, blank=False,
                                  related_name='all_cart')
     create_date = models.DateTimeField(default=timezone.now, blank=False)
-    duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(0),
+    duration = models.IntegerField(default=0, blank=False, validators=[validators.MinValueValidator(-1),
                                                                        validators.MaxValueValidator(30)])
     delivery_date = models.DateField(blank=False, default=timezone.now)
     token = models.TextField(null=True, blank=True)
+    progress = models.BooleanField(default=False)
     # payment
 
     def __str__(self):
@@ -54,7 +55,7 @@ def cart_id_create(year):
         except Cart.DoesNotExist:
             return new_kay
     else:
-        new_kay = '{0}1000'.format(year)
+        new_kay = 'tg-{0}10000'.format(year)
         try:
             obj = Cart.objects.get(cart_id=new_kay)
         except Cart.DoesNotExist:
@@ -119,13 +120,13 @@ def order_id_create(year):
         return '{0}1000'.format(year)
     kay_year = obj.order_id[:2]
     if kay_year == year:
-        new_kay = '{0}{1}'.format(year, str(int(obj.cart_id[-4:])+1))
+        new_kay = '{0}{1}'.format(year, str(int(obj.order_id[-4:])+1))
         try:
             obj = Order.objects.get(cart_id=new_kay)
         except Order.DoesNotExist:
             return new_kay
     else:
-        new_kay = 'tg-{0}10000'.format(year)
+        new_kay = '{0}1000'.format(year)
         try:
             obj = Order.objects.get(cart_id=new_kay)
         except Order.DoesNotExist:
@@ -134,20 +135,20 @@ def order_id_create(year):
 
 
 class FileName(models.TextChoices):
-    FRONT = 'front', 'رو'
-    BACK = 'back', 'پشت'
-    FRONT_FILM = 'front_film', 'فیلم رو'
-    BACK_FILM = 'back_film', 'فیلم پشت'
-    FRONT_GOLD = 'front_gold', 'طلاکوب رو'
-    BACK_GOLD = 'back_gold', 'طلاکوب پشت'
-    FRONT_FORM = 'front_form', 'قالب رو'
-    BACK_FORM = 'back_form', 'قالب پشت'
+    FRONT = 'base1', 'front'
+    BACK = 'base2', 'back'
+    FRONT_FILM = 'film1', 'front_film'
+    BACK_FILM = 'film2', 'back_film'
+    FRONT_GOLD = 'gold1', 'front_gold'
+    BACK_GOLD = 'gold2', 'back_gold'
+    FRONT_FORM = 'form1', 'front_form'
+    BACK_FORM = 'form2', 'back_form'
 
 
 def order_upload_file_directory_path(instance, filename):
-    return './order/static/file/orders/{0}_{1}_{2}/{3}_{4}.jpg'\
+    return './order/static/file/orders/{0}_{1}_{2}/{3}_{4}_{5}.jpg'\
         .format(timezone.datetime.now().year, timezone.datetime.now().month, timezone.datetime.now().day,
-                instance.user.username, instance.order.order_id)
+                instance.user.user, instance.order.order_id, instance.title)
 
 
 class UploadFile(models.Model):
@@ -161,6 +162,27 @@ class UploadFile(models.Model):
     class Meta:
         verbose_name = 'فایل ها'
         verbose_name_plural = 'فایل ها'
+
+
+@receiver(models.signals.post_delete, sender=UploadFile)
+def auto_delete_upload_file_on_delete(sender, instance, **kwargs):
+    if instance.file:
+        if os.path.isfile(instance.file.path):
+            os.remove(instance.file.path)
+
+
+@receiver(models.signals.pre_save, sender=UploadFile)
+def auto_delete_upload_file_on_change(sender, instance, **kwargs):
+    if not instance.pk:
+        return False
+    try:
+        old_file = UploadFile.objects.get(pk=instance.pk).file
+    except UploadFile.DoesNotExist:
+        return False
+    new_file = instance.file
+    if not old_file == new_file and old_file:
+        if os.path.isfile(old_file.path):
+            os.remove(old_file.path)
 
 
 class Type(models.TextChoices):
@@ -196,7 +218,7 @@ def auto_delete_status_on_delete(sender, instance, **kwargs):
 
 
 @receiver(models.signals.pre_save, sender=Status)
-def auto_delete_template_file_on_change(sender, instance, **kwargs):
+def auto_delete_status_on_change(sender, instance, **kwargs):
     if not instance.status_id:
         return False
     try:

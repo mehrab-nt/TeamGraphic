@@ -1,0 +1,73 @@
+{% extends "main/home.html" %}
+{% load static %}
+{% load interface_tag %}
+
+{% block meta %}
+    <meta name="keywords" content="teamgraphic ,تیم گرافیک">
+{% endblock meta %}
+
+{% block title %}
+    <title>تیم گرافیک | بررسی سفارش</title>
+{% endblock title %}
+
+{% block stylesheet %}
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/product_selling.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'css/product/design_level.css' %}">
+{% endblock stylesheet %}
+
+{% block js %}
+    <script src="{% static 'js/product/product.js' %}" defer="True"></script>
+    <script src="{% static 'js/product/design.js' %}" defer="True"></script>
+{% endblock js %}
+
+{% block page %}
+    {% include "order/order_level.html" %}
+    {% block active-level %}
+        <script>
+            document.getElementById('level1').setAttribute("class" ,"active-level");
+            document.getElementById('level1-2').setAttribute("class" ,"active-middle-level");
+            document.getElementById('level2').setAttribute("class" ,"active-level");
+            document.getElementById('level2-3').setAttribute("class" ,"active-middle-level");
+            document.getElementById('level3').setAttribute("class" ,"active-level");
+        </script>
+    {% endblock active-level %}
+    <div class="selling">
+        <div class="product-side">
+            <div class="intro-container">
+                <div class="product-price-container">
+                    <p><span class="price-title">سفارش: </span><span id="product-price">{{ product_cost|per_num }}</span>تومان </p>
+                    <p><span class="price-title">طراحی: </span><span id="design-price">۰</span>تومان <span id="plus">+</span></p>
+                    <p class="total-price-container"><span class="price-title">مجموع: </span><span id="total-price">{{ product_cost|per_num }}</span>تومان </p>
+                </div>
+                <div id="submit-container">
+                    <button id="design-submit" type="submit" form="upload-form" class="submit-but"><span>تکمیل سفارش</span></button>
+                </div>
+            </div>
+        </div>
+        <div class="product-main">
+            <div id="guide-design-product">
+                <p>
+                    <b>طراحی تلگرامی:</b>
+                    <br>
+                    بعد از ثبت سفارش طراحان با شما تماس گرفته و توضیحات طرح مورد نظر شما را دریافت می کنند
+                    و به وسیله تلگرام با شما در ارتباط خواهند بود،
+                    که می توانید فایل های لازم ثل لوگو، عکس و ... را ارسال نمایید.
+                    <br>
+                    در نظر داشته باشید که بعد از هماهنگی های لازم، نهایتا تا ۲۴ ساعت آینده طرح برای شما راسال می شود.
+                    شما می توانید اصلاحات مجدد را با طراح هماهنگ کنید
+                    (اصلاحاتی که پایه اصلی یک طرح را تغییر دهد، طرح جدید محسوب شده و ملزم هزینه مجدد می شود،
+                    فلذا در انتخاب طرح خود در ابتدا دقت کامل فرمایید)
+                    <br>
+                    <b>مهم</b>
+                    تاریخ تحویل نهایی سفارش بعد از اتمام طراحی و تسویه کامل مبلغ سفارش، مشخص می شود.
+                    <br>
+                    جهت تسریع فرایند طراحی می توانید قبل از تماس طراح، سایت های زیر را مشاهده کنید و اگر موردی رو پسندید با طراح هماهنگ کنید.
+                </p>
+                <p><b>نمونه های طراحی: </b></p>
+                <a href="https://tarh.ir/" class="design-site" target="_blank">سایت ۱</a>
+                <a href="https://www.parsgraphic.ir/" class="design-site" target="_blank">سایت ۲</a>
+                <a href="http://toranjgraph.ir/" class="design-site" target="_blank">سایت ۳</a>
+            </div>
+        </div>
+    </div>
+{% endblock page %}
