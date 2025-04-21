@@ -1,0 +1,11 @@
+# TeamGraphic
+:/
+
+pip list:
+asgiref    3.8.1
+Django     5.2
+pip        24.0
+psycopg2   2.9.10
+setuptools 79.0.0
+sqlparse   0.5.3
+wheel      0.45.1
