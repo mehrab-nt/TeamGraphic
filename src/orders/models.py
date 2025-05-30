@@ -7,10 +7,22 @@ from users.models import Employee
 from deliveries.models import DeliveryReceipt
 
 
+class OrderStatusRole(models.TextChoices):
+    CART = "CRT"
+    NEW = "NEW"
+    READY = "RED"
+    DELIVERED = "DLI"
+    CANCEL = "CAN"
+    CUSTOM = "CUS"
+
+
 class OrderStatus(models.Model):
-    title = models.CharField(max_length=23, unique=True, blank=False, null=False, verbose_name="Status Title")
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
     is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
+    order_status_role = models.CharField(max_length=3, choices=OrderStatusRole, default=OrderStatusRole.CUSTOM, blank=False, null=False, verbose_name="Order Status Role")
+    style = models.JSONField(default=dict, blank=False, null=False)
     employee_access = models.ManyToManyField(
         Employee,
         through='OrderStatusAccess',
@@ -42,10 +54,13 @@ class OrderStatusAccess(models.Model):
 
 
 class Order(models.Model):
-    title = models.CharField(max_length=23, blank=False, null=False, verbose_name="Title")
+    title = models.CharField(max_length=23, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
     product = models.ForeignKey(Product, on_delete=models.PROTECT, blank=False, null=False,
                                 related_name="product_in_orders")
     # preview = models.ImageField(upload_to="previews/", blank=False, null=False)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
     fields = models.JSONField(default=dict, blank=False, null=False)
     delivery_date = models.DateField(blank=True, null=True, verbose_name="Delivery Date")
     description = models.TextField(max_length=300, blank=True, null=True)
@@ -97,3 +112,24 @@ class Cart(models.Model):
 
     def __str__(self):
         return f"Cart #{self.pk}"
+
+
+class ExclusiveStatus(models.TextChoices):
+    NEW = "جدید"
+    RESPONSE = "در انتظار پاسخ"
+    ORDER = "در انتظار تایید کاربر"
+    SUBMIT = "سفارش داده شده"
+    CLOSED = "بسته شده"
+
+
+class ExclusiveOrder(models.Model):
+    customer = models.ForeignKey(User, on_delete=models.PROTECT, blank=False, null=False,
+                                 related_name='exclusive_order_request')
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, null=True,
+                                 related_name='exclusive_order_response')
+    title = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=300, blank=False, null=False)
+    request_date = models.DateTimeField(default=timezone.now, blank=False, null=False, verbose_name="Request Date")
+    status = models.CharField(max_length=23, choices=ExclusiveStatus.choices, default=ExclusiveStatus.NEW)
+    content = models.JSONField(default=dict, blank=False, null=False)

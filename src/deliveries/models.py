@@ -1,6 +1,6 @@
 from django.db import models
 from django.core import validators
-from users.models import Employee, Role
+from users.models import Role, Employee
 from django.contrib.auth.models import User
 
 

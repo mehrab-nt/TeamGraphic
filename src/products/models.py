@@ -27,6 +27,8 @@ class Product(models.Model):
                                  related_name="category_product_list")
     # image = models.ImageField(upload_to="products/", blank=False, null=False)
     # icon = models.ImageField(upload_to="products/", blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
     gallery = models.ForeignKey("GalleryCategory", on_delete=models.PROTECT, blank=True, null=True,
                                 related_name="gallery_product_list")
@@ -37,6 +39,10 @@ class Product(models.Model):
     base_price = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Base Price")
     metadata = models.OneToOneField(Metadata, on_delete=models.PROTECT, blank=True, null=True,
                                     related_name="metadata_product")
+    total_order = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Order")
+    last_order = models.DateField(blank=True, null=True, verbose_name="Last Order")
+    total_main_sale = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Main Sale")
+    total_option_sale = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Option Sale")
 
     class Meta:
         verbose_name = "Product"
@@ -67,6 +73,8 @@ class ProductCategory(models.Model):
     # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
     # video = models.FileField(upload_to="videos/", blank=False, null=False)
     # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
     gallery = models.ForeignKey("GalleryCategory", on_delete=models.PROTECT, blank=True, null=True,
                                 related_name="category_list")
@@ -102,6 +110,7 @@ class FieldName(models.TextChoices):
     TEMPLATE = 'قالب'
     UPLOAD_FILE = "فایل"
     COLOR = "رنگ"
+    DURATION = "تحویل کاری"
 
 
 class SizeMethod(models.TextChoices):
@@ -139,6 +148,7 @@ class ProductField(models.Model):
 
     def size_method(self):
         sizeable = True
+        # counter = 0++
         self.detail = []
 
     def tirage_method(self):
@@ -164,6 +174,9 @@ class ProductField(models.Model):
         self.detail = []
 
     def color_inventory_method(self):
+        self.detail = []
+
+    def duration_method(self):
         self.detail = []
 
 
@@ -198,6 +211,7 @@ class GalleryCategory(models.Model):
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
     category = models.ForeignKey("self", on_delete=models.PROTECT, blank=True, null=True,
                                  related_name="sub_galleries")
+    active_link = models.BooleanField(default=False, blank=False, null=False, verbose_name="Active Link")
 
     class Meta:
         ordering = ['-sort_number']
@@ -248,6 +262,9 @@ class TemplateFile(models.Model):
     file_format = models.ForeignKey("FileType", on_delete=models.PROTECT, blank=False, null=False, verbose_name="File Format")
     # file = models.FileField(upload_to="files", blank=False, null=False)
     # image = models.ImageField(upload_to="images/", blank=False, null=False)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
+    download_count = models.PositiveSmallIntegerField(default=0, blank=False, null=False, verbose_name="Download Count")
 
     class Meta:
         ordering = ['-sort_number']
@@ -267,6 +284,12 @@ class Design(models.Model):
     avg_duration = models.PositiveSmallIntegerField(default=0, blank=False, null=False, verbose_name='Average Duration')
     category = models.ForeignKey("ProductCategory", on_delete=models.PROTECT, blank=False, null=False,
                                  related_name="category_designs")
+    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
+    # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
+    total_order = models.PositiveSmallIntegerField(default=0, blank=False, null=False, verbose_name='Total Order')
+    total_sale = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Total Sale')
 
     class Meta:
         ordering = ['-sort_number']
@@ -319,7 +342,7 @@ class OptionInputType(models.TextChoices):
 
 class Option(models.Model):
     title = models.CharField(max_length=23, validators=[validators.MinLengthValidator(3)],
-                                    blank=False, null=False)
+                             blank=False, null=False)
     description = models.TextField(max_length=300, blank=True, null=True)
     is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
     base_price = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Base Price')
@@ -340,7 +363,7 @@ class OptionCategory(models.Model):
                              blank=False, null=False)
     description = models.TextField(max_length=300, blank=True, null=True)
     input_type = models.CharField(max_length=10, choices=OptionInputType.choices, validators=[validators.MinLengthValidator(3)],
-                                     blank=False, null=False, verbose_name="Input Type")
+                                  blank=False, null=False, verbose_name="Input Type")
     # icon = models.ImageField(upload_to="services", blank=False, null=False)
     mandatory = models.BooleanField(default=False, blank=False, null=False)
     is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
@@ -355,3 +378,132 @@ class OptionCategory(models.Model):
 
     def __str__(self):
         return f'Option Category: {self.title}'
+
+
+class PriceListCategory(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
+    sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
+    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
+    # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
+
+    class Meta:
+        ordering = ['-sort_number']
+        verbose_name = "Price List Category"
+        verbose_name_plural = "Price List Categories"
+
+    def __str__(self):
+        return f'Price List Category: {self.title}'
+
+
+class SizeUnit(models.TextChoices):
+    CM = "سانتی متر"
+    M = "متر"
+
+
+class PriceListTable(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
+    price_list_categories = models.ManyToManyField(
+        PriceListCategory,
+        through='PriceListTableCategory',
+        through_fields=('table', 'category'),
+        verbose_name='Price List Categories'
+    )
+    product_categories = models.ManyToManyField(
+        ProductCategory,
+        through='PriceListTableProductCategory',
+        through_fields=('table', 'product_category'),
+        verbose_name='Product Categories'
+    )
+    sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
+    size_column = models.BooleanField(default=False, blank=False, null=False, verbose_name="Size Column")
+    size_unit = models.CharField(max_length=9, choices=SizeUnit.choices, default=SizeUnit.CM, validators=[validators.MinLengthValidator(3)],
+                                 blank=False, null=False, verbose_name="Size Unit")
+    duration_column = models.BooleanField(default=False, blank=False, null=False, verbose_name="Duration Column")
+    gallery_column = models.BooleanField(default=False, blank=False, null=False, verbose_name="Gallery Column")
+
+
+    class Meta:
+        ordering = ['-sort_number']
+        verbose_name = "Price List Table"
+        verbose_name_plural = "Price List Tables"
+
+    def __str__(self):
+        return f'Price List Table: {self.title}'
+
+
+class PriceListTableCategory(models.Model):
+    table = models.ForeignKey(PriceListTable, on_delete=models.PROTECT,
+                             related_name='all_categories')
+    category = models.ForeignKey(PriceListCategory, on_delete=models.PROTECT,
+                                 related_name='all_tables')
+
+    class Meta:
+        ordering = ['category', 'table']
+        verbose_name = "Price List Table Category"
+        verbose_name_plural = "Price List Table Categories"
+
+    def __str__(self):
+        return f'{self.table} -in- {self.category}'
+
+
+class PriceListTableProductCategory(models.Model):
+    table = models.ForeignKey('PriceListTable', on_delete=models.PROTECT,
+                              related_name='all_product_categories')
+    product_category = models.ForeignKey('ProductCategory', on_delete=models.PROTECT,
+                                         related_name='all_price_tables')
+    items = models.ManyToManyField(
+        Product,
+        through='PriceListTableProductItems',
+        through_fields=('price_list', 'product'),
+    )
+
+    class Meta:
+        ordering = ['product_category', 'table']
+        verbose_name = "Price List Table Product"
+        verbose_name_plural = "Price List Table Products"
+
+    def __str__(self):
+        return f'{self.product_category} -in- {self.table}'
+
+
+class PriceListTableProductItems(models.Model):
+    price_list = models.ForeignKey('PriceListTableProductCategory', on_delete=models.PROTECT,
+                                   related_name='all_product')
+    product = models.ForeignKey('Product', on_delete=models.PROTECT,
+                                related_name='all_price_tables')
+    is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
+    sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name="Sort Number")
+    tirage_row = models.BooleanField(default=False, blank=False, null=False, verbose_name="Tirage Row")
+
+    class Meta:
+        ordering = ['-sort_number']
+        verbose_name = "Price List Table Product Item"
+        verbose_name_plural = "Price List Table Product Items"
+
+    def __str__(self):
+        return f'{self.product} -in- {self.price_list}'
+
+
+class Banner(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    width = models.PositiveSmallIntegerField(default=0, blank=False, null=False)
+    is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
+    # total_print = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Print")
+    # total_gap = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Gap")
+    # total_leaf = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Leaf")
+    # total_white = models.FloatField(default=0, blank=False, null=False, verbose_name="Total White")
+
+    class Meta:
+        ordering = ['title']
+        verbose_name = "Banner"
+        verbose_name_plural = "Banners"
+
+    def __str__(self):
+        return f'{self.title}'

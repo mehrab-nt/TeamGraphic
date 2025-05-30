@@ -2,7 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 from django.core import validators
-from financial.models import Company, Credit
+from api.models import ApiItem
 
 
 class GENDER(models.TextChoices):
@@ -34,10 +34,17 @@ class Employee(models.Model):
 
 
 class EmployeeLevel(models.Model):
+    manager = models.ForeignKey(Employee, on_delete=models.SET_NULL, blank=True, null=True)
     title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
     description = models.TextField(max_length=300, blank=True, null=True)
     is_active = models.BooleanField(default=True, blank=False, null=False, verbose_name="Is Active")
+    api_items = models.ManyToManyField(
+        ApiItem,
+        through='EmployeeLevelApiItemAccess',
+        through_fields=('employee_level', 'api_item'),
+        verbose_name="Api Items"
+    )
 
     class Meta:
         verbose_name = "Employee Level"
@@ -46,6 +53,19 @@ class EmployeeLevel(models.Model):
     def __str__(self):
         return f'Employee Level: {self.title}'
 
+
+class EmployeeLevelApiItemAccess(models.Model):
+    employee_level = models.ForeignKey(EmployeeLevel, on_delete=models.CASCADE,
+                                       related_name='all_api_items',)
+    api_item = models.ForeignKey(ApiItem, on_delete=models.CASCADE,
+                                 related_name='all_employee_levels',)
+
+    class Meta:
+        verbose_name = "Employee Level API Item Access"
+        verbose_name_plural = "Employee Level API Items Access"
+
+    def __str__(self):
+        return f'{self.employee_level} Access for {self.api_item}'
 
 
 class UserProfile(models.Model):
@@ -63,15 +83,17 @@ class UserProfile(models.Model):
     public_key = models.CharField(max_length=8, validators=[validators.MinLengthValidator(8)],
                                   blank=False, null=False, verbose_name="Public Key")
     private_key = models.CharField(max_length=20, blank=False, null=False, verbose_name="Private Key")
-    accounting_id = models.PositiveBigIntegerField(blank=False, null=False, verbose_name="Accounting ID")
-    company = models.OneToOneField(Company, on_delete=models.CASCADE, blank=True, null=True,
-                                related_name='company_user')
+    accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name="Accounting ID")
+    accounting_name = models.CharField(max_length=73, blank=True, null=True, verbose_name="Accounting Name")
     last_order_date = models.DateField(blank=True, null=True, verbose_name="Last Order Date")
     introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name="Introduction from",
                                        related_name='introduce_all_users')
     job = models.CharField(max_length=25, blank=True, null=True)
-    credit = models.OneToOneField(Credit, on_delete=models.CASCADE, blank=True, null=True,
-                                  related_name='credit_user')
+    total_order = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Order")
+    last_order = models.DateField(blank=True, null=True, verbose_name="Last Order")
+    total_main_buy = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Main Buy")
+    total_option_buy = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name="Total Option Buy")
+
 
     class Meta:
         ordering = ['user__date_joined']
@@ -99,13 +121,15 @@ class Role(models.Model):
 
 
 class Address(models.Model):
-    title = models.CharField(max_length=25, blank=False, null=False)
+    title = models.CharField(max_length=23, validators=[validators.MinLengthValidator(3)], blank=False, null=False)
     user = models.ForeignKey(User, on_delete=models.PROTECT, blank=False, null=False,
                              related_name='user_addresses')
+    # location
+    state = models.CharField(max_length=37, blank=True, null=True)
+    city = models.CharField(max_length=37, blank=True, null=True)
     content = models.TextField(max_length=300, blank=False, null=False)
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(11)],
                                    blank=True, null=True)
-    # location
     phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
                                     blank=False, null=False)
     plate_number = models.CharField(max_length=7, blank=False, null=False)
@@ -118,7 +142,7 @@ class Address(models.Model):
         verbose_name_plural = 'Addresses'
 
     def __str__(self):
-        return f'Address: {self.title} User: {self.user.user.username}'
+        return f'Address: {self.title} User: {self.user.username}'
 
 
 class Introduction(models.Model):

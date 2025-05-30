@@ -11,10 +11,10 @@ from .permissions import IsOwnerOrAdminOrReadOnly, IsOwnerOrAdmin
 # from rest_framework import status
 # from rest_framework.decorators import api_view, permission_classes
 # from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from rest_framework.reverse import reverse
-from rest_framework import renderers
+# from rest_framework.decorators import api_view
+# from rest_framework.response import Response
+# from rest_framework.reverse import reverse
+# from rest_framework import renderers
 
 
 class UserDetailsApiView(generics.RetrieveUpdateDestroyAPIView):
@@ -34,6 +34,16 @@ class UserListApiView(generics.ListCreateAPIView):
         qs = super().get_queryset()
         return qs.filter(user_profile__phone_number__isnull=False).order_by('-date_joined')
     # user=self.request.user
+
+
+class UserProfileApiView(generics.ListCreateAPIView):
+    queryset = UserProfile.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsOwnerOrAdmin]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs
 
 
 class GroupList(generics.ListCreateAPIView):

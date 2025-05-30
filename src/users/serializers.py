@@ -5,8 +5,7 @@ from .models import UserProfile, GENDER
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    # user = serializers.StringRelatedField()
-    # highlight = serializers.HyperlinkedIdentityField(view_name='user-base', format='html')
+    user = serializers.StringRelatedField()
     class Meta:
         model = UserProfile
         fields = [
@@ -17,11 +16,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'public_key',
             'private_key',
             'accounting_id',
-            'company',
             'last_order_date',
-            'how_to',
             'job',
-            'credit',
+            'user',
         ]
 
 
@@ -45,6 +42,6 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
         fields = [
-            'url',
+            # 'url',
             'name'
         ]
