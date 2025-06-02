@@ -7,9 +7,12 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Django migrations (optional)
+# Django
 */migrations/
 !*/migrations/__init__.py
+/media/
+staticfiles/
+.env
 
 # VSCode / JetBrains IDEs
 .vscode/
@@ -18,3 +21,11 @@ __pycache__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Node / Nuxt
+node_modules/
+.nuxt/
+dist/
+.nitro/
+
+*.log
