@@ -43,8 +43,8 @@ class ProductCategory(models.Model):
     status = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
-    accounting_code = models.PositiveBigIntegerField(default=0,
-                                                     blank=False, null=False, verbose_name='Accounting Code')
+    accounting_id = models.PositiveBigIntegerField(default=0,
+                                                   blank=True, null=True, verbose_name='Accounting ID')
     fast_order = models.BooleanField(default=True,
                                      blank=False, null=False, verbose_name='Fast Order')
     fast_order_title = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
@@ -103,8 +103,8 @@ class Product(models.Model):
                               blank=False, null=False)
     is_private = models.BooleanField(default=False,
                                      blank=False, null=False, verbose_name='Is Private')
-    accounting_code = models.PositiveBigIntegerField(default=0,
-                                                     blank=False, null=False, verbose_name='Accounting Code')
+    accounting_id = models.PositiveBigIntegerField(default=0,
+                                                   blank=True, null=True, verbose_name='Accounting ID')
     price = models.JSONField(default=dict,
                              blank=False, null=False)
     options = models.ManyToManyField(

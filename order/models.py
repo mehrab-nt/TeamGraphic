@@ -40,6 +40,7 @@ class Cart(models.Model):
 
 class OrderStatusRole(models.TextChoices):
     CART = 'CRT', 'سبد خرید'
+    EXCLUSIVE = 'EXC', 'سفارش اختصاصی'
     NEW = 'NEW', 'جدید'
     READY = 'RED', 'آماده تحویل'
     DELIVERED = 'DLI', 'تحویل داده شده'
@@ -141,24 +142,3 @@ class Order(models.Model):
 
     def __str__(self):
         return f"Order #{self.pk}: {self.title}"
-
-
-# class ExclusiveStatus(models.TextChoices):
-#     NEW = "جدید"
-#     RESPONSE = "در انتظار پاسخ"
-#     ORDER = "در انتظار تایید کاربر"
-#     SUBMIT = "سفارش داده شده"
-#     CLOSED = "بسته شده"
-#
-#
-# class ExclusiveOrder(models.Model):
-#     customer = models.ForeignKey(User, on_delete=models.PROTECT, blank=False, null=False,
-#                                  related_name='exclusive_order_request')
-#     employee = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, null=True,
-#                                  related_name='exclusive_order_response')
-#     title = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-#                              blank=False, null=False)
-#     description = models.TextField(max_length=300, blank=False, null=False)
-#     request_date = models.DateTimeField(default=timezone.now, blank=False, null=False, verbose_name="Request Date")
-#     status = models.CharField(max_length=23, choices=ExclusiveStatus.choices, default=ExclusiveStatus.NEW)
-#     content = models.JSONField(default=dict, blank=False, null=False)

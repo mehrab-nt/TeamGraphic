@@ -32,7 +32,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ['id', 'username', 'phone_number', 'email', 'first_name', 'last_name', 'user_profile', 'role']
 
 
-class UserRegistrationSerializer(serializers.ModelSerializer):
+class UserSignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:

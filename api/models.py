@@ -10,8 +10,8 @@ class ApiCategory(models.Model):
 
     class Meta:
         ordering = ['-sort_number']
-        verbose_name = "API Category"
-        verbose_name_plural = "API Categories"
+        verbose_name = 'API Category'
+        verbose_name_plural = 'API Categories'
 
     def __str__(self):
         return f'Api Category: {self.title}'
@@ -27,8 +27,8 @@ class ApiItem(models.Model):
 
     class Meta:
         ordering = ['-sort_number']
-        verbose_name = "API Item"
-        verbose_name_plural = "API Items"
+        verbose_name = 'API Item'
+        verbose_name_plural = 'API Items'
 
     def __str__(self):
         return f'Api Item: {self.title} #{self.key}'

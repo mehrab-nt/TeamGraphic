@@ -4,13 +4,13 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import User, UserProfile, Role, Introduction
-from .serializers import UserRegistrationSerializer, UserSerializer, UserProfileSerializer, RoleSerializer, IntroductionSerializer
+from .serializers import UserSignUpSerializer, UserSerializer, UserProfileSerializer, RoleSerializer, IntroductionSerializer
 
 
-class UserRegistrationView(APIView):
+class UserSignUpView(APIView):
     permission_classes = []  # Allow anyone to register
     def post(self, request):
-        serializer = UserRegistrationSerializer(data=request.data)
+        serializer = UserSignUpSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response({"detail": "User created."}, status=status.HTTP_201_CREATED)

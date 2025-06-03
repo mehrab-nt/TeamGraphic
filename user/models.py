@@ -44,11 +44,6 @@ class UserProfile(models.Model):
     introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
                                        related_name='introduce_all_users')
     job = models.CharField(max_length=25, blank=True, null=True)
-    total_order = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Total Order')
-    last_order_price = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Last Order Price')
-    last_order_date = models.DateField(blank=True, null=True, verbose_name='Last Order Date')
-    total_product_buy = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Total Product Buy')
-    total_option_buy = models.PositiveIntegerField(default=0, blank=False, null=False, verbose_name='Total Option Buy')
 
     class Meta:
         ordering = ['user']
