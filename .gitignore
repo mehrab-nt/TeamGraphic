@@ -2,6 +2,8 @@
 venv/
 .env/
 .env.local
+.env.*
+!.env.example
 
 # Byte-compiled / cache files
 __pycache__/
@@ -19,7 +21,6 @@ staticfiles/
 .idea/
 
 # System files
-.DS_Store
 Thumbs.db
 
 # Node / Nuxt
@@ -27,5 +28,16 @@ node_modules/
 .nuxt/
 dist/
 .nitro/
+.output
+.data
+.nitro
+.cache
 
+# Logs
+logs
 *.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
