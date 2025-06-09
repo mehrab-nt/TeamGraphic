@@ -61,7 +61,7 @@ class Role(models.Model):
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
 
     class Meta:
-        ordering = ['title']
+        ordering = ['sort_number']
         verbose_name = 'Role'
         verbose_name_plural = 'Roles'
 

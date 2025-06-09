@@ -8,9 +8,6 @@ export default defineNuxtConfig({
       ]
     }
   },
-  // plugins: [
-  //   '~/plugins/axios',
-  // ],
   // Enable CORS-friendly SSR mode
   ssr: true, // default in Nuxt 3
   // Optional: runtime config for API base URL (used in useFetch, etc.)

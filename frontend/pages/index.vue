@@ -1,20 +1,18 @@
 <script setup>
-import axios from "axios";
 const { data, error, pending } = useAsyncData('user-list', async () => {
   try {
-    const response = await axios.get('http://localhost:8000/api/user')
-    return response.data
-  }
-  catch (err) {
-    console.error(err)
+    const response = await useFetch('http://127.0.0.1:8000/api/user/')
+    return response.data.value
+  } catch (err) {
+    console.error(err) // Log any error to get more details
     throw new Error('Error fetching user data')
   }
 })
 </script>
 
 <template>
-  <div>
-    <h1>User List</h1>
+  <div class="p-6">
+    <h1 class="text-2xl font-bold mb-4">User List</h1>
     <div v-if="pending">Loading...</div>
     <div v-else-if="error">Error: {{ error.message }}</div>
     <ul v-else>
