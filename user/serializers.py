@@ -5,7 +5,9 @@ from .models import User, UserProfile, Role, Introduction, Address
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
+    password = serializers.CharField(write_only=True, min_length=8, required=True)
+    phone_number = serializers.CharField(min_length=11, max_length=11, required=True)
+    first_name = serializers.CharField(min_length=3, max_length=73, required=True)
 
     class Meta:
         model = User
@@ -28,7 +30,7 @@ class UserSignInSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
         if not user:
-            raise serializers.ValidationError('Invalid phone number or password!')
+            raise serializers.ValidationError('اطلاعات وارد شده صحیح نمی‌باشد.')
         refresh = RefreshToken.for_user(user)
         return {
             'refresh': str(refresh),
@@ -39,20 +41,21 @@ class UserSignInSerializer(serializers.Serializer):
         }
 
 
-class UserProfileSerializer(serializers.ModelSerializer):
-    gender = serializers.CharField(source='get_gender_display')  # Show gender display value
-
-    class Meta:
-        model = UserProfile
-        fields = ['id', 'user', 'birth_date', 'gender', 'description', 'introduce_from', 'job']
-
-
 class UserSerializer(serializers.ModelSerializer):
-    user_profile = UserProfileSerializer(read_only=True)
+    # user_profile = UserProfileSerializer(read_only=True)
 
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'national_id', 'email', 'first_name', 'last_name', 'is_active', 'is_employee', 'user_profile', 'role']
+        fields = ['id', 'phone_number', 'national_id', 'email', 'first_name', 'last_name', 'is_active', 'role']
+
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    gender = serializers.CharField(source='get_gender_display')  # Show gender display value
+    user = UserSerializer(read_only=True)
+
+    class Meta:
+        model = UserProfile
+        fields = ['user', 'birth_date', 'gender', 'description', 'introduce_from', 'job']
 
 
 class UserKeySerializer(serializers.ModelSerializer):

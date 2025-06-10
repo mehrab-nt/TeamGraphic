@@ -1,14 +1,16 @@
-from rest_framework import viewsets, mixins, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, mixins, status, filters
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from api.permissions import IsNotAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
 from .models import User, UserProfile, Role, Introduction, Address
 from .serializers import UserSignUpSerializer, UserSignInSerializer, UserSerializer, UserProfileSerializer, \
     UserKeySerializer, UserAccountingSerializer, RoleSerializer, IntroductionSerializer, AddressSerializer
+from .filters import UserFilter, CustomerFilter
 
 
 class UserSignUpView(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsNotAuthenticated]  # Allow anyone to register
     queryset = User.objects.all()
     serializer_class = UserSignUpSerializer
 
@@ -18,9 +20,13 @@ class UserSignUpView(mixins.CreateModelMixin, viewsets.GenericViewSet):
         serializer.save()
         return Response({"detail": "User created."}, status=status.HTTP_201_CREATED)
 
+    def get_permissions(self):
+        self.permission_classes = [IsNotAuthenticated, IsAdminUser]
+        return super().get_permissions()
+
 
 class UserSignInView(mixins.CreateModelMixin, viewsets.GenericViewSet):
-    permission_classes = [IsNotAuthenticated]
+    permission_classes = [IsNotAuthenticated, IsAdminUser]
     serializer_class = UserSignInSerializer
 
     def create(self, request, *args, **kwargs):
@@ -31,11 +37,26 @@ class UserSignInView(mixins.CreateModelMixin, viewsets.GenericViewSet):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    filterset_class = UserFilter
+    filter_backends = [
+        DjangoFilterBackend,
+        CustomerFilter,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = ['first_name', 'last_name']
+    ordering_fields = ['first_name', 'id']
     # permission_classes = [IsAuthenticated]
+    # MEH: Custom Pagination :) even LimitOffsetPagination
+    pagination_class = PageNumberPagination
+    pagination_class.page_size = 5
+    pagination_class.page_size_query_param = 'size'
+    pagination_class.max_page_size = 100
+
 
 
 class UserProfileViewSet(viewsets.ModelViewSet):
-    queryset = UserProfile.objects.all()
+    queryset = UserProfile.objects.prefetch_related('user').all()
     serializer_class = UserProfileSerializer
     # permission_classes = [IsAuthenticated]
 

@@ -28,9 +28,14 @@ DEBUG = True
 CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework_simplejwt.authentication.JWTAuthentication',
-    ),
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend',],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 100,
 }
 
 # MEH: Refresh Token Timing!
@@ -40,6 +45,14 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'TeamGraphic API',
+    'DESCRIPTION': 'API for TeamGraphic BackEnd',
+    'VERSION': '1.0.0',
+    'SAVE_INCLUDE_SCHEMA': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
 ALLOWED_HOSTS = []
@@ -54,10 +67,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'silk',
+    'django_filters',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'drf_spectacular',
     'user.apps.UsersConfig',
     'employee.apps.EmployeeConfig',
     'api.apps.ApiConfig',
@@ -69,7 +85,7 @@ INSTALLED_APPS = [
     'report.apps.ReportConfig',
     'landing.apps.LandingConfig',
     'config.apps.ConfigConfig',
-    'file_manager.apps.FileManagerConfig'
+    'file_manager.apps.FileManagerConfig',
 ]
 
 MIDDLEWARE = [
@@ -81,6 +97,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'silk.middleware.SilkyMiddleware',
 ]
 
 ROOT_URLCONF = 'backend.urls'
