@@ -1,7 +1,7 @@
 <script setup>
 const { data, error, pending } = useAsyncData('user-list', async () => {
   try {
-    const response = await useFetch('http://127.0.0.1:8000/api/user/')
+    const response = await useFetch('http://127.0.0.1:8000/api/users/')
     return response.data.value
   } catch (err) {
     console.error(err) // Log any error to get more details
@@ -16,8 +16,8 @@ const { data, error, pending } = useAsyncData('user-list', async () => {
     <div v-if="pending">Loading...</div>
     <div v-else-if="error">Error: {{ error.message }}</div>
     <ul v-else>
-      <li v-for="user in data" :key="user.id" class="mb-2">
-        {{ user.phone_number }}
+      <li v-for="user in data.results" :key="user.id" class="mb-2">
+        {{ user }}
       </li>
     </ul>
   </div>

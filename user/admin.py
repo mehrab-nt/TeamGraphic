@@ -5,7 +5,7 @@ from .models import User, UserProfile, Role, Introduction, Address
 
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ['phone_number', 'first_name', 'last_name', 'email', 'is_employee', 'is_active']
+    list_display = ['phone_number', 'first_name', 'last_name', 'email', 'is_employee', 'is_active', 'role']
     search_fields = ['phone_number', 'first_name', 'last_name']
     ordering = ['-date_joined']
     list_filter = ['is_active', 'is_employee']

@@ -1,7 +1,10 @@
+from django.utils import timezone
 from rest_framework import serializers
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User, UserProfile, Role, Introduction, Address
+from .models import User, UserProfile, GENDER, Introduction, Role, Address
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.db import IntegrityError
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
@@ -14,12 +17,22 @@ class UserSignUpSerializer(serializers.ModelSerializer):
         fields = ['phone_number', 'password', 'first_name']
 
     def create(self, validated_data):
-        user = User.objects.create_user(
-            phone_number=validated_data['phone_number'],
-            username=validated_data['phone_number'],
-            first_name=validated_data['first_name'],
-            password=validated_data['password']
-        )
+        try:
+            user = User.objects.create_user(
+                phone_number=validated_data['phone_number'],
+                username=validated_data['phone_number'],
+                first_name=validated_data['first_name'],
+                password=validated_data['password']
+            )
+        except IntegrityError:
+            raise serializers.ValidationError('کاربر با این شماره وجود دارد!')
+        user.user_profile = UserProfile.objects.create(user=user)
+        try:
+            role = Role.objects.get(is_default=True)
+        except ObjectDoesNotExist or MultipleObjectsReturned:
+            return user
+        user.role = role
+        user.save()
         return user
 
 
@@ -41,48 +54,133 @@ class UserSignInSerializer(serializers.Serializer):
         }
 
 
+class UserProfileSerializer(serializers.ModelSerializer):
+    introduce_from_display = serializers.StringRelatedField(source='introduce_from')
+    class Meta:
+        model = UserProfile
+        fields = ['user', 'birth_date', 'description', 'introduce_from', 'introduce_from_display', 'job', 'gender']
+        read_only_fields = ['id']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['gender_display'] = instance.get_gender_display()
+        return data
+
+
 class UserSerializer(serializers.ModelSerializer):
-    # user_profile = UserProfileSerializer(read_only=True)
+    user_profile = UserProfileSerializer(read_only=True)
+    national_id = serializers.CharField(default=None)
+    role_display = serializers.StringRelatedField(source='role')
 
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'national_id', 'email', 'first_name', 'last_name', 'is_active', 'role']
-
-
-class UserProfileSerializer(serializers.ModelSerializer):
-    gender = serializers.CharField(source='get_gender_display')  # Show gender display value
-    user = UserSerializer(read_only=True)
-
-    class Meta:
-        model = UserProfile
-        fields = ['user', 'birth_date', 'gender', 'description', 'introduce_from', 'job']
+        fields = ['id', 'phone_number', 'user_profile', 'national_id', 'date_joined', 'email', 'first_name', 'last_name',
+                  'is_active', 'role', 'role_display']
+        read_only_fields = ['id', 'phone_number']
 
 
 class UserKeySerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'public_key', 'private_key']
+        fields = ['id', 'user', 'public_key', 'private_key']
+        read_only_fields = ['id']
+
+    @staticmethod
+    def get_user(instance):
+        return str(instance)
 
 
 class UserAccountingSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    role_display = serializers.StringRelatedField(source='role')
+
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'national_id', 'email', 'first_name', 'last_name', 'role', 'accounting_id', 'accounting_name']
+        fields = ['id', 'user', 'phone_number', 'national_id', 'email', 'first_name', 'last_name',
+                  'role', 'role_display', 'accounting_id', 'accounting_name']
+        read_only_fields = ['id', 'phone_number']
 
-
-class RoleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Role
-        fields = ['id', 'title', 'description', 'sort_number']
+    @staticmethod
+    def get_user(instance):
+        return str(instance)
 
 
 class IntroductionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Introduction
-        fields = ['id', 'title', 'number', 'sort_number']
+        fields = '__all__'
+        read_only_fields = ['id']
 
 
-class AddressSerializer(serializers.ModelSerializer):
+class CustomModelSerializer(serializers.ModelSerializer):
+    def create(self, validated_data, *kwargs):
+        if kwargs[0]:
+            for obj in kwargs[0]:
+                obj.is_default = False
+                obj.save()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data, *kwargs):
+        if kwargs[0]:
+            for obj in kwargs[0]:
+                obj.is_default = False
+                obj.save()
+        return super().update(instance, validated_data)
+
+
+class RoleSerializer(CustomModelSerializer):
+    class Meta:
+        model = Role
+        fields = '__all__'
+        read_only_fields = ['id']
+
+    def create(self, validated_data, *kwargs):
+        if validated_data['is_default']:
+            try:
+                return super().create(validated_data, self.Meta.model.objects.all().filter(is_default=True))
+            except ObjectDoesNotExist:
+                return super().create(validated_data, None)
+        return super().create(validated_data, None)
+
+    def update(self, instance, validated_data, *kwargs):
+        if instance.is_default:
+            validated_data['is_default'] = True
+            return super().update(instance, validated_data, None)
+        elif validated_data['is_default']:
+            try:
+                return super().update(instance, validated_data, self.Meta.model.objects.all().filter(is_default=True))
+            except ObjectDoesNotExist:
+                return super().update(instance, validated_data, None)
+        return super().update(instance, validated_data, None)
+
+
+class AddressSerializer(CustomModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    submit_date = serializers.HiddenField(default=timezone.now)
+    # user = serializers.RelatedField()
+
     class Meta:
         model = Address
         fields = '__all__'
+
+    def create(self, validated_data, *kwargs):
+        if validated_data['is_default']:
+            try:
+                return super().create(validated_data,
+                                      self.Meta.model.objects.all().filter(is_default=True, user=validated_data['user']))
+            except ObjectDoesNotExist:
+                return super().create(validated_data, None)
+        return super().create(validated_data, None)
+
+    def update(self, instance, validated_data, *kwargs):
+        if instance.is_default:
+            validated_data['is_default'] = True
+            return super().update(instance, validated_data, None)
+        elif validated_data['is_default']:
+            try:
+                return super().update(instance, validated_data, self.Meta.model.objects.all().filter(is_default=True, user=validated_data['user']))
+            except ObjectDoesNotExist:
+                return super().update(instance, validated_data, None)
+        return super().update(instance, validated_data, None)

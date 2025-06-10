@@ -2,20 +2,25 @@ from django.db import models
 from django.core import validators
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
+import string, random
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 
 
 class User(AbstractUser):
     phone_number = models.CharField(max_length=11, unique=True, validators=[validators.MinLengthValidator(11)],
                                     blank=False, null=False, verbose_name='Phone Number')
-    national_id = models.CharField(max_length=10, unique=True, validators=[validators.MinLengthValidator(10)], blank=True, null=True,
-                                   verbose_name='National ID')
-    public_key = models.CharField(max_length=8, validators=[validators.MinLengthValidator(8)],
-                                  blank=False, null=False, verbose_name='Public Key')
-    private_key = models.CharField(max_length=20, blank=False, null=False, verbose_name='Private Key')
-    accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name='Accounting ID')
+    national_id = models.CharField(max_length=10, unique=True, default=None, validators=[validators.MinLengthValidator(10)],
+                                   blank=True, null=True, verbose_name='National ID')
+    public_key = models.CharField(max_length=8, unique=True, validators=[validators.MinLengthValidator(8)],
+                                  blank=True, null=False, verbose_name='Public Key')
+    private_key = models.CharField(max_length=20, unique=True,
+                                   blank=True, null=False, verbose_name='Private Key')
+    accounting_id = models.PositiveBigIntegerField(unique=True,
+                                                   blank=True, null=True, verbose_name='Accounting ID')
     accounting_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Accounting Name')
-    role = models.ForeignKey('Role', on_delete=models.SET_NULL, blank=True, null=True,
-                                  related_name='role_all_users')
+    role = models.ForeignKey('Role', on_delete=models.SET_NULL,
+                             blank=True, null=True,
+                             related_name='role_all_users')
     is_employee = models.BooleanField(default=False,
                                       blank=False, null=False, verbose_name='Is Employee')
 
@@ -27,6 +32,27 @@ class User(AbstractUser):
 
     def __str__(self):
         return f'#{self.pk}: {self.first_name} {self.last_name} ({self.phone_number})'
+
+    @staticmethod
+    def generate_unique_key(self, field_name, length, prefix=''):
+        chars = string.ascii_lowercase + string.digits
+        while True:
+            prefix += ''.join(random.choices(chars, k=length-len(prefix)))
+            if not self.objects.filter(**{field_name: prefix}).exists():
+                return prefix
+
+    def save(self, *args, **kwargs):
+        if not self.public_key or not self.public_key.__contains__('tg-'):
+            self.public_key = self.generate_unique_key(User,'public_key', 8, 'tg-')
+        if len(self.private_key) != 16:
+            self.private_key = self.generate_unique_key(User, 'private_key', 16)
+        self.phone_number = self.username
+        if not self.role:
+            try:
+                self.role = Role.objects.get(is_default=True)
+            except (ObjectDoesNotExist, MultipleObjectsReturned):
+                self.role = None
+        super().save(*args, **kwargs)
 
 
 class GENDER(models.TextChoices):
@@ -59,6 +85,7 @@ class Role(models.Model):
                              blank=False, null=False)
     description = models.TextField(max_length=300, blank=True, null=True)
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
+    is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
 
     class Meta:
         ordering = ['sort_number']
@@ -76,7 +103,7 @@ class Introduction(models.Model):
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = ['sort_number']
         verbose_name = 'Introduce'
         verbose_name_plural = 'Introduces'
 
@@ -111,9 +138,10 @@ class Address(models.Model):
                                    blank=False, null=False, verbose_name='Submit Date')
 
     class Meta:
-        ordering = ['is_default', '-submit_date']
+        ordering =  ['user', '-is_default', '-submit_date']
         verbose_name = 'Address'
         verbose_name_plural = 'Addresses'
+        unique_together = ('user', 'title')
 
     def __str__(self):
         return f'Address: {self.title} /For: {self.user}'
