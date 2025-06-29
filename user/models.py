@@ -1,9 +1,10 @@
-from django.db import models
+from django.db import models, transaction
 from django.core import validators
 from django.utils import timezone
 from django.contrib.auth.models import AbstractUser
 import string, random
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
+from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, ValidationError
+from backend.tg_massages import *
 
 
 class User(AbstractUser):
@@ -13,7 +14,7 @@ class User(AbstractUser):
                                    blank=True, null=True, verbose_name='National ID')
     public_key = models.CharField(max_length=8, unique=True, validators=[validators.MinLengthValidator(8)],
                                   blank=True, null=False, verbose_name='Public Key')
-    private_key = models.CharField(max_length=20, unique=True,
+    private_key = models.CharField(max_length=16, unique=True,
                                    blank=True, null=False, verbose_name='Private Key')
     accounting_id = models.PositiveBigIntegerField(unique=True,
                                                    blank=True, null=True, verbose_name='Accounting ID')
@@ -46,13 +47,18 @@ class User(AbstractUser):
             self.public_key = self.generate_unique_key(User,'public_key', 8, 'tg-')
         if len(self.private_key) != 16:
             self.private_key = self.generate_unique_key(User, 'private_key', 16)
-        self.phone_number = self.username
+        if not self.phone_number:
+            self.phone_number = self.username
         if not self.role:
             try:
                 self.role = Role.objects.get(is_default=True)
             except (ObjectDoesNotExist, MultipleObjectsReturned):
                 self.role = None
         super().save(*args, **kwargs)
+        try:
+            profile = self.user_profile
+        except ObjectDoesNotExist:
+            UserProfile.objects.create(user=self)
 
 
 class GENDER(models.TextChoices):
@@ -95,6 +101,22 @@ class Role(models.Model):
     def __str__(self):
         return f'Role: {self.title}'
 
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            other_default = Role.objects.exclude(pk=self.pk).filter(is_default=True)
+            if self.is_default:
+                if other_default.exists():
+                    other_default.update(is_default=False)
+            else:
+                if not other_default.exists():
+                    self.is_default = True
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.is_default:
+            raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
+        super().delete(*args, **kwargs)
+
 
 class Introduction(models.Model):
     title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
@@ -124,7 +146,7 @@ class Address(models.Model):
                             blank=True, null=True)
     content = models.TextField(max_length=300,
                                blank=False, null=False)
-    postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(11)],
+    postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='Postal Code')
     phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
                                     blank=False, null=False, verbose_name='Phone Number')
@@ -134,8 +156,8 @@ class Address(models.Model):
                                    blank=False, null=False, verbose_name='Unit Number')
     is_default = models.BooleanField(default=False,
                                      blank=False, null=False, verbose_name='Is Default')
-    submit_date = models.DateField(default=timezone.now,
-                                   blank=False, null=False, verbose_name='Submit Date')
+    submit_date = models.DateTimeField(default=timezone.now,
+                                       blank=False, null=False, verbose_name='Submit Date')
 
     class Meta:
         ordering =  ['user', '-is_default', '-submit_date']
@@ -145,3 +167,24 @@ class Address(models.Model):
 
     def __str__(self):
         return f'Address: {self.title} /For: {self.user}'
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            other_default = self.user.user_addresses.exclude(pk=self.pk).filter(is_default=True)
+            if self.is_default:
+                if other_default.exists():
+                    other_default.update(is_default=False)
+            else:
+                if not other_default.exists():
+                    self.is_default = True
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        user = self.user
+        is_default = self.is_default
+        super().delete(*args, **kwargs)
+
+        if is_default:
+            next_default = user.user_addresses.first()
+            if next_default:
+                next_default.update(is_default=True)

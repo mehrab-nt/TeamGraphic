@@ -1,6 +1,22 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.contrib import messages
 from .models import User, UserProfile, Role, Introduction, Address
+from backend.tg_massages import TG_PREVENT_DELETE_DEFAULT
+
+
+class CustomModelAdmin(admin.ModelAdmin):
+    def delete_model(self, request, obj):
+        if obj.is_default:
+            self.message_user(request, TG_PREVENT_DELETE_DEFAULT, level=messages.ERROR)
+        else:
+            super().delete_model(request, obj)
+
+    def delete_queryset(self, request, queryset):
+        if queryset.filter(is_default=True).exists():
+            self.message_user(request, TG_PREVENT_DELETE_DEFAULT, level=messages.ERROR)
+            queryset = queryset.exclude(is_default=True)
+        super().delete_queryset(request, queryset)
 
 
 class CustomUserAdmin(UserAdmin):
@@ -16,21 +32,22 @@ class CustomUserAdmin(UserAdmin):
 
 
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'birth_date', 'gender']
+    list_display = ['user', 'birth_date', 'gender', 'job', 'introduce_from']
     search_fields = ['user__phone_number', 'user__first_name']
 
 
-class RoleAdmin(admin.ModelAdmin):
-    list_display = ['title', 'description', 'sort_number']
+class RoleAdmin(CustomModelAdmin):
+    list_display = ['title', 'description', 'is_default', 'sort_number']
 
 
 class IntroductionAdmin(admin.ModelAdmin):
     list_display = ['title', 'number', 'sort_number']
 
 
-class AddressAdmin(admin.ModelAdmin):
-    list_display = ['title', 'user', 'state', 'city', 'content', 'plate_number', 'unit_number']
+class AddressAdmin(CustomModelAdmin):
+    list_display = ['title', 'user', 'state', 'city', 'content', 'plate_number', 'unit_number', 'is_default']
     list_display_links = ['title']
+    list_filter = ['is_default']
 
 
 admin.site.register(User, CustomUserAdmin)

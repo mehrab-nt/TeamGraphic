@@ -51,6 +51,13 @@ SPECTACULAR_SETTINGS = {
     'TITLE': 'TeamGraphic API',
     'DESCRIPTION': 'API for TeamGraphic BackEnd',
     'VERSION': '1.0.0',
+    'TAGS': [
+        {'name': 'Auth', 'description': 'Authentication Flows'},
+        {'name': 'Roles', 'description': 'Operations Related to Roles'},
+        {'name': 'Users', 'description': 'Operations Related to Users'},
+        {'name': 'Users-Addresses', 'description': 'Addresses for Users'},
+        {'name': 'Users-Introduction', 'description': 'Introduction for Users'},
+    ],
     'SAVE_INCLUDE_SCHEMA': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }

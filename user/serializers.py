@@ -5,6 +5,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .models import User, UserProfile, GENDER, Introduction, Role, Address
 from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned
 from django.db import IntegrityError
+from backend.tg_massages import TG_SIGNUP_INTEGRITY, TG_SIGN_ERROR
 
 
 class UserSignUpSerializer(serializers.ModelSerializer):
@@ -25,14 +26,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
                 password=validated_data['password']
             )
         except IntegrityError:
-            raise serializers.ValidationError('کاربر با این شماره وجود دارد!')
-        user.user_profile = UserProfile.objects.create(user=user)
-        try:
-            role = Role.objects.get(is_default=True)
-        except ObjectDoesNotExist or MultipleObjectsReturned:
-            return user
-        user.role = role
-        user.save()
+            raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
         return user
 
 
@@ -43,7 +37,7 @@ class UserSignInSerializer(serializers.Serializer):
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
         if not user:
-            raise serializers.ValidationError('اطلاعات وارد شده صحیح نمی‌باشد.')
+            raise serializers.ValidationError(TG_SIGN_ERROR)
         refresh = RefreshToken.for_user(user)
         return {
             'refresh': str(refresh),
@@ -59,7 +53,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ['user', 'birth_date', 'description', 'introduce_from', 'introduce_from_display', 'job', 'gender']
-        read_only_fields = ['id']
+        read_only_fields = ['id', 'user']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -68,15 +62,27 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    user_profile = UserProfileSerializer(read_only=True)
-    national_id = serializers.CharField(default=None)
+    user_profile = UserProfileSerializer()
+    is_active = serializers.BooleanField(read_only=True)
     role_display = serializers.StringRelatedField(source='role')
 
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'user_profile', 'national_id', 'date_joined', 'email', 'first_name', 'last_name',
-                  'is_active', 'role', 'role_display']
-        read_only_fields = ['id', 'phone_number']
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
+                  'is_active', 'role', 'role_display', 'user_profile',]
+        read_only_fields = ['id', 'date_joined']
+
+    def update(self, instance, validated_data):
+        profile_data = validated_data.pop('user_profile', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if profile_data:
+            profile = instance.user_profile
+            for attr, value in profile_data.items():
+                setattr(profile, attr, value)
+            profile.save()
+        return instance
 
 
 class UserKeySerializer(serializers.ModelSerializer):
@@ -114,73 +120,19 @@ class IntroductionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 
-class CustomModelSerializer(serializers.ModelSerializer):
-    def create(self, validated_data, *kwargs):
-        if kwargs[0]:
-            for obj in kwargs[0]:
-                obj.is_default = False
-                obj.save()
-        return super().create(validated_data)
-
-    def update(self, instance, validated_data, *kwargs):
-        if kwargs[0]:
-            for obj in kwargs[0]:
-                obj.is_default = False
-                obj.save()
-        return super().update(instance, validated_data)
-
-
-class RoleSerializer(CustomModelSerializer):
+class RoleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Role
         fields = '__all__'
         read_only_fields = ['id']
 
-    def create(self, validated_data, *kwargs):
-        if validated_data['is_default']:
-            try:
-                return super().create(validated_data, self.Meta.model.objects.all().filter(is_default=True))
-            except ObjectDoesNotExist:
-                return super().create(validated_data, None)
-        return super().create(validated_data, None)
 
-    def update(self, instance, validated_data, *kwargs):
-        if instance.is_default:
-            validated_data['is_default'] = True
-            return super().update(instance, validated_data, None)
-        elif validated_data['is_default']:
-            try:
-                return super().update(instance, validated_data, self.Meta.model.objects.all().filter(is_default=True))
-            except ObjectDoesNotExist:
-                return super().update(instance, validated_data, None)
-        return super().update(instance, validated_data, None)
-
-
-class AddressSerializer(CustomModelSerializer):
+class AddressSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     submit_date = serializers.HiddenField(default=timezone.now)
-    # user = serializers.RelatedField()
+    # user = serializers.RelatedField(queryset=User.objects.all())
 
     class Meta:
         model = Address
         fields = '__all__'
-
-    def create(self, validated_data, *kwargs):
-        if validated_data['is_default']:
-            try:
-                return super().create(validated_data,
-                                      self.Meta.model.objects.all().filter(is_default=True, user=validated_data['user']))
-            except ObjectDoesNotExist:
-                return super().create(validated_data, None)
-        return super().create(validated_data, None)
-
-    def update(self, instance, validated_data, *kwargs):
-        if instance.is_default:
-            validated_data['is_default'] = True
-            return super().update(instance, validated_data, None)
-        elif validated_data['is_default']:
-            try:
-                return super().update(instance, validated_data, self.Meta.model.objects.all().filter(is_default=True, user=validated_data['user']))
-            except ObjectDoesNotExist:
-                return super().update(instance, validated_data, None)
-        return super().update(instance, validated_data, None)
+        read_only_fields = ['id', 'user']
