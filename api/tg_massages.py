@@ -1,7 +1,8 @@
-TG_SIGNUP_INTEGRITY = 'کابر با این شماره تماس وجود دارد!'
-TG_SIGN_ERROR = 'اطلاعات وارد شده صحیح نمی باشد.'
+
+TG_SIGNUP_INTEGRITY = 'کاربر با این شماره تماس وجود دارد!'
+TG_SIGNIN_ERROR = 'اطلاعات وارد شده صحیح نمی باشد.'
 TG_USER_NOT_FOUND_BY_ID = 'کاربر مورد نظر وجود ندارد.'
-TG_USER_NOT_FOUND_BY_PHONE = 'کاربری با شماره تماس وارد شده وجود ندارد.'
+TG_USER_NOT_FOUND_BY_PHONE = 'کاربر با شماره تماس وارد شده وجود ندارد.'
 TG_USER_CREATED = 'اشتراک کاربری شما ایجاد شد.'
 TG_EXPECTED_PHONE_NUMBER = 'لطفا شماره تماس را به درستی وارد کنید.'
 TG_EXPECTED_ID_NUMBER = 'لطفا عدد صحیح وارد کنید.'

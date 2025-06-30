@@ -39,6 +39,7 @@ REST_FRAMEWORK = {
 }
 
 # MEH: Refresh Token Timing!
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
@@ -55,6 +56,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Auth', 'description': 'Authentication Flows'},
         {'name': 'Roles', 'description': 'Operations Related to Roles'},
         {'name': 'Users', 'description': 'Operations Related to Users'},
+        {'name': 'Users-Role', 'description': 'Role and Activate Status for Users'},
         {'name': 'Users-Addresses', 'description': 'Addresses for Users'},
         {'name': 'Users-Introduction', 'description': 'Introduction for Users'},
     ],
@@ -93,6 +95,7 @@ INSTALLED_APPS = [
     'landing.apps.LandingConfig',
     'config.apps.ConfigConfig',
     'file_manager.apps.FileManagerConfig',
+    'city.apps.CityConfig',
 ]
 
 MIDDLEWARE = [

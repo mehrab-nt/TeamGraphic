@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
 from .models import User, UserProfile, Role, Introduction, Address
-from backend.tg_massages import TG_PREVENT_DELETE_DEFAULT
+from api.tg_massages import TG_PREVENT_DELETE_DEFAULT
 
 
 class CustomModelAdmin(admin.ModelAdmin):
@@ -45,7 +45,7 @@ class IntroductionAdmin(admin.ModelAdmin):
 
 
 class AddressAdmin(CustomModelAdmin):
-    list_display = ['title', 'user', 'state', 'city', 'content', 'plate_number', 'unit_number', 'is_default']
+    list_display = ['title', 'user', 'province', 'city', 'content', 'plate_number', 'unit_number', 'is_default']
     list_display_links = ['title']
     list_filter = ['is_default']
 

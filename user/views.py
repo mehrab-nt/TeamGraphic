@@ -1,18 +1,30 @@
 from rest_framework import viewsets, status, filters
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
-from api.permissions import IsNotAuthenticated, IsOwnerOrAdmin
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from api.permissions import IsOwnerOrAdmin
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.response import Response
-from .models import User, UserProfile, Role, Introduction, Address, GENDER
-from .serializers import UserSignUpSerializer, UserSignInSerializer, UserSerializer, UserProfileSerializer, \
-    UserKeySerializer, UserAccountingSerializer, RoleSerializer, IntroductionSerializer, AddressSerializer
+from .models import User, Role, Introduction
+from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer, UserProfileSerializer, UserRoleSerializer,
+                          UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
+from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerQueryFilter, CustomerFilter
-from django.core.exceptions import ObjectDoesNotExist, MultipleObjectsReturned, PermissionDenied
+from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework.exceptions import NotFound
-from drf_spectacular.utils import extend_schema_view, extend_schema
-from backend.tg_massages import *
+from drf_spectacular.utils import extend_schema
+from api.tg_massages import *
+
+
+@extend_schema(tags=["Auth"])
+class CustomTokenRefreshView(TokenRefreshView):
+    pass
+
+
+@extend_schema(tags=["Auth"])
+class CustomTokenVerifyView(TokenVerifyView):
+    pass
+
 
 @extend_schema(tags=['Users'])
 class UserViewSet(viewsets.ModelViewSet):
@@ -32,20 +44,28 @@ class UserViewSet(viewsets.ModelViewSet):
     # MEH: Custom Pagination :) even LimitOffsetPagination
     pagination_class = PageNumberPagination
     pagination_class.page_size_query_param = 'size'
-    pagination_class.max_page_size = 1000
+    pagination_class.max_page_size = 100
 
     def get_object(self, *args, **kwargs):
         if not self.kwargs.get('phone_number'):
             lookup_value = self.kwargs.get(self.lookup_field, '')
             try:
                 return self.queryset.get(pk=int(lookup_value))
-            except (ValueError, ObjectDoesNotExist):
+            except ObjectDoesNotExist:
                 raise NotFound(TG_USER_NOT_FOUND_BY_ID)
+            except ValueError:
+                raise NotFound(TG_EXPECTED_ID_NUMBER)
         lookup_value = self.kwargs.get('phone_number')
         try:
             return self.queryset.get(phone_number=lookup_value)
         except ObjectDoesNotExist:
             raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
+
+    def set_update(self, queryset, request, *args, **kwargs):
+        serializer = self.get_serializer(queryset, data=request.data, partial=(request.method == 'PATCH'))
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @extend_schema(tags=['Auth'], operation_id='user_signup')
     @action(detail=False, http_method_names=['post'], methods=['post'],
@@ -65,53 +85,45 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-    @extend_schema(operation_id='user_get_by_phone')
     @action(detail=False, methods=['get'],
             url_path='by-phone/(?P<phone_number>\\d{11})')
     def get_by_phone(self, request, phone_number=None):
         try:
             queryset = self.get_object(phone_number=phone_number)
-        except (ObjectDoesNotExist, MultipleObjectsReturned):
-            return Response({"detail": TG_USER_NOT_FOUND_BY_PHONE}, status=status.HTTP_404_NOT_FOUND)
+        except ObjectDoesNotExist:
+            raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
         return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='profile', serializer_class=UserProfileSerializer)
     def profile(self, request, pk=None):
-        try:
-            queryset = UserProfile.objects.get(user__pk=pk)
-        except (ObjectDoesNotExist, MultipleObjectsReturned):
-            return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
-        except ValueError:
-            return Response({"detail": TG_EXPECTED_PHONE_NUMBER}, status=status.HTTP_404_NOT_FOUND)
+        user = self.get_object(pk=pk)
+        queryset = user.user_profile
         if request.method in ['PUT', 'PATCH']:
-            serializer = UserProfileSerializer(queryset, data=request.data, partial=(request.method == 'PATCH'))
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            self.set_update(queryset, request)
         return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get'],
             url_path='key', serializer_class=UserKeySerializer)
     def key(self, request, pk=None):
-        try:
-            queryset = self.get_object(pk=pk)
-        except (ObjectDoesNotExist, MultipleObjectsReturned):
-            return Response({"detail": TG_USER_NOT_FOUND_BY_ID}, status=status.HTTP_404_NOT_FOUND)
+        queryset = self.get_object(pk=pk)
         return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='accounting', serializer_class=UserAccountingSerializer)
     def accounting(self, request, pk=None):
-        try:
-            queryset = self.get_object(pk=pk)
-        except (ObjectDoesNotExist, MultipleObjectsReturned):
-            return Response({"detail": TG_USER_NOT_FOUND_BY_ID}, status=status.HTTP_404_NOT_FOUND)
+        queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            serializer = self.get_serializer(queryset, data=request.data, partial=(request.method == 'PATCH'))
-            serializer.is_valid(raise_exception=True)
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            self.set_update(queryset, request)
+        return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
+
+    @extend_schema(tags=['Users-Role'])
+    @action(detail=True, methods=['get', 'put', 'patch'],
+            url_path='role', serializer_class=UserRoleSerializer, filter_backends=[None])
+    def activation(self, request, pk=None):
+        queryset = self.get_object(pk=pk)
+        if request.method in ['PUT', 'PATCH']:
+            self.set_update(queryset, request)
         return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
 
     @extend_schema(tags=['Users-Addresses'])
@@ -119,46 +131,40 @@ class UserViewSet(viewsets.ModelViewSet):
             url_path='addresses', serializer_class=AddressSerializer, filter_backends=[None],
             permission_classes=[IsOwnerOrAdmin])
     def address_list(self, request, pk=None):
+        user = self.get_object(pk=pk)
         if request.method == 'POST':
-            try:
-                user = User.objects.get(pk=pk)
-            except ObjectDoesNotExist:
-                return Response({"detail": TG_USER_NOT_FOUND_BY_ID}, status=status.HTTP_404_NOT_FOUND)
             serializer = self.get_serializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             serializer.save(user=user)
-            queryset = Address.objects.all().filter(user__pk=pk)
             return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
-        try:
-            queryset = Address.objects.all().filter(user__pk=pk)
-        except ValueError:
-            return Response({"detail": TG_EXPECTED_ID_NUMBER}, status=status.HTTP_404_NOT_FOUND)
+        queryset = user.user_addresses
         if not queryset.exists():
-            return Response({"detail": TG_DATA_EMPTY}, status=status.HTTP_404_NOT_FOUND)
+            raise NotFound(TG_DATA_EMPTY)
         return Response(self.get_serializer(queryset, many=True).data, status=status.HTTP_200_OK)
 
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
-            url_path='address/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None],
+            url_path='addresses/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None],
             permission_classes=[IsOwnerOrAdmin])
     def address_detail(self, request, pk=None, address_id=None):
+        user = self.get_object(pk=pk)
         try:
-            address = Address.objects.get(pk=address_id, user__pk=pk)
+            queryset = user.user_addresses.get(pk=address_id)
         except ObjectDoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
-
+            raise NotFound(TG_DATA_NOT_FOUND)
+        except ValueError:
+            raise NotFound(TG_EXPECTED_ID_NUMBER)
         if request.method == 'DELETE':
-            if address.is_default:
+            if queryset.is_default:
                 raise PermissionDenied(TG_PREVENT_DELETE_DEFAULT)
-            address.delete()
+            queryset.delete()
             return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
-
         if request.method in ['PUT', 'PATCH']:
-            serializer = self.get_serializer(address, data=request.data, partial=(request.method == 'PATCH'))
+            serializer = self.get_serializer(queryset, data=request.data, partial=(request.method == 'PATCH'))
             serializer.is_valid(raise_exception=True)
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(self.get_serializer(address).data, status=status.HTTP_200_OK)
+        return Response(self.get_serializer(queryset).data, status=status.HTTP_200_OK)
 
 
 @extend_schema(tags=["Users-Introduction"])
@@ -179,4 +185,4 @@ class RoleViewSet(viewsets.ModelViewSet):
         if instance.is_default:
             raise PermissionDenied(TG_PREVENT_DELETE_DEFAULT)
         self.perform_destroy(instance)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)

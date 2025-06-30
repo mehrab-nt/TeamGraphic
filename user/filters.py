@@ -13,4 +13,5 @@ class CustomerFilter(django_filters.FilterSet):
         model = User
         fields = {
             'first_name': ['contains'],
+            'user_profile__job': ['contains'],
         }
