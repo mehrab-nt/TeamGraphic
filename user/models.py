@@ -4,7 +4,7 @@ from django.core import validators
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from city.models import City, Province
-from api.tg_massages import *
+from api.responses import *
 import string, random
 
 
@@ -71,7 +71,7 @@ class UserProfile(models.Model):
     birth_date = models.DateField(blank=True, null=True, verbose_name='Birth Date')
     gender = models.CharField(max_length=1, choices=GENDER.choices, default=GENDER.UNDEFINED, blank=False, null=False)
     description = models.TextField(blank=True, null=True)
-    introduce_from = models.ForeignKey('Introduction', on_delete=models.SET_NULL, blank=True, null=True, verbose_name='Introduction from',
+    introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
                                        related_name='introduce_all_users')
     job = models.CharField(max_length=25, blank=True, null=True,
                            db_index=True)
@@ -162,7 +162,6 @@ class Address(models.Model):
         ordering =  ['user', '-is_default', '-submit_date']
         verbose_name = 'Address'
         verbose_name_plural = 'Addresses'
-        unique_together = ('user', 'title')
 
     def __str__(self):
         return f'Address: {self.title} /For: {self.user}'

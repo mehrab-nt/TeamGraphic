@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import IntegrityError
 from .models import User, UserProfile, Introduction, Role, Address
-from api.tg_massages import TG_SIGNUP_INTEGRITY, TG_SIGNIN_ERROR
+from api.responses import TG_SIGNUP_INTEGRITY, TG_SIGNIN_ERROR
 
 
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
@@ -68,10 +69,19 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 # MEH: Main user full information
 class UserSerializer(serializers.ModelSerializer):
-    user_profile = UserProfileSerializer()
+    user_profile = UserProfileSerializer(required=False)
     is_active = serializers.BooleanField(read_only=True)
     role = serializers.StringRelatedField(read_only=True)
-    national_id = serializers.CharField(default=None)
+    national_id = serializers.CharField(
+        required=False,
+        allow_null=True,
+        validators=[
+            UniqueValidator(
+                queryset=User.objects.all(),
+                message="This national ID is already taken."
+            )
+        ]
+    )
 
     class Meta:
         model = User
@@ -79,7 +89,23 @@ class UserSerializer(serializers.ModelSerializer):
                   'is_active', 'role', 'user_profile',]
         read_only_fields = ['id', 'date_joined']
 
-    # MEH: Nested update for user profile
+    # MEH: Nested create user with profile (Just for Admin work) example like from file... Single or Bulk
+    def create(self, validated_data, **kwargs):
+        if isinstance(validated_data, list): # MEH: Handle bulk create
+            user_list = []
+            for user_data in validated_data:
+                profile_data = user_data.pop('user_profile', {})
+                user = User.objects.create_user(**user_data, username=user_data['phone_number'])
+                UserProfile.objects.update_or_create(user=user, defaults=profile_data)
+                user_list.append(user)
+            return user_list
+        else: # MEH: Handle single create
+            profile_data = validated_data.pop('user_profile', {})
+            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
+            UserProfile.objects.update_or_create(user=user, defaults=profile_data)
+            return user
+
+    # MEH: Nested update for user profile | for Nested POST used def create(self, validate_data)
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('user_profile', None)
         for attr, value in validated_data.items():
@@ -91,7 +117,6 @@ class UserSerializer(serializers.ModelSerializer):
                 setattr(profile, attr, value)
             profile.save()
         return instance
-
 
 # MEH: Public & Private key for user
 class UserKeySerializer(serializers.ModelSerializer):
@@ -151,6 +176,19 @@ class AddressSerializer(serializers.ModelSerializer):
         data['province_display'] = instance.province.__str__()
         data['city_display'] = instance.city.__str__()
         return data
+
+    def create(self, validated_data, **kwargs):
+        if isinstance(validated_data, list): # MEH: Handle bulk create
+            address_list = []
+            for address_data in validated_data:
+                address = Address(**address_data, **kwargs)
+                address.save()
+                address_list.append(address)
+            return address_list
+        else:
+            address = Address(**validated_data, **kwargs)
+            address.save()
+            return address
 
 
 # MEH: Introduction list (Instagram, Telegram, Google, ...)

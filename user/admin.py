@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
 from .models import User, UserProfile, Role, Introduction, Address
-from api.tg_massages import TG_PREVENT_DELETE_DEFAULT
+from api.responses import TG_PREVENT_DELETE_DEFAULT
 
 
 class CustomModelAdmin(admin.ModelAdmin):

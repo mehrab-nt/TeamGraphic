@@ -4,7 +4,7 @@ from django.db import models
 class Province(models.Model):
     id = models.PositiveSmallIntegerField(primary_key=True)
     name = models.CharField(max_length=100)
-    slug = models.SlugField(max_length=100)
+    slug = models.SlugField(max_length=100, allow_unicode=True)
     tel_prefix = models.CharField(max_length=10)
 
     class Meta:
@@ -19,7 +19,7 @@ class Province(models.Model):
 class City(models.Model):
     id = models.PositiveBigIntegerField(primary_key=True)
     name = models.CharField(max_length=100)
-    slug = models.CharField(max_length=100)
+    slug = models.SlugField(max_length=100, allow_unicode=True)
     province = models.ForeignKey('Province', on_delete=models.PROTECT,
                                  related_name='cities')
 

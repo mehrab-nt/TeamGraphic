@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from .models import Role, User, UserProfile
 
 
+# MEH: Lessen if default role remove! why?
 @receiver(post_delete, sender=Role)
 def assign_default_role_to_users(sender, instance, **kwargs):
     default_role = Role.objects.filter(is_default=True).first()
@@ -10,6 +11,7 @@ def assign_default_role_to_users(sender, instance, **kwargs):
         User.objects.filter(role__isnull=True).update(role=default_role)
 
 
+# MEH: Create profile for user automatically when a new user created ...
 @receiver(post_save, sender=User)
 def create_profile_for_new_user(sender, instance, created, **kwargs):
     if created:
