@@ -1,19 +1,25 @@
 from rest_framework import serializers
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework.validators import UniqueValidator, UniqueTogetherValidator
+from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from django.db import IntegrityError
 from .models import User, UserProfile, Introduction, Role, Address
-from api.responses import TG_SIGNUP_INTEGRITY, TG_SIGNIN_ERROR
+from api.responses import *
 
 
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
 # SMS check phone number set in NUXT
 class UserSignUpSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8, required=True)
-    phone_number = serializers.CharField(min_length=11, max_length=11, required=True)
+    phone_number = serializers.CharField(required=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     first_name = serializers.CharField(min_length=3, max_length=73, required=True)
+
+    def validate_phone_number(self, data):
+        if self.Meta.model.objects.filter(phone_number=data).exists():
+            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return data
 
     class Meta:
         model = User
@@ -35,7 +41,8 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
 # MEH: Api for validate user sign in with phone number and password -> return: Access Token & Refresh Token
 class UserSignInSerializer(serializers.Serializer):
-    phone_number = serializers.CharField()
+    phone_number = serializers.CharField(required=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
@@ -69,19 +76,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 # MEH: Main user full information
 class UserSerializer(serializers.ModelSerializer):
+    phone_number = serializers.CharField(required=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+    national_id = serializers.CharField(required=False, allow_null=True,
+                                        validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
     is_active = serializers.BooleanField(read_only=True)
     role = serializers.StringRelatedField(read_only=True)
-    national_id = serializers.CharField(
-        required=False,
-        allow_null=True,
-        validators=[
-            UniqueValidator(
-                queryset=User.objects.all(),
-                message="This national ID is already taken."
-            )
-        ]
-    )
+
+    def validate_phone_number(self, data):
+        if User.objects.exclude(pk=self.instance.id).filter(phone_number=data).exists():
+            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return data
+
+    def validate_national_id(self, data):
+        if data is None:
+            return data
+        if User.objects.exclude(pk=self.instance.id).filter(national_id=data).exists():
+            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return data
 
     class Meta:
         model = User

@@ -14,5 +14,14 @@ def assign_default_role_to_users(sender, instance, **kwargs):
 # MEH: Create profile for user automatically when a new user created ...
 @receiver(post_save, sender=User)
 def create_profile_for_new_user(sender, instance, created, **kwargs):
-    if created:
-        UserProfile.objects.get_or_create(user=instance)
+    try:
+        profile = instance.user_profile
+    except UserProfile.DoesNotExist:
+        UserProfile.objects.create(user=instance)
+
+
+# MEH: If profile deleted in any way, User also deleted!!!
+@receiver(post_delete, sender=UserProfile)
+def delete_user_after_delete_profile(sender, instance, **kwargs):
+    instance.user.delete()
+

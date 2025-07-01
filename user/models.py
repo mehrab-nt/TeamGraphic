@@ -73,7 +73,7 @@ class UserProfile(models.Model):
     description = models.TextField(blank=True, null=True)
     introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
                                        related_name='introduce_all_users')
-    job = models.CharField(max_length=25, blank=True, null=True,
+    job = models.CharField(max_length=23, blank=True, null=True,
                            db_index=True)
 
     class Meta:
@@ -88,7 +88,7 @@ class UserProfile(models.Model):
 class Role(models.Model):
     title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
-    description = models.TextField(max_length=300, blank=True, null=True)
+    description = models.TextField(max_length=236, blank=True, null=True)
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
     is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
 
@@ -143,7 +143,7 @@ class Address(models.Model):
                                  blank=False, null=True)
     city = models.ForeignKey(City, on_delete=models.PROTECT,
                              blank=True, null=True)
-    content = models.TextField(max_length=300,
+    content = models.TextField(max_length=236,
                                blank=False, null=False)
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='Postal Code')

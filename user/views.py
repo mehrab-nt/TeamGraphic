@@ -1,3 +1,5 @@
+from pickle import FALSE
+
 from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -10,11 +12,11 @@ from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerial
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerQueryFilter, CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from django.db.models.deletion import ProtectedError
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
+from api.serializers import BulkDeleteSerializer
 
 
 # MEH: Get Refresh Token
@@ -47,17 +49,6 @@ class UserViewSet(CustomMixinModelViewSet):
     search_fields = ['first_name', 'last_name']
     ordering_fields = ['first_name', 'id']
 
-    # MEH: Check if request.user is admin or employee with access: (All User -> list) else: (Own User -> 1 object)
-    def get_queryset(self):
-        user = self.request.user
-        qs = User.objects.filter(pk=user.pk)
-        if not (user.is_staff or user.is_superuser or qs.first().is_employee):
-            # MEH: Check if regular User try to access other User Profile
-            if str(user.pk) != str(self.kwargs.get(self.lookup_field)):
-                raise PermissionDenied(TG_PERMISSION_DENIED)
-            return qs
-        return super().get_queryset()
-
     # MEH: Override get single user (with ID or phone_number) | Access check after In has_object_permission
     def get_object(self, *args, **kwargs):
         queryset = self.get_queryset()
@@ -78,7 +69,7 @@ class UserViewSet(CustomMixinModelViewSet):
 
     # MEH: Override post single User or Bulk list
     def create(self, request, *args, **kwargs):
-        return self.custom_create(request, is_employee=False)
+        return self.custom_create(request, password='12345678')
 
     # MEH: User Sign Up action (POST) for customer
     @extend_schema(tags=['Auth'])
@@ -175,19 +166,14 @@ class UserViewSet(CustomMixinModelViewSet):
 
 # MEH: Get Introduction List and Add single object (POST) update (PUT) and protected remove (DELETE)
 @extend_schema(tags=["Users-Introduction"])
-class IntroductionViewSet(viewsets.ModelViewSet):
+class IntroductionViewSet(CustomMixinModelViewSet):
     queryset = Introduction.objects.all()
     serializer_class = IntroductionSerializer
     permission_classes = [IsAuthenticated]
 
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
-        try:
-            self.perform_destroy(instance)
-        except ProtectedError:
-            raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
-        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
-
+        self.custom_destroy(instance)
 
 # MEH: Get Role List and Add single object (POST) update (PUT) and protected remove (DELETE)
 @extend_schema(tags=["Roles"])
@@ -199,3 +185,16 @@ class RoleViewSet(CustomMixinModelViewSet):
     def destroy(self, request, *args, **kwargs):
         instance = self.get_object()
         return self.custom_destroy(instance, is_default=instance.is_default)
+
+    #  MEH: Delete List of object todo: work more after
+    @extend_schema(
+        request=BulkDeleteSerializer,
+        responses={
+           204: OpenApiResponse(description="Successfully deleted roles."),
+           400: OpenApiResponse(description="Invalid IDs or constraint violation."),
+        },
+    )
+    @action(detail=False, methods=['delete'],
+            url_path='bulk-delete')
+    def bulk_delete(self, request):
+        return self.custom_bulk_destroy(request)

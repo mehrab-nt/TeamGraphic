@@ -5,7 +5,7 @@ from .responses import TG_PERMISSION_DENIED
 # MEH: User most be not Authenticated for SignUp, SignIn, ...
 class IsNotAuthenticated(permissions.BasePermission):
     def has_permission(self, request, view):
-        if request.user.is_authenticated or not request.user.is_superuser:
+        if request.user.is_authenticated and not request.user.is_superuser:
             raise PermissionDenied(TG_PERMISSION_DENIED)
         return True
 
