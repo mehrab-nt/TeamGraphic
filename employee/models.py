@@ -7,7 +7,6 @@ from api.models import ApiItem
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False,
                                 related_name='employee_profile')
-    # profile_image = models.ImageField(upload_to='profile_images', blank=True, null=True)
     level = models.ForeignKey("EmployeeLevel", on_delete=models.SET_NULL,
                               blank=True, null=True,
                               related_name="employee_list")

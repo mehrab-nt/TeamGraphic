@@ -21,18 +21,18 @@ class CustomModelAdmin(admin.ModelAdmin):
 
 class CustomUserAdmin(UserAdmin):
     model = User
-    list_display = ['phone_number', 'first_name', 'last_name', 'email', 'is_employee', 'is_active', 'role']
+    list_display = ['phone_number', 'first_name', 'last_name', 'email', 'is_employee', 'is_active', 'role', 'introduce_from']
     search_fields = ['phone_number', 'first_name', 'last_name']
     ordering = ['-date_joined']
     list_filter = ['is_active', 'is_employee']
 
     fieldsets = UserAdmin.fieldsets + (
-        ('TeamGraphic', {'fields': ('phone_number', 'national_id', 'public_key', 'private_key', 'accounting_id', 'accounting_name', 'role', 'is_employee')}),
+        ('TeamGraphic', {'fields': ('phone_number', 'national_id', 'user_profile', 'public_key', 'private_key', 'introducer', 'introduce_from', 'accounting_id', 'accounting_name', 'role', 'is_employee')}),
     )
 
 
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['user', 'birth_date', 'gender', 'job', 'introduce_from']
+    list_display = ['id', 'user', 'birth_date', 'gender', 'job']
     search_fields = ['user__phone_number', 'user__first_name']
 
 

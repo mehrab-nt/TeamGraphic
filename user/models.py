@@ -9,20 +9,26 @@ import string, random
 
 
 class User(AbstractUser):
-    phone_number = models.CharField(max_length=11, unique=True, validators=[validators.MinLengthValidator(11)],
+    phone_number = models.CharField(max_length=11, unique=True, validators=[validators.MinLengthValidator(11), validators.RegexValidator(regex=r'^09\d{9}$')],
                                     blank=False, null=False, verbose_name='Phone Number')
     national_id = models.CharField(max_length=10, unique=True, default=None, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='National ID')
     public_key = models.CharField(max_length=8, unique=True, validators=[validators.MinLengthValidator(8)],
                                   blank=True, null=False, verbose_name='Public Key')
-    private_key = models.CharField(max_length=16, unique=True,
+    private_key = models.CharField(max_length=16, unique=True, validators=[validators.MinLengthValidator(8)],
                                    blank=True, null=False, verbose_name='Private Key')
     accounting_id = models.PositiveBigIntegerField(unique=True,
                                                    blank=True, null=True, verbose_name='Accounting ID')
     accounting_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Accounting Name')
+    introducer = models.ForeignKey('self', on_delete=models.SET_NULL, blank=True, null=True,
+                                   related_name='invite_user_list')
+    introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
+                                       related_name='user_introduce_with')
     role = models.ForeignKey('Role', on_delete=models.SET_NULL,
                              blank=False, null=True,
                              related_name='role_all_users')
+    user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=False, null=False,
+                                        related_name='user')
     is_employee = models.BooleanField(default=False, db_index=True,
                                       blank=False, null=False, verbose_name='Is Employee')
 
@@ -34,10 +40,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return f'#{self.pk}: {self.first_name} {self.last_name} ({self.phone_number})'
-
-    def set_user_activation(self, activate=False):
-        self.is_active = activate
-        self.save()
 
     @staticmethod
     def generate_unique_key(self, field_name, length, prefix=''):
@@ -54,6 +56,8 @@ class User(AbstractUser):
             self.private_key = self.generate_unique_key(User, 'private_key', 16)
         if not self.phone_number:
             self.phone_number = self.username
+        if str(self.phone_number) != str(self.username):
+            self.username = self.phone_number
         if not self.role:
             self.role = Role.objects.filter(is_default=True).first()
         super().save(*args, **kwargs)
@@ -66,13 +70,9 @@ class GENDER(models.TextChoices):
 
 
 class UserProfile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False,
-                                related_name='user_profile')
     birth_date = models.DateField(blank=True, null=True, verbose_name='Birth Date')
     gender = models.CharField(max_length=1, choices=GENDER.choices, default=GENDER.UNDEFINED, blank=False, null=False)
     description = models.TextField(blank=True, null=True)
-    introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
-                                       related_name='introduce_all_users')
     job = models.CharField(max_length=23, blank=True, null=True,
                            db_index=True)
 

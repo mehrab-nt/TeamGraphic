@@ -17,11 +17,12 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
     try:
         profile = instance.user_profile
     except UserProfile.DoesNotExist:
-        UserProfile.objects.create(user=instance)
+        profile = UserProfile.objects.create()
+        instance.user_profile = profile
+        instance.save()
 
 
 # MEH: If profile deleted in any way, User also deleted!!!
-@receiver(post_delete, sender=UserProfile)
-def delete_user_after_delete_profile(sender, instance, **kwargs):
-    instance.user.delete()
-
+@receiver(post_delete, sender=User)
+def delete_profile_after_delete_user(sender, instance, **kwargs):
+    instance.user_profile.delete()
