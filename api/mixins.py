@@ -7,7 +7,7 @@ from rest_framework.pagination import PageNumberPagination
 from .responses import *
 from django.db import transaction, IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from .serializers import BulkDeleteSerializer
 
 # MEH: Custom get, put, post, delete for Reduce Code Line & Repeat
@@ -31,25 +31,56 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
 
     def custom_get(self, queryset):
         is_many = not isinstance(queryset, models.Model)
-        return Response(self.get_serializer(queryset, many=is_many).data, status=status.HTTP_200_OK)
-
-    def custom_update(self, instance, request):
-        serializer = self.get_serializer(instance, data=request.data, partial=(request.method == 'PATCH'))
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        serializer = self.get_serializer(queryset, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_create(self, request, **kwargs):
         is_many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=is_many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer, **kwargs)
+        try:
+            print("HER")
+            serializer.is_valid(raise_exception=True)
+            self.perform_create(serializer, **kwargs)
+        except ValidationError as e:
+            return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except DatabaseError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
+
+    def custom_update(self, instance, request, **kwargs):
+        # MEH: Many Update disable...
+        is_many = isinstance(request.data, list)
+        if is_many:
+            raise PermissionDenied(TG_PERMISSION_DENIED)
+        serializer = self.get_serializer(instance, data=request.data, partial=(request.method == 'PATCH'))
+        try:
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer, **kwargs)
+        except ValidationError as e:
+            return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except DatabaseError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_destroy(self, instance, **kwargs):
         if kwargs.get('is_default'):
             raise PermissionDenied(TG_PREVENT_DELETE_DEFAULT)
-        self.perform_destroy(instance)
+        try:
+            self.perform_destroy(instance)
+        except ProtectedError: # Model on-delete=PROTECT
+            raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
+        except DatabaseError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
     def custom_bulk_destroy(self, request):
@@ -70,32 +101,10 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer, **kwargs):
-        try:
-            return serializer.save(**kwargs)
-        except IntegrityError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except DatabaseError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return serializer.save(**kwargs)
 
-    def perform_update(self, serializer):
-        try:
-            return serializer.save()
-        except IntegrityError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except DatabaseError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+    def perform_update(self, serializer, **kwargs):
+        serializer.save(**kwargs)
 
     def perform_destroy(self, instance):
-        try:
-            return instance.delete()
-        except ProtectedError: # Model on-delete=PROTECT
-            raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
-        except DatabaseError as e:
-            return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
+        return instance.delete()
