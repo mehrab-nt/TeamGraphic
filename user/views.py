@@ -1,5 +1,3 @@
-from pickle import FALSE
-
 from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
@@ -69,7 +67,11 @@ class UserViewSet(CustomMixinModelViewSet):
 
     # MEH: Override post single User or Bulk list
     def create(self, request, *args, **kwargs):
-        return self.custom_create(request, password='12345678')
+        return self.custom_create(request)
+
+    def update(self, request, *args, **kwargs):
+        queryset = self.get_object(**kwargs)
+        return self.custom_update(queryset, request)
 
     # MEH: User Sign Up action (POST) for customer
     @extend_schema(tags=['Auth'])

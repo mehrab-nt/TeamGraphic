@@ -11,10 +11,12 @@ from api.responses import *
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
 # SMS check phone number set in NUXT
 class UserSignUpSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, required=True)
+    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True,
+                                     error_messages={'blank': TG_DATA_EMPTY})
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     first_name = serializers.CharField(min_length=3, max_length=73, required=True)
+    introduce_code = serializers.CharField(write_only=True, min_length=8, max_length=8, allow_null=True)
 
     def validate_phone_number(self, data):
         if self.Meta.model.objects.filter(phone_number=data).exists():
@@ -23,17 +25,15 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['phone_number', 'password', 'first_name']
+        fields = ['phone_number', 'password', 'first_name', 'introduce_from', 'introduce_code']
 
     # MEH: override create super method (POST)
-    def create(self, validated_data):
+    def create(self, validated_data, **kwargs):
         try:
-            user = User.objects.create_user(
-                phone_number=validated_data['phone_number'],
-                username=validated_data['phone_number'],
-                first_name=validated_data['first_name'],
-                password=validated_data['password']
-            )
+            code = validated_data.pop('introduce_code', None)
+            if code:
+                validated_data['introducer'] = User.objects.filter(public_key=code).first()
+            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
         except IntegrityError:
             raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
         return user
@@ -43,8 +43,8 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 class UserSignInSerializer(serializers.Serializer):
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
-    password = serializers.CharField(write_only=True)
-
+    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True,
+                                     error_messages={'blank': TG_DATA_EMPTY})
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
         if not user:
@@ -61,17 +61,20 @@ class UserSignInSerializer(serializers.Serializer):
 
 # MEH: Profile information about user (Gender, Photo, Job, ...)
 class UserProfileSerializer(serializers.ModelSerializer):
-    introduce_from_display = serializers.StringRelatedField(source='introduce_from')
+    user = serializers.SerializerMethodField()
+    gender_display = serializers.SerializerMethodField()
+
     class Meta:
         model = UserProfile
-        fields = ['user', 'birth_date', 'description', 'introduce_from', 'introduce_from_display', 'job', 'gender']
-        read_only_fields = ['id', 'user']
+        fields = ['id', 'user', 'birth_date', 'description', 'job', 'gender', 'gender_display']
 
-    # MEH: For gender Farsi show in Api form
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['gender_display'] = instance.get_gender_display()
-        return data
+    @staticmethod
+    def get_user(obj):
+        return str(obj)
+
+    @staticmethod
+    def get_gender_display(obj):
+        return obj.get_gender_display()
 
 
 # MEH: Main user full information
@@ -81,46 +84,54 @@ class UserSerializer(serializers.ModelSerializer):
     national_id = serializers.CharField(required=False, allow_null=True,
                                         validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
-    is_active = serializers.BooleanField(read_only=True)
-    role = serializers.StringRelatedField(read_only=True)
+    introduce_from_display = serializers.StringRelatedField(source='introduce_from')
+    invite_user_count = serializers.SerializerMethodField(read_only=True)
 
-    def validate_phone_number(self, data):
-        if User.objects.exclude(pk=self.instance.id).filter(phone_number=data).exists():
-            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
-        return data
+    @staticmethod
+    def get_invite_user_count(obj):
+        try:
+            return obj.invite_user_list.all().count()
+        except AttributeError:
+            return None
 
-    def validate_national_id(self, data):
-        if data is None:
-            return data
-        if User.objects.exclude(pk=self.instance.id).filter(national_id=data).exists():
-            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
-        return data
+    @staticmethod
+    def validate_filed(user_data, pk=None):
+        if 'phone_number' in user_data:
+            if User.objects.exclude(pk=pk).filter(phone_number=user_data['phone_number']).exists():
+                raise serializers.ValidationError({'phone_number': TG_UNIQUE_PROTECT})
+        if 'national_id' in user_data:
+            if user_data['national_id']:
+                if User.objects.exclude(pk=pk).filter(national_id=user_data['national_id']).exists():
+                    raise serializers.ValidationError({'national_id': TG_UNIQUE_PROTECT})
 
     class Meta:
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
-                  'is_active', 'role', 'user_profile',]
-        read_only_fields = ['id', 'date_joined']
+                  'is_active', 'role', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
+        read_only_fields = ['id', 'date_joined', 'is_active', 'role']
 
     # MEH: Nested create user with profile (Just for Admin work) example like from file... Single or Bulk
     def create(self, validated_data, **kwargs):
         if isinstance(validated_data, list): # MEH: Handle bulk create
             user_list = []
             for user_data in validated_data:
+                self.validate_filed(user_data)
                 profile_data = user_data.pop('user_profile', {})
-                user = User.objects.create_user(**user_data, username=user_data['phone_number'])
-                UserProfile.objects.update_or_create(user=user, defaults=profile_data)
+                user_profile = UserProfile.objects.create(**profile_data)
+                user = User.objects.create_user(**user_data, username=user_data['phone_number'], user_profile=user_profile)
                 user_list.append(user)
             return user_list
         else: # MEH: Handle single create
+            self.validate_filed(validated_data)
             profile_data = validated_data.pop('user_profile', {})
-            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
-            UserProfile.objects.update_or_create(user=user, defaults=profile_data)
+            user_profile = UserProfile.objects.create(**profile_data)
+            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'], user_profile=user_profile)
             return user
 
-    # MEH: Nested update for user profile | for Nested POST used def create(self, validate_data)
-    def update(self, instance, validated_data):
-        profile_data = validated_data.pop('user_profile', None)
+    # MEH: Nested update for user profile
+    def update(self, instance, validated_data, **kwargs):
+        self.validate_filed(validated_data, instance.pk)
+        profile_data = validated_data.pop('user_profile', {})
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -131,6 +142,16 @@ class UserSerializer(serializers.ModelSerializer):
             profile.save()
         return instance
 
+
+# MEH: Handle important field for Employee
+class UserEmployeeSerializer(UserSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
+                  'is_active', 'invite_user_count', 'user_profile']
+        read_only_fields = ['id', 'date_joined', 'is_active']
+
+
 # MEH: Public & Private key for user
 class UserKeySerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
@@ -140,24 +161,34 @@ class UserKeySerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'public_key', 'private_key']
 
     @staticmethod
-    def get_user(instance):
-        return str(instance)
+    def get_user(obj):
+        return str(obj)
 
 
 # MEH: User accounting information
 class UserAccountingSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     role = serializers.StringRelatedField()
+    accounting_id = serializers.IntegerField(allow_null=True,
+                                             validators=[RegexValidator(regex=r'^\d{1,16}$', message=TG_DATA_WRONG)])
+
+    def validate_accounting_id(self, data):
+        if not data:
+            return data
+        if self.instance:
+            if User.objects.exclude(pk=self.instance.id).filter(accounting_id=data).exists():
+                raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return data
 
     class Meta:
         model = User
-        fields = ['id', 'user', 'phone_number', 'national_id', 'email', 'first_name', 'last_name',
+        fields = ['id', 'user', 'phone_number', 'national_id', 'first_name', 'last_name',
                   'role', 'accounting_id', 'accounting_name']
-        read_only_fields = ['phone_number', 'role']
+        read_only_fields = ['phone_number', 'role', 'national_id']
 
     @staticmethod
-    def get_user(instance):
-        return str(instance)
+    def get_user(obj):
+        return str(obj)
 
 
 # MEH: User Role and is_active information
@@ -170,8 +201,8 @@ class UserRoleSerializer(serializers.ModelSerializer):
         fields = ['id', 'user', 'role', 'role_display', 'is_active']
 
     @staticmethod
-    def get_user(instance):
-        return str(instance)
+    def get_user(obj):
+        return str(obj)
 
 
 # MEH: User Address information
