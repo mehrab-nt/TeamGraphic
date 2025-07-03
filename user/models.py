@@ -2,15 +2,17 @@ from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.utils import timezone
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, ObjectDoesNotExist
 from city.models import City, Province
 from api.responses import *
+from api.models import ApiItem
 import string, random
 
 
 class User(AbstractUser):
     phone_number = models.CharField(max_length=11, unique=True, validators=[validators.MinLengthValidator(11), validators.RegexValidator(regex=r'^09\d{9}$')],
                                     blank=False, null=False, verbose_name='Phone Number')
+    phone_number_verified = models.BooleanField(default=False, blank=False, null=False, verbose_name='Phone Number Verified')
     national_id = models.CharField(max_length=10, unique=True, default=None, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='National ID')
     public_key = models.CharField(max_length=8, unique=True, validators=[validators.MinLengthValidator(8)],
@@ -25,10 +27,11 @@ class User(AbstractUser):
     introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
                                        related_name='user_introduce_with')
     role = models.ForeignKey('Role', on_delete=models.SET_NULL,
-                             blank=False, null=True,
+                             blank=True, null=True,
                              related_name='role_all_users')
     user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=True, null=True,
                                         related_name='user')
+    last_order_date = models.DateTimeField(default=None, blank=True, null=True, verbose_name='Last Order Date')
     is_employee = models.BooleanField(default=False, db_index=True,
                                       blank=False, null=False, verbose_name='Is Employee')
 
@@ -50,6 +53,13 @@ class User(AbstractUser):
                 return prefix
 
     def save(self, *args, **kwargs):
+        try:
+            old_user = User.objects.get(pk=self.pk)
+            if User.objects.get(pk=self.pk): # Means Update
+                if self.phone_number != old_user.phone_number:
+                    self.phone_number_verified = False
+        except ObjectDoesNotExist:
+            pass
         if not self.public_key or 'tg-' not in self.public_key:
             self.public_key = self.generate_unique_key(User,'public_key', 8, 'tg-')
         if not self.private_key or len(self.private_key) != 16:
@@ -58,9 +68,25 @@ class User(AbstractUser):
             self.phone_number = self.username
         if str(self.phone_number) != str(self.username):
             self.username = self.phone_number
-        if not self.role:
+        if not self.role and not self.is_employee:
             self.role = Role.objects.filter(is_default=True).first()
         super().save(*args, **kwargs)
+
+    def has_api_permission(self, key: str):
+        # todo: after test back comment
+        # if self.is_staff or self.is_superuser:
+        #     return True
+        if not key:
+            return False
+        if self.is_employee: # MEH: Check Access for this Employee
+            employee = getattr(self, "employee_profile", None)
+            if employee and employee.level:
+                return employee.level.api_items.filter(key=key).exists()
+            return False
+        role = getattr(self, "role", None) # MEH: Check Access for customer depend on their Role...
+        if role:
+            return role.api_items.filter(key=key).exists()
+        return False
 
 
 class GENDER(models.TextChoices):
@@ -90,7 +116,15 @@ class Role(models.Model):
                              blank=False, null=False)
     description = models.TextField(max_length=236, blank=True, null=True)
     sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name="Is Active")
     is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
+    api_items = models.ManyToManyField(
+        ApiItem,
+        through='RoleAccessApiItem',
+        through_fields=('role', 'api_item'),
+        verbose_name="Api Items"
+    )
 
     class Meta:
         ordering = ['sort_number']
@@ -115,6 +149,20 @@ class Role(models.Model):
         if self.is_default:
             raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
         super().delete(*args, **kwargs)
+
+
+class RoleAccessApiItem(models.Model):
+    role = models.ForeignKey(Role, on_delete=models.CASCADE,
+                             related_name='all_api_items',)
+    api_item = models.ForeignKey(ApiItem, on_delete=models.CASCADE,
+                                 related_name='all_role',)
+
+    class Meta:
+        verbose_name = "Role Access API Item"
+        verbose_name_plural = "Roles Access API Items"
+
+    def __str__(self):
+        return f'{self.role} /Access For: {self.api_item}'
 
 
 class Introduction(models.Model):
@@ -147,6 +195,7 @@ class Address(models.Model):
                                blank=False, null=False)
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='Postal Code')
+    receiver_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Receiver Name')
     phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
                                     blank=False, null=False, verbose_name='Phone Number')
     plate_number = models.CharField(max_length=10,
@@ -175,6 +224,8 @@ class Address(models.Model):
             else:
                 if not other_default.exists():
                     self.is_default = True
+            if not self.receiver_name and self.user:
+                self.receiver_name = self.user.get_full_name()
             super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
