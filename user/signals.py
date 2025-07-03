@@ -8,7 +8,7 @@ from .models import Role, User, UserProfile
 def assign_default_role_to_users(sender, instance, **kwargs):
     default_role = Role.objects.filter(is_default=True).first()
     if default_role:
-        User.objects.filter(role__isnull=True).update(role=default_role)
+        User.objects.filter(role__isnull=True, is_employee=False).update(role=default_role)
 
 
 # MEH: Create profile for user automatically when a new user created ...

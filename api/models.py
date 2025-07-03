@@ -7,6 +7,8 @@ class ApiCategory(models.Model):
                              blank=False, null=False)
     sort_number = models.IntegerField(default=0,
                                       blank=False, null=False, verbose_name='Sort Number')
+    role_base = models.BooleanField(default=False, blank=False, null=False,
+                                    verbose_name='Role Base')
 
     class Meta:
         ordering = ['-sort_number']
@@ -24,6 +26,8 @@ class ApiItem(models.Model):
                                       blank=False, null=False, verbose_name='Sort Number')
     key = models.CharField(max_length=37, unique=True, validators=[validators.MinLengthValidator(3)],
                            blank=False, null=False)
+    category = models.ForeignKey(ApiCategory, on_delete=models.PROTECT, blank=False, null=False,
+                                 related_name='api_items')
 
     class Meta:
         ordering = ['-sort_number']

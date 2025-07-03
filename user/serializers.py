@@ -6,15 +6,16 @@ from django.utils import timezone
 from django.db import IntegrityError
 from .models import User, UserProfile, Introduction, Role, Address
 from api.responses import *
+from api.mixins import CustomModelSerializer
 
 
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
 # SMS check phone number set in NUXT
-class UserSignUpSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True)
-    phone_number = serializers.CharField(required=True,
+class UserSignUpSerializer(CustomModelSerializer):
+    phone_number = serializers.CharField(required=True, allow_blank=False, allow_null=False,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
-    first_name = serializers.CharField(min_length=3, max_length=73, required=True)
+    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True)
+    first_name = serializers.CharField(min_length=3, max_length=73, allow_blank=False, required=True)
     introduce_code = serializers.CharField(write_only=True, min_length=8, max_length=8, allow_null=True)
 
     def validate_phone_number(self, data):
@@ -59,7 +60,7 @@ class UserSignInSerializer(serializers.Serializer):
 
 
 # MEH: Profile information about user (Gender, Photo, Job, ...)
-class UserProfileSerializer(serializers.ModelSerializer):
+class UserProfileSerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
     gender_display = serializers.SerializerMethodField()
 
@@ -77,14 +78,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 
 # MEH: Main user full information
-class UserSerializer(serializers.ModelSerializer):
-    phone_number = serializers.CharField(required=True,
+class UserSerializer(CustomModelSerializer):
+    phone_number = serializers.CharField(required=True, allow_blank=False, allow_null=False,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+    first_name = serializers.CharField(min_length=3, max_length=73, allow_blank=False, required=True)
     national_id = serializers.CharField(required=False, allow_null=True,
                                         validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
     invite_user_count = serializers.SerializerMethodField(read_only=True)
+    province = serializers.SerializerMethodField(read_only=True)
 
     @staticmethod
     def get_invite_user_count(obj):
@@ -92,6 +95,13 @@ class UserSerializer(serializers.ModelSerializer):
             return obj.invite_user_list.all().count()
         except AttributeError:
             return None
+
+    @staticmethod
+    def get_province(obj):
+        default_address = obj.user_addresses.filter(is_default=True).first()
+        if default_address and default_address.province:
+            return str(default_address.province)
+        return None
 
     @staticmethod
     def validate_filed(user_data, pk=None):
@@ -105,9 +115,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
-        read_only_fields = ['id', 'date_joined', 'is_active', 'role']
+        read_only_fields = ['id', 'date_joined', 'last_order_date', 'is_active', 'role']
 
     # MEH: Nested create user with profile (Just for Admin work) example like from file... Single or Bulk
     def create(self, validated_data, **kwargs):
@@ -142,17 +152,8 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
-# MEH: Handle important field for Employee
-class UserEmployeeSerializer(UserSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
-                  'is_active', 'invite_user_count', 'user_profile']
-        read_only_fields = ['id', 'date_joined', 'is_active']
-
-
 # MEH: Public & Private key for user
-class UserKeySerializer(serializers.ModelSerializer):
+class UserKeySerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
 
     class Meta:
@@ -165,7 +166,7 @@ class UserKeySerializer(serializers.ModelSerializer):
 
 
 # MEH: User accounting information
-class UserAccountingSerializer(serializers.ModelSerializer):
+class UserAccountingSerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
     role = serializers.StringRelatedField()
     accounting_id = serializers.IntegerField(allow_null=True,
@@ -191,7 +192,7 @@ class UserAccountingSerializer(serializers.ModelSerializer):
 
 
 # MEH: User Role and is_active information
-class UserRoleSerializer(serializers.ModelSerializer):
+class UserRoleSerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
     role_display = serializers.StringRelatedField(source='role')
 
@@ -205,7 +206,7 @@ class UserRoleSerializer(serializers.ModelSerializer):
 
 
 # MEH: User Address information
-class AddressSerializer(serializers.ModelSerializer):
+class AddressSerializer(CustomModelSerializer):
     submit_date = serializers.HiddenField(default=timezone.now) # MEH: Set date time to now every time address change!
 
     class Meta:
@@ -235,14 +236,14 @@ class AddressSerializer(serializers.ModelSerializer):
 
 
 # MEH: Introduction list (Instagram, Telegram, Google, ...)
-class IntroductionSerializer(serializers.ModelSerializer):
+class IntroductionSerializer(CustomModelSerializer):
     class Meta:
         model = Introduction
         fields = '__all__'
 
 
 # MEH: Role list (Customer, Co-Worker, ...)
-class RoleSerializer(serializers.ModelSerializer):
+class RoleSerializer(CustomModelSerializer):
     class Meta:
         model = Role
         fields = '__all__'

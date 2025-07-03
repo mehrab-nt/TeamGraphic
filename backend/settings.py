@@ -59,6 +59,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Users-Role', 'description': 'Role and Activate Status for Users'},
         {'name': 'Users-Addresses', 'description': 'Addresses for Users'},
         {'name': 'Users-Introduction', 'description': 'Introduction for Users'},
+        {'name': 'Employee', 'description': 'Operations Related to Employees'},
     ],
     'SAVE_INCLUDE_SCHEMA': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
