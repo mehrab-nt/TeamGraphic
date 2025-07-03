@@ -1,19 +1,23 @@
 from rest_framework import serializers
-from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.validators import RegexValidator
-from django.contrib.auth import authenticate
-from django.utils import timezone
-from django.db import IntegrityError
 from .models import Employee
-from user.models import User, UserProfile
-from user.serializers import UserEmployeeSerializer
+from user.models import User
+from user.serializers import UserSerializer
 from rest_framework.exceptions import PermissionDenied
-
+from api.mixins import CustomModelSerializer
 from api.responses import *
 
 
-# MEH: Main user full information
-class EmployeeSerializer(serializers.ModelSerializer):
+# MEH: Handle important field for Employee
+class UserEmployeeSerializer(UserSerializer):
+    class Meta:
+        model = User
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
+                  'is_active', 'invite_user_count', 'user_profile']
+        read_only_fields = ['id', 'date_joined', 'is_active']
+
+
+# MEH: Main Employee full information
+class EmployeeSerializer(CustomModelSerializer):
     user = UserEmployeeSerializer(required=False)
 
     class Meta:
