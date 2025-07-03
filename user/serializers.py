@@ -11,8 +11,7 @@ from api.responses import *
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
 # SMS check phone number set in NUXT
 class UserSignUpSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True,
-                                     error_messages={'blank': TG_DATA_EMPTY})
+    password = serializers.CharField(write_only=True, min_length=8, max_length=32, required=True)
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     first_name = serializers.CharField(min_length=3, max_length=73, required=True)
@@ -20,7 +19,7 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
     def validate_phone_number(self, data):
         if self.Meta.model.objects.filter(phone_number=data).exists():
-            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+            raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
         return data
 
     class Meta:
@@ -29,13 +28,13 @@ class UserSignUpSerializer(serializers.ModelSerializer):
 
     # MEH: override create super method (POST)
     def create(self, validated_data, **kwargs):
-        try:
-            code = validated_data.pop('introduce_code', None)
-            if code:
-                validated_data['introducer'] = User.objects.filter(public_key=code).first()
-            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
-        except IntegrityError:
-            raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
+        password = validated_data.pop('password')
+        code = validated_data.pop('introduce_code', None)
+        if code:
+            validated_data['introducer'] = User.objects.filter(public_key=code).first()
+        user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
+        user.set_password(password)
+        user.save()
         return user
 
 

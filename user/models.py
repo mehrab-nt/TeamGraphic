@@ -27,7 +27,7 @@ class User(AbstractUser):
     role = models.ForeignKey('Role', on_delete=models.SET_NULL,
                              blank=False, null=True,
                              related_name='role_all_users')
-    user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=False, null=False,
+    user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=True, null=True,
                                         related_name='user')
     is_employee = models.BooleanField(default=False, db_index=True,
                                       blank=False, null=False, verbose_name='Is Employee')
