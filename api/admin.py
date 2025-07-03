@@ -1,3 +1,15 @@
 from django.contrib import admin
+from .models import ApiItem, ApiCategory
 
-# Register your models here.
+
+class ApiCategoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'sort_number', 'role_base']
+
+
+class ApiItemAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'category' , 'key']
+    list_filter = ['category']
+
+
+admin.site.register(ApiCategory, ApiCategoryAdmin)
+admin.site.register(ApiItem, ApiItemAdmin)

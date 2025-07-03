@@ -27,7 +27,7 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ['is_active', 'is_employee']
 
     fieldsets = UserAdmin.fieldsets + (
-        ('TeamGraphic', {'fields': ('phone_number', 'national_id', 'user_profile', 'public_key', 'private_key', 'introducer', 'introduce_from', 'accounting_id', 'accounting_name', 'role', 'is_employee')}),
+        ('TeamGraphic', {'fields': ('phone_number', 'phone_number_verified', 'national_id', 'user_profile', 'public_key', 'private_key', 'introducer', 'introduce_from', 'accounting_id', 'accounting_name', 'role', 'is_employee')}),
     )
 
 
