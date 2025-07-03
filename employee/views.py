@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee
 from .serializers import EmployeeSerializer
-# from .filters import CustomerQueryFilter, CustomerFilter
+from .filters import EmployeeFilter
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from drf_spectacular.utils import extend_schema, OpenApiResponse
@@ -22,16 +22,15 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     serializer_class = EmployeeSerializer
     # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     # permission_classes = [UserApiAccess]
-    # filterset_class = CustomerFilter
+    filterset_class = EmployeeFilter
     filter_backends = [
         DjangoFilterBackend,
-        # CustomerQueryFilter,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
     # MEH: Get search query
     search_fields = ['user__first_name', 'user__last_name']
-    ordering_fields = ['rate', 'id']
+    ordering_fields = ['rate']
 
     # MEH: Override get single user (with ID or phone_number) | Access check after In has_object_permission
     # def get_object(self, *args, **kwargs):

@@ -38,7 +38,6 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         is_many = isinstance(request.data, list)
         serializer = self.get_serializer(data=request.data, many=is_many)
         try:
-            print("HER")
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer, **kwargs)
         except ValidationError as e:
