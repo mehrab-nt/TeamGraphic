@@ -1,20 +1,27 @@
+from types import NoneType
+
 from rest_framework import viewsets, status, filters
-from rest_framework.permissions import IsAuthenticated, IsAdminUser
+from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from api.permissions import UserApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import User, Role, Introduction
+from .models import User, Role, Introduction, Address
+from django.db.models import Subquery, OuterRef
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer, UserProfileSerializer,UserRoleSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerQueryFilter, CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
+import openpyxl
+from openpyxl.styles import Font, PatternFill
+from openpyxl.utils import get_column_letter
+from django.http import HttpResponse
 
 
 # MEH: Get Refresh Token
@@ -44,8 +51,27 @@ class UserViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter,
     ]
     # MEH: Get search query
-    search_fields = ['first_name', 'last_name']
-    ordering_fields = ['first_name', 'id']
+    search_fields = ['first_name', 'last_name', 'phone_number']
+    ordering_fields = ['first_name', 'date_joined', 'last_order_date']
+    required_api_keys = {
+        'list': 'get_users',
+        'retrieve': 'get_users',
+        'get_by_phone': 'get_users',
+        'create': 'create_user',
+        'update': 'update_user',
+        'partial_update': 'update_user',
+        'profile': 'update_user',
+        'destroy': 'delete_user',
+        'activation': 'active_user',
+        'download_user_list': 'download_user_list'
+    }
+
+    # MEH: Get province from default Address if there is any & Use it on filter User Province
+    def get_queryset(self):
+        default_province_id = Subquery(
+            Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
+        )
+        return User.objects.annotate(default_province_id=default_province_id)
 
     # MEH: Override get single user (with ID or phone_number) | Access check after In has_object_permission
     def get_object(self, *args, **kwargs):
@@ -64,14 +90,6 @@ class UserViewSet(CustomMixinModelViewSet):
             return queryset.get(phone_number=lookup_value)
         except ObjectDoesNotExist:
             raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
-
-    # MEH: Override post single User or Bulk list
-    def create(self, request, *args, **kwargs):
-        return self.custom_create(request)
-
-    def update(self, request, *args, **kwargs):
-        queryset = self.get_object(**kwargs)
-        return self.custom_update(queryset, request)
 
     # MEH: User Sign Up action (POST) for customer
     @extend_schema(tags=['Auth'])
@@ -165,6 +183,52 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(instance, request)
         return self.custom_get(instance)
 
+    # MEH: Get User List with Filter and Back Excel Data (Download)
+    @extend_schema(description='Search, Filter & Ordering like user_list...')
+    @action(detail=False, methods=['get'],
+            url_path='download')
+    def download_user_list(self, request):
+        # todo: reassemble Excel file later
+        # Apply filters/search/order like list()
+        queryset = self.filter_queryset(self.get_queryset())
+        # Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Users"
+        # Header
+        headers = ['ID', 'Phone Number', 'First Name', 'Last Name', 'Date Joined', 'is_active']
+        ws.append(headers)
+        # Set header style
+        header_font = Font(bold=True, color='FFFFFF')
+        header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+        for cell in ws[1]:
+            cell.font = header_font
+            cell.fill = header_fill
+        for user in queryset:
+            ws.append([
+                user.id,
+                user.phone_number,
+                user.first_name,
+                user.last_name,
+                user.date_joined.strftime('%Y-%m-%d %H:%M'),
+                user.is_active,
+            ])
+        # Example: highlight inactive users
+        for row in ws.iter_rows(min_row=2):
+            is_active = row[5].value  # Assume you put is_active in the first column
+            if not is_active:
+                for cell in row:
+                    cell.fill = PatternFill(start_color='FFD2D2', end_color='FFD2D2', fill_type='solid')
+        # Auto width
+        for col_num, column_cells in enumerate(ws.columns, 1):
+            length = max(len(str(cell.value)) for cell in column_cells)
+            ws.column_dimensions[get_column_letter(col_num)].width = length + 2
+        # Prepare HTTP response
+        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        response['Content-Disposition'] = 'attachment; filename=users.xlsx'
+        wb.save(response)
+        return response
+
 
 # MEH: Get Introduction List and Add single object (POST) update (PUT) and protected remove (DELETE)
 @extend_schema(tags=["Users-Introduction"])
@@ -173,9 +237,6 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     serializer_class = IntroductionSerializer
     permission_classes = [IsAuthenticated]
 
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.custom_destroy(instance)
 
 # MEH: Get Role List and Add single object (POST) update (PUT) and protected remove (DELETE)
 @extend_schema(tags=["Roles"])
@@ -183,10 +244,6 @@ class RoleViewSet(CustomMixinModelViewSet):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated]
-
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        return self.custom_destroy(instance, is_default=instance.is_default)
 
     #  MEH: Delete List of object todo: work more after
     @extend_schema(

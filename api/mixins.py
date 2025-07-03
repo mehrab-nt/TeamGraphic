@@ -1,4 +1,5 @@
 from django.db import models
+from rest_framework import serializers
 from user.models import User
 from rest_framework import viewsets
 from rest_framework.response import Response
@@ -7,8 +8,33 @@ from rest_framework.pagination import PageNumberPagination
 from .responses import *
 from django.db import transaction, IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from .serializers import BulkDeleteSerializer
+
+
+class CustomModelSerializer(serializers.ModelSerializer):
+    def get_fields(self):
+        fields = super().get_fields()
+        for name, field in fields.items():
+            if isinstance(field, serializers.CharField):
+                field.error_messages.update({
+                    'blank': TG_DATA_BLANK,
+                    'required': TG_DATA_REQUIRED,
+                })
+            if isinstance(field, serializers.IntegerField):
+                field.error_messages.update({
+                    'blank': TG_DATA_BLANK,
+                    'required': TG_DATA_REQUIRED,
+                    'invalid': TG_DATA_MOST_DIGIT
+                })
+            for validator in getattr(field, 'validators', []):
+                if isinstance(validator, MinLengthValidator):
+                    validator.message = TG_DATA_TOO_SHORT + str(validator.limit_value)
+                if isinstance(validator, MaxLengthValidator):
+                    validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
+        return fields
+
 
 # MEH: Custom get, put, post, delete for Reduce Code Line & Repeat
 class CustomMixinModelViewSet(viewsets.ModelViewSet):
@@ -17,17 +43,24 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     pagination_class.page_size_query_param = 'size'
     pagination_class.page_size = 100
     pagination_class.max_page_size = 1000
+    required_api_keys = None
 
-    # MEH: Check if request.user is admin or employee with access: (All User -> list) else: (Own User -> 1 object)
-    def get_queryset(self):
-        user = self.request.user
-        qs = User.objects.filter(pk=user.pk)
-        if not (user.is_staff or user.is_superuser or qs.first().is_employee):
-            # MEH: Check if regular User try to access other User Profile
-            if str(user.pk) != str(self.kwargs.get(self.lookup_field)):
-                raise PermissionDenied(TG_PERMISSION_DENIED)
-            return qs
-        return super().get_queryset()
+    def get_object(self, **kwargs):
+        return super().get_object()
+
+    # MEH: Override post single or Bulk list
+    def create(self, request, *args, **kwargs):
+        return self.custom_create(request)
+
+    def update(self, request, *args, **kwargs):
+        queryset = self.get_object(**kwargs)
+        return self.custom_update(queryset, request)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if hasattr(instance, 'is_default'):
+            return self.custom_destroy(instance, is_default=instance.is_default)
+        return self.custom_destroy(instance)
 
     def custom_get(self, queryset):
         is_many = not isinstance(queryset, models.Model)
@@ -107,3 +140,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance):
         return instance.delete()
+
+    # MEH: Get Key for Action -> Check Access at the End
+    def get_required_api_key(self):
+        return self.required_api_keys.get(self.action)
