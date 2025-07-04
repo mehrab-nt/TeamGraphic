@@ -3,9 +3,9 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from .models import User, UserProfile, Introduction, Role, Address
+from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
-from api.mixins import CustomModelSerializer
+from api.mixins import CustomModelSerializer, CustomChoiceField
 
 
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
@@ -61,7 +61,9 @@ class UserSignInSerializer(serializers.Serializer):
 # MEH: Profile information about user (Gender, Photo, Job, ...)
 class UserProfileSerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
+    gender = CustomChoiceField(choices=GENDER.choices)
     gender_display = serializers.SerializerMethodField()
+    description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
 
     class Meta:
         model = UserProfile
@@ -156,7 +158,7 @@ class UserImportSetDataSerializer(UserSerializer):
     class Meta:
         model = User
         fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'introduce_from', 'user_profile']
+                  'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'user_profile']
 
 
 class UserImportGetDataSerializer(CustomModelSerializer):
