@@ -9,6 +9,7 @@ class ApiCategoryAdmin(admin.ModelAdmin):
 class ApiItemAdmin(admin.ModelAdmin):
     list_display = ['id', 'title', 'category' , 'key']
     list_filter = ['category']
+    search_fields = ['key', 'title']
 
 
 admin.site.register(ApiCategory, ApiCategoryAdmin)

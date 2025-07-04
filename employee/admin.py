@@ -9,6 +9,7 @@ class EmployeeAdmin(admin.ModelAdmin):
 class EmployeeLevelAccessApiItemInline(admin.TabularInline):
     model = EmployeeLevelAccessApiItem
     extra = 1
+    autocomplete_fields = ['api_item']
 
 
 class EmployeeLevelAdmin(admin.ModelAdmin):
