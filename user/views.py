@@ -132,11 +132,12 @@ class UserViewSet(CustomMixinModelViewSet):
                 'required': ['excel_file', 'role'],
             }
         },
-        responses={201: UserSerializer(many=True)},
     )
-    @action(detail=False, methods=['post'],
+    @action(detail=False, methods=['get', 'post'],
             url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
     def import_users(self, request):
+        if request.method == 'GET':
+            return Response({'detail': list(UserImportSetDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
         check_serializer = self.get_serializer(data=request.data)
         check_serializer.is_valid(raise_exception=True)
         # todo: reassemble Excel file later
@@ -153,20 +154,25 @@ class UserViewSet(CustomMixinModelViewSet):
         if not all(col in header for col in required_columns):
             return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
         user_data_list = []
+        profile_fields = [
+            name for name, field in UserProfileSerializer().get_fields().items()
+            if not getattr(field, 'read_only', False)
+        ]
+        allowed_fields = set(UserSerializer().get_fields().keys())
         for row in sheet.iter_rows(min_row=2, values_only=True):
             row_data = dict(zip(header, row))
             if not any(row_data.values()):
-                continue  # Skip empty rows
+                continue  # MEH: Skip empty rows
             if role:
                 row_data['role'] = role.pk
-            user_data_list.append(row_data)
-        allowed_fields = set(UserImportSetDataSerializer().get_fields().keys())
-        cleaned_data = [
-            {k: v for k, v in row.items() if k in allowed_fields}
-            for row in user_data_list
-        ]
+            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields}
+            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields}
+            cleaned_user_data.pop('user_profile', None)
+            if user_profile_data:
+                cleaned_user_data['user_profile'] = user_profile_data
+            user_data_list.append(cleaned_user_data)
         self.serializer_class = UserImportSetDataSerializer
-        res = self.custom_create(cleaned_data, many=True)
+        res = self.custom_create(user_data_list, many=True)
         self.serializer_class = UserImportGetDataSerializer
         return res
 
