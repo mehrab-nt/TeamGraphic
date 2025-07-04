@@ -120,62 +120,6 @@ class UserViewSet(CustomMixinModelViewSet):
         queryset = self.get_object(phone_number=phone_number)
         return self.custom_get(queryset)
 
-    # MEH: Bulk Create for user
-    @extend_schema(
-        request={
-            'multipart/form-data': {
-                'type': 'object',
-                'properties': {
-                    'excel_file': {'type': 'string', 'format': 'binary'},
-                    'role': {'type': 'integer'}
-                },
-                'required': ['excel_file', 'role'],
-            }
-        },
-    )
-    @action(detail=False, methods=['get', 'post'],
-            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
-    def import_users(self, request):
-        if request.method == 'GET':
-            return Response({'detail': list(UserImportSetDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
-        check_serializer = self.get_serializer(data=request.data)
-        check_serializer.is_valid(raise_exception=True)
-        # todo: reassemble Excel file later
-        excel_file = check_serializer.validated_data['excel_file']
-        role = check_serializer.validated_data['role']
-        try:
-            wb = load_workbook(filename=excel_file)
-            sheet = wb.active
-        except Exception as e:
-            return Response({'detail': TG_EXCEL_FILE_INVALID + str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        # Read header row
-        header = [cell.value for cell in sheet[1]]
-        required_columns = ['phone_number', 'first_name']
-        if not all(col in header for col in required_columns):
-            return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
-        user_data_list = []
-        profile_fields = [
-            name for name, field in UserProfileSerializer().get_fields().items()
-            if not getattr(field, 'read_only', False)
-        ]
-        allowed_fields = set(UserSerializer().get_fields().keys())
-        for row in sheet.iter_rows(min_row=2, values_only=True):
-            row_data = dict(zip(header, row))
-            if not any(row_data.values()):
-                continue  # MEH: Skip empty rows
-            if role:
-                row_data['role'] = role.pk
-            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields}
-            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields}
-            cleaned_user_data.pop('user_profile', None)
-            if user_profile_data:
-                cleaned_user_data['user_profile'] = user_profile_data
-            user_data_list.append(cleaned_user_data)
-        self.serializer_class = UserImportSetDataSerializer
-        res = self.custom_create(user_data_list, many=True)
-        self.serializer_class = UserImportGetDataSerializer
-        return res
-
 
     # MEH: Get User Profile information and Update it with ID
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -249,6 +193,65 @@ class UserViewSet(CustomMixinModelViewSet):
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(instance, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(instance)
+
+    # MEH: create user list from Excel File
+    @extend_schema(
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'excel_file': {'type': 'string', 'format': 'binary'},
+                    'role': {'type': 'integer'}
+                },
+                'required': ['excel_file', 'role'],
+            }
+        },
+    )
+    @action(detail=False, methods=['get', 'post'],
+            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
+    def import_users(self, request):
+        if request.method == 'GET':
+            return Response({'detail': list(UserImportSetDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
+        check_serializer = self.get_serializer(data=request.data)
+        check_serializer.is_valid(raise_exception=True)
+        # todo: reassemble Excel file later
+        excel_file = check_serializer.validated_data['excel_file']
+        role = check_serializer.validated_data['role']
+        try:
+            wb = load_workbook(filename=excel_file)
+            sheet = wb.active
+        except Exception as e:
+            return Response({'detail': TG_EXCEL_FILE_INVALID + str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        # MEH: Check Sheet row < 1000
+        if sheet.max_row - 1 > 1000:
+            return Response({'detail': TG_EXCEL_FILE_LIMIT_1000}, status=status.HTTP_400_BAD_REQUEST)
+        # MEH: Read header row
+        header = [cell.value for cell in sheet[1]]
+        required_columns = ['phone_number', 'first_name']
+        if not all(col in header for col in required_columns):
+            return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
+        user_data_list = []
+        profile_fields = [
+            name for name, field in UserProfileSerializer().get_fields().items()
+            if not getattr(field, 'read_only', False)
+        ]
+        allowed_fields = set(UserSerializer().get_fields().keys())
+        for row in list(sheet.iter_rows(min_row=2, values_only=True))[:1000]:
+            row_data = dict(zip(header, row))
+            if not any(row_data.values()):
+                continue  # MEH: Skip empty rows
+            if role:
+                row_data['role'] = role.pk
+            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields}
+            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields}
+            cleaned_user_data.pop('user_profile', None)
+            if user_profile_data:
+                cleaned_user_data['user_profile'] = user_profile_data
+            user_data_list.append(cleaned_user_data)
+        self.serializer_class = UserImportSetDataSerializer
+        res = self.custom_create(user_data_list, many=True)
+        self.serializer_class = UserImportGetDataSerializer
+        return res
 
     # MEH: Get User List with Filter and Back Excel Data (Download)
     @extend_schema(responses={200: UserSerializer(many=True)})
