@@ -9,6 +9,7 @@ from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from rest_framework.exceptions import PermissionDenied, ValidationError
+from django.utils.translation import gettext_lazy as _
 
 
 # MEH: Customize message error for all serializer Field...
@@ -20,6 +21,7 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 field.error_messages.update({
                     'blank': TG_DATA_BLANK,
                     'required': TG_DATA_REQUIRED,
+                    'invalid': TG_DATA_WRONG,
                 })
             if isinstance(field, serializers.IntegerField):
                 field.error_messages.update({
@@ -39,6 +41,20 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 if isinstance(validator, MaxLengthValidator):
                     validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
         return fields
+
+
+class CustomChoiceField(serializers.ChoiceField):
+    default_error_messages = {
+        'invalid_choice': _(TG_DATA_WRONG),
+        'required': _(TG_DATA_REQUIRED),
+        'blank': _(TG_DATA_BLANK),
+    }
+
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as e:
+            raise serializers.ValidationError(self.error_messages['invalid_choice'])
 
 
 # MEH: Custom get, put, post, delete for Reduce Code Line & Repeat
