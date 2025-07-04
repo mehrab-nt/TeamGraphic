@@ -86,6 +86,7 @@ class UserSerializer(CustomModelSerializer):
     user_profile = UserProfileSerializer(required=False)
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
     invite_user_count = serializers.SerializerMethodField(read_only=True)
+    introducer = serializers.StringRelatedField(read_only=True)
     province = serializers.SerializerMethodField(read_only=True)
 
     @staticmethod
@@ -114,9 +115,9 @@ class UserSerializer(CustomModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'last_order_date', 'email', 'province',
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
-        read_only_fields = ['id', 'date_joined', 'last_order_date', 'is_active', 'role']
+        read_only_fields = ['id', 'date_joined', 'is_active']
 
     # MEH: Nested create user with profile (Just for Admin work) example like from file... Single or Bulk
     def create(self, validated_data, **kwargs):
@@ -149,6 +150,22 @@ class UserSerializer(CustomModelSerializer):
                 setattr(profile, attr, value)
             profile.save()
         return instance
+
+
+class UserImportSetDataSerializer(UserSerializer):
+    class Meta:
+        model = User
+        fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
+                  'is_active', 'role', 'introduce_from', 'user_profile']
+
+
+class UserImportGetDataSerializer(CustomModelSerializer):
+    excel_file = serializers.FileField(required=True)
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+
+    class Meta:
+        model = User
+        fields = ['role', 'excel_file']
 
 
 # MEH: Public & Private key for user
@@ -197,7 +214,7 @@ class UserRoleSerializer(CustomModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'user', 'role', 'role_display', 'is_active']
+        fields = ['id', 'user', 'role_display', 'is_active']
 
     @staticmethod
     def get_user(obj):

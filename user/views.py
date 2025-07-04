@@ -1,19 +1,20 @@
-from rest_framework import viewsets, status, filters
+from rest_framework import status, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
-from rest_framework.parsers import MultiPartParser
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from django.db.models import Subquery, OuterRef
-from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer, UserProfileSerializer,UserRoleSerializer,
+from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
+                          UserImportGetDataSerializer, UserImportSetDataSerializer,
+                          UserProfileSerializer,UserRoleSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerQueryFilter, CustomerFilter
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter, OpenApiTypes
+from django.core.exceptions import ObjectDoesNotExist
+from rest_framework.exceptions import NotFound
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
@@ -51,8 +52,7 @@ class UserViewSet(CustomMixinModelViewSet):
     ]
     # MEH: Get search query
     search_fields = ['first_name', 'last_name', 'phone_number']
-    ordering_fields = ['first_name', 'date_joined', 'last_order_date']
-    parser_classes = [MultiPartParser]
+    ordering_fields = ['date_joined', 'order_count', 'last_order_date']
     required_api_keys = {
         'list': 'get_users',
         'retrieve': 'get_users',
@@ -64,7 +64,10 @@ class UserViewSet(CustomMixinModelViewSet):
         'destroy': 'delete_user',
         'activation': 'active_user',
         'download_user_list': 'download_user_list',
-        'bulk_create_user': 'bulk_create_user',
+        'import_users': 'import_user_list',
+        'address_list': 'get_addresses',
+        'address_detail': 'get_addresses',
+        'address_create': 'create_address',
     }
 
     # MEH: Get province from default Address if there is any & Use it on filter User Province
@@ -98,7 +101,7 @@ class UserViewSet(CustomMixinModelViewSet):
             url_path='sign-up', serializer_class=UserSignUpSerializer,
             permission_classes=[IsNotAuthenticated])
     def sign_up(self, request):
-        return self.custom_create(request)
+        return self.custom_create(request.data)
 
     # MEH: User Sign In action (POST) and get Access & Refresh Token
     @extend_schema(tags=['Auth'])
@@ -123,38 +126,50 @@ class UserViewSet(CustomMixinModelViewSet):
             'multipart/form-data': {
                 'type': 'object',
                 'properties': {
-                    'excel_file': {'type': 'string', 'format': 'binary'}
+                    'excel_file': {'type': 'string', 'format': 'binary'},
+                    'role': {'type': 'integer'}
                 },
-                'required': ['excel_file'],
+                'required': ['excel_file', 'role'],
             }
         },
-        responses={201: UserSerializer()},
+        responses={201: UserSerializer(many=True)},
     )
     @action(detail=False, methods=['post'],
-            url_path='bulk_create')
-    def bulk_create_user(self, request):
+            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
+    def import_users(self, request):
+        check_serializer = self.get_serializer(data=request.data)
+        check_serializer.is_valid(raise_exception=True)
         # todo: reassemble Excel file later
-        excel_file = request.FILES.get('excel_file')
-        if not excel_file:
-            return Response({'detail': TG_FILE_REQUIRED}, status=status.HTTP_400_BAD_REQUEST)
+        excel_file = check_serializer.validated_data['excel_file']
+        role = check_serializer.validated_data['role']
         try:
             wb = load_workbook(filename=excel_file)
             sheet = wb.active
         except Exception as e:
-            return Response({'detail': f'Cannot read Excel file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': TG_EXCEL_FILE_INVALID + str(e)}, status=status.HTTP_400_BAD_REQUEST)
         # Read header row
         header = [cell.value for cell in sheet[1]]
         required_columns = ['phone_number', 'first_name']
         if not all(col in header for col in required_columns):
-            return Response({'detail': f'Missing columns. Required: {required_columns}'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
         user_data_list = []
         for row in sheet.iter_rows(min_row=2, values_only=True):
             row_data = dict(zip(header, row))
             if not any(row_data.values()):
                 continue  # Skip empty rows
+            if role:
+                row_data['role'] = role.pk
             user_data_list.append(row_data)
-        serializer = self.get_serializer(data=user_data_list, many=True)
-        return self.custom_create(serializer)
+        allowed_fields = set(UserImportSetDataSerializer().get_fields().keys())
+        cleaned_data = [
+            {k: v for k, v in row.items() if k in allowed_fields}
+            for row in user_data_list
+        ]
+        self.serializer_class = UserImportSetDataSerializer
+        res = self.custom_create(cleaned_data, many=True)
+        self.serializer_class = UserImportGetDataSerializer
+        return res
+
 
     # MEH: Get User Profile information and Update it with ID
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -163,7 +178,7 @@ class UserViewSet(CustomMixinModelViewSet):
         user = self.get_object(pk=pk)
         queryset = user.user_profile
         if request.method in ['PUT', 'PATCH']:
-            self.custom_update(queryset, request)
+            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
     # MEH: Get User Key information (Update not work)
@@ -179,7 +194,7 @@ class UserViewSet(CustomMixinModelViewSet):
     def accounting(self, request, pk=None):
         queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            self.custom_update(queryset, request)
+            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
     # MEH: Get User Role and Active information and Update it
@@ -189,27 +204,32 @@ class UserViewSet(CustomMixinModelViewSet):
     def activation(self, request, pk=None):
         queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            self.custom_update(queryset, request)
+            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
-    # MEH: Get User Address list and Add New Address (POST)
+    # MEH: Get User Address list
     @extend_schema(tags=['Users-Addresses'])
-    @action(detail=True, methods=['get', 'post'],
-            url_path='addresses', serializer_class=AddressSerializer, filter_backends=[None])
+    @action(detail=True, methods=['get'],
+            url_path='address-list', serializer_class=AddressSerializer, filter_backends=[None])
     def address_list(self, request, pk=None):
         user = self.get_object(pk=pk)
-        if request.method == 'POST':
-            serializer = self.get_serializer(data=request.data)
-            return self.custom_create(serializer, user=user)
         queryset = user.user_addresses.all()
         if not queryset.exists():
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(queryset)
 
+    # MEH: Add New Address (POST)
+    @extend_schema(tags=['Users-Addresses'])
+    @action(detail=True, methods=['post'],
+            url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
+    def address_create(self, request, pk=None):
+        user = self.get_object(pk=pk)
+        return self.custom_create(request.data, user=user)
+
     # MEH: Get User Address Detail, Update and Delete it
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
-            url_path='addresses/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None])
+            url_path='address/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None])
     def address_detail(self, request, pk=None, address_id=None):
         user = self.get_object(pk=pk)
         try:
@@ -219,9 +239,9 @@ class UserViewSet(CustomMixinModelViewSet):
         except ValueError:
             raise NotFound(TG_EXPECTED_ID_NUMBER)
         if request.method == 'DELETE':
-            return self.custom_destroy(instance, is_default=instance.is_default)
+            return self.custom_destroy(instance)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(instance, request)
+            return self.custom_update(instance, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(instance)
 
     # MEH: Get User List with Filter and Back Excel Data (Download)
@@ -293,8 +313,9 @@ class RoleViewSet(CustomMixinModelViewSet):
            204: OpenApiResponse(description="Successfully deleted roles."),
            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
         },
+        description='Send JSON data in the body like this: {"ids": [1, 2, 3]}'
     )
-    @action(detail=False, methods=['delete'],
+    @action(detail=False, methods=['delete'], serializer_class=BulkDeleteSerializer,
             url_path='bulk-delete')
     def bulk_delete(self, request):
-        return self.custom_bulk_destroy(request)
+        return self.custom_list_destroy(request.data)
