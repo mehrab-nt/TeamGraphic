@@ -1,7 +1,7 @@
 from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
-from api.permissions import UserApiAccess, IsNotAuthenticated
+from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee
@@ -21,7 +21,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     queryset = Employee.objects.prefetch_related('user')
     serializer_class = EmployeeSerializer
     # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
-    # permission_classes = [UserApiAccess]
+    permission_classes = [ApiAccess]
     filterset_class = EmployeeFilter
     filter_backends = [
         DjangoFilterBackend,
