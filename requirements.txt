@@ -9,10 +9,12 @@ django-stubs-ext==5.2.0
 djangorestframework==3.16.0
 djangorestframework_simplejwt==5.5.0
 drf-spectacular==0.28.0
+et_xmlfile==2.0.0
 gprof2dot==2025.4.14
 inflection==0.5.1
 jsonschema==4.24.0
 jsonschema-specifications==2025.4.1
+openpyxl==3.1.5
 pillow==11.2.1
 psycopg2==2.9.10
 psycopg2-binary==2.9.10
