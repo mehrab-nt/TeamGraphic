@@ -63,7 +63,8 @@ class UserViewSet(CustomMixinModelViewSet):
         'profile': 'update_user',
         'destroy': 'delete_user',
         'activation': 'active_user',
-        'download_user_list': 'download_user_list'
+        'download_user_list': 'download_user_list',
+        'bulk_create_user': 'bulk_create_user',
     }
 
     # MEH: Get province from default Address if there is any & Use it on filter User Province
@@ -131,7 +132,7 @@ class UserViewSet(CustomMixinModelViewSet):
     )
     @action(detail=False, methods=['post'],
             url_path='bulk_create')
-    def bulk_create(self, request):
+    def bulk_create_user(self, request):
         # todo: reassemble Excel file later
         excel_file = request.FILES.get('excel_file')
         if not excel_file:
@@ -153,9 +154,7 @@ class UserViewSet(CustomMixinModelViewSet):
                 continue  # Skip empty rows
             user_data_list.append(row_data)
         serializer = self.get_serializer(data=user_data_list, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return self.custom_create(serializer)
 
     # MEH: Get User Profile information and Update it with ID
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -200,7 +199,8 @@ class UserViewSet(CustomMixinModelViewSet):
     def address_list(self, request, pk=None):
         user = self.get_object(pk=pk)
         if request.method == 'POST':
-            return self.custom_create(request, user=user)
+            serializer = self.get_serializer(data=request.data)
+            return self.custom_create(serializer, user=user)
         queryset = user.user_addresses.all()
         if not queryset.exists():
             raise NotFound(TG_DATA_EMPTY)

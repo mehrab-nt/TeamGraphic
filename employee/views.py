@@ -51,9 +51,3 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     #         raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
     #
     # # MEH: Override post single User or Bulk list
-    def create(self, request, *args, **kwargs):
-        return self.custom_create(request)
-
-    def update(self, request, *args, **kwargs):
-        queryset = self.get_object()
-        return self.custom_update(queryset, request)

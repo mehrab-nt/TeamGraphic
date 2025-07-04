@@ -1,12 +1,11 @@
 from django.db import models
 from rest_framework import serializers
-from user.models import User
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from .responses import *
-from django.db import transaction, IntegrityError, DatabaseError
+from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
 from rest_framework.exceptions import PermissionDenied, ValidationError
@@ -41,8 +40,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     # MEH: Custom Pagination :) even LimitOffsetPagination
     pagination_class = PageNumberPagination
     pagination_class.page_size_query_param = 'size'
-    pagination_class.page_size = 100
-    pagination_class.max_page_size = 1000
+    pagination_class.page_size = 20
+    pagination_class.max_page_size = 100
     required_api_keys = None
 
     def get_object(self, **kwargs):
@@ -50,7 +49,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
 
     # MEH: Override post single or Bulk list
     def create(self, request, *args, **kwargs):
-        return self.custom_create(request)
+        serializer = self.get_serializer(data=request.data)
+        return self.custom_create(serializer)
 
     def update(self, request, *args, **kwargs):
         queryset = self.get_object(**kwargs)
@@ -67,12 +67,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(queryset, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def custom_create(self, request, **kwargs):
-        # MEH: Many Create disable... (Customize when Its need)
-        is_many = isinstance(request.data, list)
-        if is_many:
-            raise PermissionDenied(TG_PERMISSION_DENIED)
-        serializer = self.get_serializer(data=request.data)
+    def custom_create(self, serializer, **kwargs):
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer, **kwargs)

@@ -3,7 +3,6 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
-from django.db import IntegrityError
 from .models import User, UserProfile, Introduction, Role, Address
 from api.responses import *
 from api.mixins import CustomModelSerializer
