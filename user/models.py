@@ -31,7 +31,9 @@ class User(AbstractUser):
                              related_name='role_all_users')
     user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=True, null=True,
                                         related_name='user')
-    last_order_date = models.DateTimeField(default=None, blank=True, null=True, verbose_name='Last Order Date')
+    last_order_date = models.DateTimeField(default=None,
+                                           blank=True, null=True, verbose_name='Last Order Date')
+    order_count = models.PositiveSmallIntegerField(default=0, blank=False, null=False, verbose_name='Order Count')
     is_employee = models.BooleanField(default=False, db_index=True,
                                       blank=False, null=False, verbose_name='Is Employee')
 
@@ -68,8 +70,6 @@ class User(AbstractUser):
             self.phone_number = self.username
         if str(self.phone_number) != str(self.username):
             self.username = self.phone_number
-        if not self.role and not self.is_employee:
-            self.role = Role.objects.filter(is_default=True).first()
         super().save(*args, **kwargs)
 
     def has_api_permission(self, key: str):
