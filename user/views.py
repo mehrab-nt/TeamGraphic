@@ -1,10 +1,9 @@
-from types import NoneType
-
 from rest_framework import viewsets, status, filters
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from api.permissions import UserApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
+from rest_framework.parsers import MultiPartParser
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from django.db.models import Subquery, OuterRef
@@ -18,7 +17,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
-import openpyxl
+from openpyxl import load_workbook, Workbook
 from openpyxl.styles import Font, PatternFill
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
@@ -53,6 +52,7 @@ class UserViewSet(CustomMixinModelViewSet):
     # MEH: Get search query
     search_fields = ['first_name', 'last_name', 'phone_number']
     ordering_fields = ['first_name', 'date_joined', 'last_order_date']
+    parser_classes = [MultiPartParser]
     required_api_keys = {
         'list': 'get_users',
         'retrieve': 'get_users',
@@ -115,6 +115,47 @@ class UserViewSet(CustomMixinModelViewSet):
     def get_by_phone(self, request, phone_number=None):
         queryset = self.get_object(phone_number=phone_number)
         return self.custom_get(queryset)
+
+    # MEH: Bulk Create for user
+    @extend_schema(
+        request={
+            'multipart/form-data': {
+                'type': 'object',
+                'properties': {
+                    'excel_file': {'type': 'string', 'format': 'binary'}
+                },
+                'required': ['excel_file'],
+            }
+        },
+        responses={201: UserSerializer()},
+    )
+    @action(detail=False, methods=['post'],
+            url_path='bulk_create')
+    def bulk_create(self, request):
+        # todo: reassemble Excel file later
+        excel_file = request.FILES.get('excel_file')
+        if not excel_file:
+            return Response({'detail': TG_FILE_REQUIRED}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            wb = load_workbook(filename=excel_file)
+            sheet = wb.active
+        except Exception as e:
+            return Response({'detail': f'Cannot read Excel file: {str(e)}'}, status=status.HTTP_400_BAD_REQUEST)
+        # Read header row
+        header = [cell.value for cell in sheet[1]]
+        required_columns = ['phone_number', 'first_name']
+        if not all(col in header for col in required_columns):
+            return Response({'detail': f'Missing columns. Required: {required_columns}'}, status=status.HTTP_400_BAD_REQUEST)
+        user_data_list = []
+        for row in sheet.iter_rows(min_row=2, values_only=True):
+            row_data = dict(zip(header, row))
+            if not any(row_data.values()):
+                continue  # Skip empty rows
+            user_data_list.append(row_data)
+        serializer = self.get_serializer(data=user_data_list, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     # MEH: Get User Profile information and Update it with ID
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -184,7 +225,7 @@ class UserViewSet(CustomMixinModelViewSet):
         return self.custom_get(instance)
 
     # MEH: Get User List with Filter and Back Excel Data (Download)
-    @extend_schema(description='Search, Filter & Ordering like user_list...')
+    @extend_schema(responses={200: UserSerializer(many=True)})
     @action(detail=False, methods=['get'],
             url_path='download')
     def download_user_list(self, request):
@@ -192,7 +233,7 @@ class UserViewSet(CustomMixinModelViewSet):
         # Apply filters/search/order like list()
         queryset = self.filter_queryset(self.get_queryset())
         # Create workbook
-        wb = openpyxl.Workbook()
+        wb = Workbook()
         ws = wb.active
         ws.title = "Users"
         # Header

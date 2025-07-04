@@ -68,8 +68,11 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_create(self, request, **kwargs):
+        # MEH: Many Create disable... (Customize when Its need)
         is_many = isinstance(request.data, list)
-        serializer = self.get_serializer(data=request.data, many=is_many)
+        if is_many:
+            raise PermissionDenied(TG_PERMISSION_DENIED)
+        serializer = self.get_serializer(data=request.data)
         try:
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer, **kwargs)
