@@ -9,10 +9,11 @@ from api.responses import *
 
 # MEH: Handle important field for Employee
 class UserEmployeeSerializer(UserSerializer):
+    is_employee = serializers.HiddenField(default=True)
     class Meta:
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
-                  'is_active', 'invite_user_count', 'user_profile']
+                  'is_active', 'is_employee', 'invite_user_count', 'user_profile']
         read_only_fields = ['id', 'date_joined', 'is_active']
 
 
@@ -35,8 +36,6 @@ class EmployeeSerializer(CustomModelSerializer):
                 user_serializer = UserEmployeeSerializer(data=user_data)
                 user_serializer.is_valid(raise_exception=True)
                 user = user_serializer.save()
-                user.is_employee=True
-                user.save()
                 employee = Employee.objects.create(**validated_data, user=user)
                 return employee
             else:
