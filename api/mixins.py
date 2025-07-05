@@ -1,39 +1,34 @@
 from django.db import models
-from rest_framework import serializers
-from rest_framework import viewsets
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.pagination import PageNumberPagination
-from .responses import *
 from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
+from rest_framework import serializers
+from rest_framework import viewsets
+from rest_framework import status
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from django.utils.translation import gettext_lazy as _
+from .responses import *
 
 
-# MEH: Customize message error for all serializer Field...
 class CustomModelSerializer(serializers.ModelSerializer):
+    """
+    MEH: Customize message error for common serializer Field...
+    """
     def get_fields(self):
         fields = super().get_fields()
         for name, field in fields.items():
             if isinstance(field, serializers.CharField):
                 field.error_messages.update({
-                    'blank': TG_DATA_BLANK,
-                    'required': TG_DATA_REQUIRED,
-                    'invalid': TG_DATA_WRONG,
+                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG,
                 })
             if isinstance(field, serializers.IntegerField):
                 field.error_messages.update({
-                    'blank': TG_DATA_BLANK,
-                    'required': TG_DATA_REQUIRED,
-                    'invalid': TG_DATA_MOST_DIGIT,
+                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_MOST_DIGIT,
                 })
             if isinstance(field, serializers.PrimaryKeyRelatedField):
                 field.error_messages.update({
-                    'required': TG_DATA_REQUIRED,
-                    'invalid': TG_DATA_WRONG,
-                    'does_not_exist': TG_DATA_NOT_FOUND,
+                    'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG, 'does_not_exist': TG_DATA_NOT_FOUND,
                 })
             for validator in getattr(field, 'validators', []):
                 if isinstance(validator, MinLengthValidator):
@@ -44,30 +39,27 @@ class CustomModelSerializer(serializers.ModelSerializer):
 
 
 class CustomChoiceField(serializers.ChoiceField):
-    default_error_messages = {
-        'invalid_choice': _(TG_DATA_WRONG),
-        'required': _(TG_DATA_REQUIRED),
-        'blank': _(TG_DATA_BLANK),
-    }
-
+    """
+    MEH: Customize message error for common serializer Field...
+    """
     def to_internal_value(self, data):
         try:
             return super().to_internal_value(data)
         except serializers.ValidationError as e:
-            raise serializers.ValidationError(self.error_messages['invalid_choice'])
+            raise serializers.ValidationError(TG_DATA_WRONG)
 
 
-# MEH: Custom get, put, post, delete for Reduce Code Line & Repeat
 class CustomMixinModelViewSet(viewsets.ModelViewSet):
-    # MEH: Custom Pagination :) even LimitOffsetPagination
-    pagination_class = PageNumberPagination
+    """
+    MEH: Custom ModelViewSet for get, put, post, delete -> Reduce Code Line & Repeat in all Viewset
+    """
+    pagination_class = PageNumberPagination # MEH: Custom Pagination :) even LimitOffsetPagination
     pagination_class.page_size_query_param = 'size'
     pagination_class.page_size = 20
     pagination_class.max_page_size = 100
-    required_api_keys = None
+    required_api_keys = None # MEH: Override this In each model view set for handle Access
 
-    # MEH: Get Key for Action -> Check Access at the End
-    def get_required_api_key(self):
+    def get_required_api_key(self): # MEH: Custom Pagination :) even LimitOffsetPagination
         return self.required_api_keys.get(self.action)
 
     def retrieve(self, request, *args, **kwargs): # MEH: not change for now
@@ -97,9 +89,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_create(self, data, many=False, **kwargs):
-        # MEH: Many Post Handle from View Actions -> (many=T or F)...
         is_many = isinstance(data, list)
-        if is_many and not many:
+        if is_many and not many: # MEH: Many Post Handle from View Actions -> (many=T or F)...
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=data, many=many)
         try:
@@ -116,9 +107,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 
     def custom_update(self, instance, data, partial=False, **kwargs):
-        # MEH: Many Update disable...
         is_many = isinstance(data, list)
-        if is_many:
+        if is_many: # MEH: Many Update disable...
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(instance, data=data, partial=partial)
         try:
@@ -135,9 +125,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_destroy(self, instance, **kwargs):
-        # MEH: Many destroy disable here -> (handle with custom_bulk_destroy)
         is_many = isinstance(instance, list)
-        if is_many:
+        if is_many: # MEH: Many destroy disable here -> (handle with custom_bulk_destroy)
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         if hasattr(instance, 'is_default'):
             if instance.is_default:
@@ -152,12 +141,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
-    def custom_list_destroy(self, list_data): # MEH: Handle delete list of object with 1 request
-        serializer = self.get_serializer(data=list_data)
-        serializer.is_valid(raise_exception=True)
-        ids = serializer.validated_data['ids']
+    def custom_list_destroy(self, ids): # MEH: Handle delete list of object with 1 request
         queryset = self.queryset.filter(id__in=ids)
-        default_objs = []
         if hasattr(queryset.model, 'is_default'):
             default_objs = queryset.filter(is_default=True)
             if default_objs.exists():
