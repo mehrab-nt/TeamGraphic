@@ -1,4 +1,5 @@
 from rest_framework import status, filters
+from datetime import datetime, date
 from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated
@@ -7,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from django.db.models import Subquery, OuterRef
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
-                          UserImportGetDataSerializer, UserImportSetDataSerializer,
+                          UserImportGetDataSerializer, UserImportSetDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer,UserRoleSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
@@ -19,7 +20,7 @@ from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
 from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 
@@ -298,39 +299,48 @@ class UserViewSet(CustomMixinModelViewSet):
         wb = Workbook()
         ws = wb.active
         ws.title = "Users"
-        # Header
-        headers = ['ID', 'Phone Number', 'First Name', 'Last Name', 'Date Joined', 'is_active']
+        headers = list(UserDownloadDataSerializer().get_fields().keys()) # MEH: Get Header from Serializer
         ws.append(headers)
-        # Set header style
-        header_font = Font(bold=True, color='FFFFFF')
-        header_fill = PatternFill(start_color='4F81BD', end_color='4F81BD', fill_type='solid')
+        header_font = Font(bold=True)
+        header_fill = PatternFill(start_color='cccccc', end_color='cccccc', fill_type='solid')
+        thin_border = Border(
+            left=Side(style='thin', color='777777'),
+            right=Side(style='thin', color='777777'),
+            top=Side(style='thin', color='777777'),
+            bottom=Side(style='thin', color='777777')
+        )
         for cell in ws[1]:
             cell.font = header_font
             cell.fill = header_fill
         for user in queryset:
-            ws.append([
-                user.id,
-                user.phone_number,
-                user.first_name,
-                user.last_name,
-                user.date_joined.strftime('%Y-%m-%d %H:%M'),
-                user.is_active,
-            ])
-        # Example: highlight inactive users
-        for row in ws.iter_rows(min_row=2):
-            is_active = row[5].value  # Assume you put is_active in the first column
-            if not is_active:
+            serializer = UserDownloadDataSerializer(user)
+            row = []
+            for field in headers:
+                value = serializer.data.get(field)
+                if isinstance(value, int) or isinstance(datetime, date):
+                    row.append(value)
+                elif not value:
+                    value = '-'
+                    row.append(value)
+                else:
+                    row.append(str(value))
+            ws.append(row)
+        ws.row_dimensions[1].height = 25 # MEH: Set row height for header row
+        for row in ws.iter_rows(min_row=1): # MEH: Example: highlight without order users
+            for cell in row: # MEH: Alignment Center all cel
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+                cell.border = thin_border
+            order_count = row[5].value
+            if not order_count:
                 for cell in row:
-                    cell.fill = PatternFill(start_color='FFD2D2', end_color='FFD2D2', fill_type='solid')
-        # Auto width
-        for col_num, column_cells in enumerate(ws.columns, 1):
+                    cell.fill = PatternFill(start_color='aaaaaa', end_color='aaaaaa', fill_type='solid')
+        for col_num, column_cells in enumerate(ws.columns, 1): # Auto col Width
             length = max(len(str(cell.value)) for cell in column_cells)
-            ws.column_dimensions[get_column_letter(col_num)].width = length + 2
-        # Prepare HTTP response
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename=users.xlsx'
-        wb.save(response)
-        return response
+            ws.column_dimensions[get_column_letter(col_num)].width = length + 3
+        res = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') # MEH: Prepare HTTP response
+        res['Content-Disposition'] = 'attachment; filename=users.xlsx'
+        wb.save(res)
+        return res
 
 
 # MEH: Get Introduction List and Add single object (POST) update (PUT) and protected remove (DELETE)

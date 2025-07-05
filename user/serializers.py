@@ -153,6 +153,7 @@ class UserImportSetDataSerializer(UserSerializer):
         model = User
         fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'user_profile']
+        list_serializer_class = CustomBulkListSerializer
 
 
 # MEH: for handle excel & role -> (User import list)
@@ -163,6 +164,24 @@ class UserImportGetDataSerializer(CustomModelSerializer):
     class Meta:
         model = User
         fields = ['role', 'excel_file']
+
+
+class UserDownloadDataSerializer(UserSerializer):
+    role = serializers.StringRelatedField(read_only=True)
+    gender = serializers.CharField(source='user_profile.gender', read_only=True)
+    job = serializers.CharField(source='user_profile.job', read_only=True)
+    date_joined = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = ['phone_number', 'first_name', 'last_name', 'date_joined', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
+                  'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
+
+    @staticmethod
+    def get_date_joined(obj):
+        if obj.date_joined:
+            return obj.date_joined.strftime('%Y-%m-%d %H:%M')
+        return None
 
 
 # MEH: Public & Private key for user
