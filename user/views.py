@@ -19,10 +19,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
-from openpyxl import load_workbook, Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
-from openpyxl.utils import get_column_letter
-from django.http import HttpResponse
+from file_manager.apps import ExcelHandler
 
 
 @extend_schema(tags=["Auth"])
@@ -241,7 +238,7 @@ class UserViewSet(CustomMixinModelViewSet):
         },
     )
     @action(detail=False, methods=['get', 'post'],
-            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=[])
+            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
     def import_users(self, request):
         """
         MEH: Create User list from Excel File (up to 1000) (POST ACTION)
@@ -252,35 +249,19 @@ class UserViewSet(CustomMixinModelViewSet):
         check_serializer = self.get_serializer(data=request.data)
         check_serializer.is_valid(raise_exception=True)
         excel_file = check_serializer.validated_data['excel_file']
-        role = check_serializer.validated_data['role']
-        try: # MEH: Check for invalid file
-            wb = load_workbook(filename=excel_file)
-            sheet = wb.active
-        except Exception as e:
-            return Response({'detail': TG_EXCEL_FILE_INVALID + str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        if sheet.max_row - 1 > 1000:
-            return Response({'detail': TG_EXCEL_FILE_LIMIT_1000}, status=status.HTTP_400_BAD_REQUEST)
-        header = [cell.value for cell in sheet[1]] # MEH: Header first row
-        required_columns = ['phone_number', 'first_name'] # MEH: Required field check in Excel col
-        if not all(col in header for col in required_columns):
-            return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
-        user_data_list = []
+        required_fields = ['phone_number', 'first_name'] # MEH: Required field check in Excel col
         profile_fields = [ # MEH: Nested User Profile data Handle
             name for name, field in UserProfileSerializer().get_fields().items()
             if not getattr(field, 'read_only', False)
         ]
-        allowed_fields = set(UserSerializer().get_fields().keys())
-        for row in list(sheet.iter_rows(min_row=2, values_only=True))[:1000]:
-            row_data = dict(zip(header, row))
-            if not any(row_data.values()):
-                continue  # MEH: Skip empty rows
-            row_data['role'] = role.pk # MEH: Selected Role in form for all User in Excel
-            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields} # MEH: Pop User Profile field from each row
-            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields} # MEH: Get other clean data from each row
-            cleaned_user_data.pop('user_profile', None) # MEH: Drop data if cell header is user_profile! (It's Blocked in this way)
-            if user_profile_data:
-                cleaned_user_data['user_profile'] = user_profile_data
-            user_data_list.append(cleaned_user_data) # MEH: Clean Data to check validation in serializer later
+        allowed_fields = set(UserSerializer().get_fields().keys()) # MEH: Allowed field that serializer accept
+        extra_fields = {'role':check_serializer.validated_data['role'].pk} # MEH: Selected Role in form for all User in Excel
+        user_data_list = ExcelHandler.import_excel(
+            excel_file, allowed_fields, required_fields,
+            nested_fields=profile_fields,
+            nested_field_category='user_profile',
+            extra_fields=extra_fields,
+        )
         self.serializer_class = UserImportSetDataSerializer # MEH: Change Serializer class to Validate Posted Data with Excel
         res = self.custom_create(user_data_list, many=True) # MEH: Check, Validate (Raise Exception if any) & Save Data in DB 1 by 1
         self.serializer_class = UserImportGetDataSerializer # MEH: Change back for View purpose in DRF UI
@@ -296,22 +277,8 @@ class UserViewSet(CustomMixinModelViewSet):
         todo: Re Design Excel file later
         """
         queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Users"
         headers = list(UserDownloadDataSerializer().get_fields().keys()) # MEH: Get Header from Serializer
-        ws.append(headers)
-        header_font = Font(bold=True)
-        header_fill = PatternFill(start_color='cccccc', end_color='cccccc', fill_type='solid')
-        thin_border = Border(
-            left=Side(style='thin', color='777777'),
-            right=Side(style='thin', color='777777'),
-            top=Side(style='thin', color='777777'),
-            bottom=Side(style='thin', color='777777')
-        )
-        for cell in ws[1]:
-            cell.font = header_font
-            cell.fill = header_fill
+        rows = []
         for user in queryset:
             serializer = UserDownloadDataSerializer(user)
             row = []
@@ -324,23 +291,8 @@ class UserViewSet(CustomMixinModelViewSet):
                     row.append(value)
                 else:
                     row.append(str(value))
-            ws.append(row)
-        ws.row_dimensions[1].height = 25 # MEH: Set row height for header row
-        for row in ws.iter_rows(min_row=1): # MEH: Example: highlight without order users
-            for cell in row: # MEH: Alignment Center all cel
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-                cell.border = thin_border
-            order_count = row[5].value
-            if not order_count:
-                for cell in row:
-                    cell.fill = PatternFill(start_color='aaaaaa', end_color='aaaaaa', fill_type='solid')
-        for col_num, column_cells in enumerate(ws.columns, 1): # Auto col Width
-            length = max(len(str(cell.value)) for cell in column_cells)
-            ws.column_dimensions[get_column_letter(col_num)].width = length + 3
-        res = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') # MEH: Prepare HTTP response
-        res['Content-Disposition'] = 'attachment; filename=users.xlsx'
-        wb.save(res)
-        return res
+            rows.append(row)
+        return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field='national_id')
 
 
 # MEH: Get Introduction List and Add single object (POST) update (PUT) and protected remove (DELETE)
