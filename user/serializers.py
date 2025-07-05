@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate
 from django.utils import timezone
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
-from api.mixins import CustomModelSerializer, CustomChoiceField
+from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
 
 
 # MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
@@ -120,24 +120,15 @@ class UserSerializer(CustomModelSerializer):
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
         read_only_fields = ['id', 'date_joined', 'is_active']
+        list_serializer_class = CustomBulkListSerializer
 
-    # MEH: Nested create user with profile (Just for Admin work) example like from file... Single or Bulk
+    # MEH: Nested create a user with profile (Just for Admin work) example like from file...
     def create(self, validated_data, **kwargs):
-        if isinstance(validated_data, list): # MEH: Handle bulk create
-            user_list = []
-            for user_data in validated_data:
-                self.validate_filed(user_data)
-                profile_data = user_data.pop('user_profile', {})
-                user_profile = UserProfile.objects.create(**profile_data)
-                user = User.objects.create_user(**user_data, username=user_data['phone_number'], user_profile=user_profile)
-                user_list.append(user)
-            return user_list
-        else: # MEH: Handle single create
-            self.validate_filed(validated_data)
-            profile_data = validated_data.pop('user_profile', {})
-            user_profile = UserProfile.objects.create(**profile_data)
-            user = User.objects.create_user(**validated_data, username=validated_data['phone_number'], user_profile=user_profile)
-            return user
+        self.validate_filed(validated_data)
+        profile_data = validated_data.pop('user_profile', {})
+        user_profile = UserProfile.objects.create(**profile_data)
+        user = User.objects.create_user(**validated_data, username=validated_data['phone_number'], user_profile=user_profile)
+        return user
 
     # MEH: Nested update for user profile
     def update(self, instance, validated_data, **kwargs):

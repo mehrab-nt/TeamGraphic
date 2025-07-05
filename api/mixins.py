@@ -103,9 +103,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=data, many=many)
         try:
-            print(data)
             serializer.is_valid(raise_exception=True)
-            print(serializer.validated_data)
             self.perform_create(serializer, **kwargs)
         except ValidationError as e:
             return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
@@ -179,3 +177,19 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance): # MEH: not change for now
         instance.delete()
+
+
+class CustomBulkListSerializer(serializers.ListSerializer):
+    def create(self, validated_data):
+        """
+        # MEH: Handle bulk create (1 by 1) (instead of .bulk_create: because 1 by 1 maybe slower but safer!)
+        """
+        data_list = []
+        for i, data in enumerate(validated_data): # MEH: First Validate data 1 by 1 if anything wrong, No Data Create at all
+            try:
+                self.child.validate_filed(data)
+            except serializers.ValidationError as e:
+                raise serializers.ValidationError({f"item-{i+1}": e.detail})
+        for data in validated_data: # MEH: Now Create 1 by 1
+            data_list.append(self.child.create(data))
+        return data_list
