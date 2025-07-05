@@ -24,25 +24,33 @@ from openpyxl.utils import get_column_letter
 from django.http import HttpResponse
 
 
-# MEH: Get Refresh Token
 @extend_schema(tags=["Auth"])
 class CustomTokenRefreshView(TokenRefreshView):
+    """
+    MEH: Get Refresh Token
+    /api/token/refresh/
+    """
     pass
 
 
-# MEH: Verify Access Token
 @extend_schema(tags=["Auth"])
 class CustomTokenVerifyView(TokenVerifyView):
+    """
+    MEH: Verify Access Token
+    /api/token/verify/
+    """
     pass
 
 
-# MEH: User List view set
 @extend_schema(tags=['Users'])
 class UserViewSet(CustomMixinModelViewSet):
+    """
+    MEH: User Model view set
+    /api/user/
+    """
     queryset = User.objects.prefetch_related('user_profile')
     serializer_class = UserSerializer
-    # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
-    permission_classes = [ApiAccess]
+    permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     filterset_class = CustomerFilter
     filter_backends = [
         DjangoFilterBackend,
@@ -50,10 +58,9 @@ class UserViewSet(CustomMixinModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    # MEH: Get search query
-    search_fields = ['first_name', 'last_name', 'phone_number']
+    search_fields = ['first_name', 'last_name', 'phone_number'] # MEH: Get search query
     ordering_fields = ['date_joined', 'order_count', 'last_order_date']
-    required_api_keys = {
+    required_api_keys = { # MEH: API static key foa each action, save exactly in DB -> Api Item with Category
         'list': 'get_users',
         'retrieve': 'get_users',
         'get_by_phone': 'get_users',
@@ -64,21 +71,27 @@ class UserViewSet(CustomMixinModelViewSet):
         'destroy': 'delete_user',
         'activation': 'active_user',
         'download_user_list': 'download_user_list',
-        'import_users': 'import_user_list',
-        'address_list': 'get_addresses',
-        'address_detail': 'get_addresses',
-        'address_create': 'create_address',
+        'import_user_list': 'import_user_list',
+        'get_address_list': 'get_address_list',
+        'address_detail': 'get_address_list',
+        'create_address': 'create_address',
     }
 
-    # MEH: Get province from default Address if there is any & Use it on filter User Province
     def get_queryset(self):
+        """
+        MEH: Set subquery for getting province from default Address if there is any & Use it on filter User Province
+        """
         default_province_id = Subquery(
             Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
         )
         return User.objects.annotate(default_province_id=default_province_id)
 
-    # MEH: Override get single user (with ID or phone_number) | Access check after In has_object_permission
     def get_object(self, *args, **kwargs):
+        """
+        MEH: Override get single user (with pk or phone_number) (DEFAULT GET OBJECT ACTION)
+        also use auto for PUT & DELETE
+        Object Access check again after In has_object_permission
+        """
         queryset = self.get_queryset()
         if not self.kwargs.get('phone_number'):
             lookup_value = self.kwargs.get(self.lookup_field, '')
@@ -95,92 +108,112 @@ class UserViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
 
-    # MEH: User Sign Up action (POST) for customer
     @extend_schema(tags=['Auth'])
     @action(detail=False, methods=['post'],
             url_path='sign-up', serializer_class=UserSignUpSerializer,
             permission_classes=[IsNotAuthenticated])
     def sign_up(self, request):
+        """
+        MEH: User Sign Up action (POST ACTION) for customer that not authenticated
+        """
         return self.custom_create(request.data)
 
-    # MEH: User Sign In action (POST) and get Access & Refresh Token
     @extend_schema(tags=['Auth'])
     @action(detail=False, methods=['post'],
             url_path='sign-in', serializer_class=UserSignInSerializer,
             permission_classes=[IsNotAuthenticated])
     def sign_in(self, request):
+        """
+        User Sign In action (POST ACTION) and get Access & Refresh Token for customer that not authenticated
+        handle serializer manually
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
-    # MEH: Get User by phone_number
     @action(detail=False, methods=['get'],
             url_path='by-phone/(?P<phone_number>\\d{11})')
     def get_by_phone(self, request, phone_number=None):
+        """
+        MEH: Get User by phone_number (GET ACTION)
+        """
         queryset = self.get_object(phone_number=phone_number)
         return self.custom_get(queryset)
 
-
-    # MEH: Get User Profile information and Update it with ID
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='profile', serializer_class=UserProfileSerializer)
     def profile(self, request, pk=None):
+        """
+        MEH: Get User Profile information and Update it (with pk) (GET/PUT ACTION)
+        """
         user = self.get_object(pk=pk)
         queryset = user.user_profile
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
-    # MEH: Get User Key information (Update not work)
     @action(detail=True, methods=['get'],
             url_path='key', serializer_class=UserKeySerializer)
     def key(self, request, pk=None):
+        """
+        MEH: Get User Key information (GET ACTION)
+        Update block (auto generated and never change)
+        """
         queryset = self.get_object(pk=pk)
         return self.custom_get(queryset)
 
-    # MEH: Get User Accounting information and Update it
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='accounting', serializer_class=UserAccountingSerializer)
     def accounting(self, request, pk=None):
+        """
+        MEH: Get User Accounting information and Update it (GET/PUT ACTION)
+        """
         queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
-    # MEH: Get User Role and Active information and Update it
-    @extend_schema(tags=['Users-Role'])
     @action(detail=True, methods=['get', 'put', 'patch'],
-            url_path='role', serializer_class=UserRoleSerializer, filter_backends=[None])
+            url_path='activation', serializer_class=UserRoleSerializer, filter_backends=[None])
     def activation(self, request, pk=None):
+        """
+        MEH: Update User Activation (is_active) (GET/PUT ACTION)
+        """
         queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
 
-    # MEH: Get User Address list
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get'],
             url_path='address-list', serializer_class=AddressSerializer, filter_backends=[None])
-    def address_list(self, request, pk=None):
+    def get_address_list(self, request, pk=None):
+        """
+        MEH: Get User (with pk) Address list (GET ACTION)
+        """
         user = self.get_object(pk=pk)
         queryset = user.user_addresses.all()
         if not queryset.exists():
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(queryset)
 
-    # MEH: Add New Address (POST)
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['post'],
             url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
-    def address_create(self, request, pk=None):
+    def create_address(self, request, pk=None):
+        """
+        MEH: Add New Address for User (with pk) (POST ACTION)
+        """
         user = self.get_object(pk=pk)
         return self.custom_create(request.data, user=user)
 
-    # MEH: Get User Address Detail, Update and Delete it
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
             url_path='address/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None])
     def address_detail(self, request, pk=None, address_id=None):
+        """
+        MEH: Get User Address Detail (with pk), Update and Delete it (PUT/DELETE ACTION)
+        """
         user = self.get_object(pk=pk)
         try:
             instance = user.user_addresses.get(pk=address_id)
@@ -194,9 +227,8 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(instance, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(instance)
 
-    # MEH: create user list from Excel File
     @extend_schema(
-        request={
+        request={ # MEH: Set this for API document
             'multipart/form-data': {
                 'type': 'object',
                 'properties': {
@@ -208,30 +240,31 @@ class UserViewSet(CustomMixinModelViewSet):
         },
     )
     @action(detail=False, methods=['get', 'post'],
-            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
+            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=[])
     def import_users(self, request):
-        if request.method == 'GET':
+        """
+        MEH: Create User list from Excel File (up to 1000) (POST ACTION)
+        give any Excel file with any col and row (Handle valid col header and row data)
+        """
+        if request.method == 'GET': # MEH: Set this for showing valid cel field for Excel...
             return Response({'detail': list(UserImportSetDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
         check_serializer = self.get_serializer(data=request.data)
         check_serializer.is_valid(raise_exception=True)
-        # todo: reassemble Excel file later
         excel_file = check_serializer.validated_data['excel_file']
         role = check_serializer.validated_data['role']
-        try:
+        try: # MEH: Check for invalid file
             wb = load_workbook(filename=excel_file)
             sheet = wb.active
         except Exception as e:
             return Response({'detail': TG_EXCEL_FILE_INVALID + str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        # MEH: Check Sheet row < 1000
         if sheet.max_row - 1 > 1000:
             return Response({'detail': TG_EXCEL_FILE_LIMIT_1000}, status=status.HTTP_400_BAD_REQUEST)
-        # MEH: Read header row
-        header = [cell.value for cell in sheet[1]]
-        required_columns = ['phone_number', 'first_name']
+        header = [cell.value for cell in sheet[1]] # MEH: Header first row
+        required_columns = ['phone_number', 'first_name'] # MEH: Required field check in Excel col
         if not all(col in header for col in required_columns):
             return Response({'detail': TG_EXCEL_FILE_REQUIRED_COL + str(required_columns)}, status=status.HTTP_400_BAD_REQUEST)
         user_data_list = []
-        profile_fields = [
+        profile_fields = [ # MEH: Nested User Profile data Handle
             name for name, field in UserProfileSerializer().get_fields().items()
             if not getattr(field, 'read_only', False)
         ]
@@ -240,28 +273,28 @@ class UserViewSet(CustomMixinModelViewSet):
             row_data = dict(zip(header, row))
             if not any(row_data.values()):
                 continue  # MEH: Skip empty rows
-            if role:
-                row_data['role'] = role.pk
-            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields}
-            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields}
-            cleaned_user_data.pop('user_profile', None)
+            row_data['role'] = role.pk # MEH: Selected Role in form for all User in Excel
+            user_profile_data = {k: row_data.pop(k) for k in list(row_data) if k in profile_fields} # MEH: Pop User Profile field from each row
+            cleaned_user_data = {k: v for k, v in row_data.items() if k in allowed_fields} # MEH: Get other clean data from each row
+            cleaned_user_data.pop('user_profile', None) # MEH: Drop data if cell header is user_profile! (It's Blocked in this way)
             if user_profile_data:
                 cleaned_user_data['user_profile'] = user_profile_data
-            user_data_list.append(cleaned_user_data)
-        self.serializer_class = UserImportSetDataSerializer
-        res = self.custom_create(user_data_list, many=True)
-        self.serializer_class = UserImportGetDataSerializer
+            user_data_list.append(cleaned_user_data) # MEH: Clean Data to check validation in serializer later
+        self.serializer_class = UserImportSetDataSerializer # MEH: Change Serializer class to Validate Posted Data with Excel
+        res = self.custom_create(user_data_list, many=True) # MEH: Check, Validate (Raise Exception if any) & Save Data in DB 1 by 1
+        self.serializer_class = UserImportGetDataSerializer # MEH: Change back for View purpose in DRF UI
         return res
 
-    # MEH: Get User List with Filter and Back Excel Data (Download)
-    @extend_schema(responses={200: UserSerializer(many=True)})
+    @extend_schema(responses={200: UserDownloadDataSerializer(many=True)})
     @action(detail=False, methods=['get'],
             url_path='download')
     def download_user_list(self, request):
-        # todo: reassemble Excel file later
-        # Apply filters/search/order like list()
-        queryset = self.filter_queryset(self.get_queryset())
-        # Create workbook
+        """
+        MEH: Get User List with Filter and write data in Excel (up to 1000) (GET ACTION)
+        (Direct Download)
+        todo: Re Design Excel file later
+        """
+        queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
         wb = Workbook()
         ws = wb.active
         ws.title = "Users"

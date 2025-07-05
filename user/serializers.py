@@ -100,6 +100,7 @@ class UserSerializer(CustomModelSerializer):
 
     @staticmethod
     def get_province(obj):
+        # MEH: Get default province from user address list if any (To show and filter in user list query)
         default_address = obj.user_addresses.filter(is_default=True).first()
         if default_address and default_address.province:
             return str(default_address.province)
@@ -107,6 +108,7 @@ class UserSerializer(CustomModelSerializer):
 
     @staticmethod
     def validate_filed(user_data, pk=None):
+        # MEH: validate phone or national_id is not in DB (except self data for update)
         if 'phone_number' in user_data:
             if User.objects.exclude(pk=pk).filter(phone_number=user_data['phone_number']).exists():
                 raise serializers.ValidationError({'phone_number': TG_UNIQUE_PROTECT})
@@ -145,6 +147,7 @@ class UserSerializer(CustomModelSerializer):
         return instance
 
 
+# MEH: for handle User field -> Excel import user list
 class UserImportSetDataSerializer(UserSerializer):
     class Meta:
         model = User
@@ -152,6 +155,7 @@ class UserImportSetDataSerializer(UserSerializer):
                   'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'user_profile']
 
 
+# MEH: for handle excel & role -> (User import list)
 class UserImportGetDataSerializer(CustomModelSerializer):
     excel_file = serializers.FileField(required=True)
     role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
