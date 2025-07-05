@@ -370,4 +370,11 @@ class RoleViewSet(CustomMixinModelViewSet):
     @action(detail=False, methods=['delete'], serializer_class=BulkDeleteSerializer,
             url_path='bulk-delete')
     def bulk_delete(self, request):
-        return self.custom_list_destroy(request.data)
+        """
+        MEH: Delete List of Role Objects
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        ids = serializer.validated_data['ids']
+        self.serializer_class = RoleSerializer
+        return self.custom_list_destroy(ids)
