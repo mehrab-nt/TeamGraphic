@@ -288,36 +288,63 @@ class UserViewSet(CustomMixinModelViewSet):
             rows.append(row)
         return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field='national_id')
 
+    @action(detail=True, methods=['get', 'put', 'partial'],
+            url_path='manually-verify-phone', serializer_class=UserManualVerifyPhoneSerializer, filter_backends=[None])
+    def manually_verify_phone(self, request, pk=None):
+        """
+        MEH: Update User verified_phone (PUT ACTION)
+        """
+        queryset = self.get_object(pk=pk)
+        if request.method in ['PUT', 'PATCH']:
+            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(queryset)
 
-# MEH: Get Introduction List and Add single object (POST) update (PUT) and protected remove (DELETE)
+
 @extend_schema(tags=["Users-Introduction"])
 class IntroductionViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Introduction Model viewset
+    """
     queryset = Introduction.objects.all()
     serializer_class = IntroductionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
+    # filter_backends = [
+    #     filters.SearchFilter,
+    #     filters.OrderingFilter,
+    # ]
+    # search_fields = ['title'] # MEH: Get search query
+    # ordering_fields = ['date_joined', 'order_count', 'last_order_date']
+    required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
+        'list': 'full_introductions',
+        'retrieve': 'full_introductions',
+        'create': 'full_introductions',
+        'update': 'full_introductions',
+        'partial_update': 'full_introductions',
+        'destroy': 'full_introductions',
+    }
 
 
-# MEH: Get Role List and Add single object (POST) update (PUT) and protected remove (DELETE)
 @extend_schema(tags=["Roles"])
 class RoleViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Role Model viewset
+    """
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
     permission_classes = [IsAuthenticated]
 
-    #  MEH: Delete List of object todo: work more after
     @extend_schema(
         request=BulkDeleteSerializer,
         responses={
-           204: OpenApiResponse(description="Successfully deleted roles."),
+           200: OpenApiResponse(description="Successfully deleted List."),
            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
         },
-        description='Send JSON data in the body like this: {"ids": [1, 2, 3]}'
     )
-    @action(detail=False, methods=['delete'], serializer_class=BulkDeleteSerializer,
+    @action(detail=False, methods=['post'], serializer_class=BulkDeleteSerializer,
             url_path='bulk-delete')
     def bulk_delete(self, request):
         """
-        MEH: Delete List of Role Objects
+        MEH: Delete List of Role Objects (use POST ACTION for sendin list of id in request body)
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
