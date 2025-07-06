@@ -40,6 +40,7 @@ class UserProfileAdmin(admin.ModelAdmin):
 
 class RoleAdmin(CustomModelAdmin):
     list_display = ['title', 'description', 'is_default', 'sort_number']
+    filter_horizontal = ['api_items']
 
 
 class IntroductionAdmin(admin.ModelAdmin):

@@ -3,11 +3,11 @@ from .models import ApiItem, ApiCategory
 
 
 class ApiCategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'sort_number', 'role_base']
+    list_display = ['title', 'sort_number', 'role_base']
 
 
 class ApiItemAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'category' , 'key']
+    list_display = ['title', 'category' , 'key']
     list_filter = ['category']
     search_fields = ['key', 'title']
 
