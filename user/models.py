@@ -71,7 +71,7 @@ class User(AbstractUser):
         super().save(*args, **kwargs)
 
     def has_api_permission(self, key: str):
-        # todo: after test back comment
+        # todo: after test clean comment
         # if self.is_staff or self.is_superuser:
         #     return True
         if not key:
