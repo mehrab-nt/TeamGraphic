@@ -6,7 +6,7 @@ from django.utils import timezone
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
-
+from api.models import ApiItem
 
 
 class UserSignUpSerializer(CustomModelSerializer):
@@ -327,6 +327,8 @@ class RoleSerializer(CustomModelSerializer):
     MEH: Role full Information (Customer, Co-Worker, ...)
     """
     description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
+    api_items = serializers.PrimaryKeyRelatedField(many=True, queryset=ApiItem.objects.filter(category__role_base=False))
+
     class Meta:
         model = Role
-        fields = '__all__'
+        fields = ['id', 'title', 'is_default', 'is_active', 'sort_number', 'description', 'api_items']
