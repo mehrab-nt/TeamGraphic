@@ -1,20 +1,16 @@
 import django_filters
-from rest_framework import filters
 from .models import User
 
 
-class CustomerQueryFilter(filters.BaseFilterBackend):
-    def filter_queryset(self, request, queryset, view):
-        return queryset.filter(is_employee=False, is_staff=False)
-
-
 class CustomerFilter(django_filters.FilterSet):
+    """
+    MEH: Set some filter for Customer on User List
+    """
     default_province = django_filters.NumberFilter(field_name='default_province_id', lookup_expr='exact', label='Province id')
 
     class Meta:
         model = User
         fields = {
-            'first_name': ['contains'],
             'user_profile__job': ['contains'],
             'is_active': ['exact'],
             'user_profile__gender': ['exact'],
