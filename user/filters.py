@@ -5,7 +5,7 @@ from .models import User
 
 class CustomerQueryFilter(filters.BaseFilterBackend):
     def filter_queryset(self, request, queryset, view):
-        return queryset.filter(is_employee=False)
+        return queryset.filter(is_employee=False, is_staff=False)
 
 
 class CustomerFilter(django_filters.FilterSet):

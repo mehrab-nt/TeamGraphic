@@ -38,7 +38,7 @@ class User(AbstractUser):
                                       blank=False, null=False, verbose_name='Is Employee')
 
     USERNAME_FIELD = 'phone_number'
-    REQUIRED_FIELDS = ['first_name', 'last_name']
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         ordering = ['-date_joined']

@@ -152,7 +152,10 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             deleted_count, _ = queryset.delete()
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count}, status=status.HTTP_204_NO_CONTENT)
+        if not deleted_count:
+            return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_400_BAD_REQUEST)
+        print("HERE")
+        return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
         serializer.save(**kwargs)

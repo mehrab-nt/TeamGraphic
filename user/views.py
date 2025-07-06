@@ -9,7 +9,7 @@ from .models import User, Role, Introduction, Address
 from django.db.models import Subquery, OuterRef
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
                           UserImportGetDataSerializer, UserImportSetDataSerializer, UserDownloadDataSerializer,
-                          UserProfileSerializer,UserRoleSerializer,
+                          UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerQueryFilter, CustomerFilter
@@ -43,8 +43,7 @@ class CustomTokenVerifyView(TokenVerifyView):
 @extend_schema(tags=['Users'])
 class UserViewSet(CustomMixinModelViewSet):
     """
-    MEH: User Model view set
-    /api/user/
+    MEH: User Model viewset
     """
     queryset = User.objects.prefetch_related('user_profile')
     serializer_class = UserSerializer
@@ -58,21 +57,17 @@ class UserViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['first_name', 'last_name', 'phone_number'] # MEH: Get search query
     ordering_fields = ['date_joined', 'order_count', 'last_order_date']
-    required_api_keys = { # MEH: API static key foa each action, save exactly in DB -> Api Item with Category
-        'list': 'get_users',
-        'retrieve': 'get_users',
-        'get_by_phone': 'get_users',
+    required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
+        **dict.fromkeys(['list', 'retrieve', 'get_by_phone', 'key'], 'get_users'),
+        **dict.fromkeys(['update', 'partial_update', 'profile', 'accounting'], 'update_user'),
+        **dict.fromkeys(['get_address_list', 'address_detail'], 'get_address'),
         'create': 'create_user',
-        'update': 'update_user',
-        'partial_update': 'update_user',
-        'profile': 'update_user',
         'destroy': 'delete_user',
         'activation': 'active_user',
-        'download_user_list': 'download_user_list',
         'import_user_list': 'import_user_list',
-        'get_address_list': 'get_address_list',
-        'address_detail': 'get_address_list',
+        'download_user_list': 'download_user_list',
         'create_address': 'create_address',
+        'manually_verify_phone': 'verify_phone',
     }
 
     def get_queryset(self):
@@ -172,7 +167,7 @@ class UserViewSet(CustomMixinModelViewSet):
         return self.custom_get(queryset)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
-            url_path='activation', serializer_class=UserRoleSerializer, filter_backends=[None])
+            url_path='activation', serializer_class=UserActivationSerializer, filter_backends=[None])
     def activation(self, request, pk=None):
         """
         MEH: Update User Activation (is_active) (GET/PUT ACTION)
@@ -226,7 +221,7 @@ class UserViewSet(CustomMixinModelViewSet):
         return self.custom_get(instance)
 
     @extend_schema(
-        request={ # MEH: Set this for API document
+        request={ # MEH: Set this for API document (DRF & SCHEMA)
             'multipart/form-data': {
                 'type': 'object',
                 'properties': {
@@ -238,8 +233,8 @@ class UserViewSet(CustomMixinModelViewSet):
         },
     )
     @action(detail=False, methods=['get', 'post'],
-            url_path='import_users', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
-    def import_users(self, request):
+            url_path='import', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
+    def import_user_list(self, request):
         """
         MEH: Create User list from Excel File (up to 1000) (POST ACTION)
         give any Excel file with any col and row (Handle valid col header and row data)
@@ -274,7 +269,6 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User List with Filter and write data in Excel (up to 1000) (GET ACTION)
         (Direct Download)
-        todo: Re Design Excel file later
         """
         queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
         headers = list(UserDownloadDataSerializer().get_fields().keys()) # MEH: Get Header from Serializer

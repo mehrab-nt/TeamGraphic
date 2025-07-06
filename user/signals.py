@@ -21,7 +21,7 @@ def create_profile_for_new_user(sender, instance, created, **kwargs):
         profile = UserProfile.objects.create()
         instance.user_profile = profile
         flag = True
-    if not instance.role and not instance.is_employee:
+    if not instance.role and not instance.is_employee and not instance.is_staff:
         instance.role = Role.objects.filter(is_default=True).first()
         flag = True
     if instance.is_employee and instance.role:
