@@ -8,14 +8,15 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from django.db.models import Subquery, OuterRef
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
-                          UserImportGetDataSerializer, UserImportSetDataSerializer, UserDownloadDataSerializer,
+                          UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-from .filters import CustomerQueryFilter, CustomerFilter
+from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.exceptions import NotFound
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer
@@ -26,8 +27,8 @@ from file_manager.apps import ExcelHandler
 class CustomTokenRefreshView(TokenRefreshView):
     """
     MEH: Get Refresh Token
-    /api/token/refresh/
     """
+    permission_classes = [AllowAny]
     pass
 
 
@@ -35,8 +36,8 @@ class CustomTokenRefreshView(TokenRefreshView):
 class CustomTokenVerifyView(TokenVerifyView):
     """
     MEH: Verify Access Token
-    /api/token/verify/
     """
+    permission_classes = [AllowAny]
     pass
 
 
@@ -47,16 +48,15 @@ class UserViewSet(CustomMixinModelViewSet):
     """
     queryset = User.objects.prefetch_related('user_profile')
     serializer_class = UserSerializer
-    permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     filterset_class = CustomerFilter
     filter_backends = [
         DjangoFilterBackend,
-        CustomerQueryFilter,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
     search_fields = ['first_name', 'last_name', 'phone_number'] # MEH: Get search query
     ordering_fields = ['date_joined', 'order_count', 'last_order_date']
+    permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         **dict.fromkeys(['list', 'retrieve', 'get_by_phone', 'key'], 'get_users'),
         **dict.fromkeys(['update', 'partial_update', 'profile', 'accounting'], 'update_user'),
@@ -64,7 +64,7 @@ class UserViewSet(CustomMixinModelViewSet):
         'create': 'create_user',
         'destroy': 'delete_user',
         'activation': 'active_user',
-        'import_user_list': 'import_user_list',
+        **dict.fromkeys(['import_user_list', 'import_user_list_valid_field'], 'import_user_list'),
         'download_user_list': 'download_user_list',
         'create_address': 'create_address',
         'manually_verify_phone': 'verify_phone',
@@ -72,34 +72,27 @@ class UserViewSet(CustomMixinModelViewSet):
 
     def get_queryset(self):
         """
-        MEH: Set subquery for getting province from default Address if there is any & Use it on filter User Province
+        MEH: Override Super QS for filter Employee and SuperUser from User List
+        Set subquery for getting province from default Address if there is any & Use it on filter User Province
         """
+        qs = super().get_queryset().filter(is_employee=False, is_superuser=False)
         default_province_id = Subquery(
             Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
         )
-        return User.objects.annotate(default_province_id=default_province_id)
+        return qs.annotate(default_province_id=default_province_id)
 
     def get_object(self, *args, **kwargs):
         """
-        MEH: Override get single user (with pk or phone_number) (DEFAULT GET OBJECT ACTION)
-        also use auto for PUT & DELETE
-        Object Access check again after In has_object_permission
+        MEH: Override get single User (with pk or phone_number at same time)
         """
-        queryset = self.get_queryset()
-        if not self.kwargs.get('phone_number'):
-            lookup_value = self.kwargs.get(self.lookup_field, '')
+        if self.kwargs.get('phone_number'):
+            lookup_value = self.kwargs.get('phone_number')
             try:
-                obj = queryset.get(pk=int(lookup_value))
-                return obj
+                queryset = self.get_queryset()
+                return queryset.get(phone_number=lookup_value)
             except ObjectDoesNotExist:
-                raise NotFound(TG_USER_NOT_FOUND_BY_ID)
-            except ValueError:
-                raise NotFound(TG_EXPECTED_ID_NUMBER)
-        lookup_value = self.kwargs.get('phone_number')
-        try:
-            return queryset.get(phone_number=lookup_value)
-        except ObjectDoesNotExist:
-            raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
+                raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
+        return super().get_object(*args, **kwargs) # MEH: Super default behavior with pk
 
     @extend_schema(tags=['Auth'])
     @action(detail=False, methods=['post'],
@@ -139,7 +132,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Profile information and Update it (with pk) (GET/PUT ACTION)
         """
-        user = self.get_object(pk=pk)
+        user = self.get_object()
         queryset = user.user_profile
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
@@ -152,7 +145,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Get User Key information (GET ACTION)
         Update block (auto generated and never change)
         """
-        queryset = self.get_object(pk=pk)
+        queryset = self.get_object()
         return self.custom_get(queryset)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -161,7 +154,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Accounting information and Update it (GET/PUT ACTION)
         """
-        queryset = self.get_object(pk=pk)
+        queryset = self.get_object()
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
@@ -172,7 +165,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Update User Activation (is_active) (GET/PUT ACTION)
         """
-        queryset = self.get_object(pk=pk)
+        queryset = self.get_object()
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
@@ -184,7 +177,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User (with pk) Address list (GET ACTION)
         """
-        user = self.get_object(pk=pk)
+        user = self.get_object()
         queryset = user.user_addresses.all()
         if not queryset.exists():
             raise NotFound(TG_DATA_EMPTY)
@@ -197,7 +190,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Add New Address for User (with pk) (POST ACTION)
         """
-        user = self.get_object(pk=pk)
+        user = self.get_object()
         return self.custom_create(request.data, user=user)
 
     @extend_schema(tags=['Users-Addresses'])
@@ -207,7 +200,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Address Detail (with pk), Update and Delete it (PUT/DELETE ACTION)
         """
-        user = self.get_object(pk=pk)
+        user = self.get_object()
         try:
             instance = user.user_addresses.get(pk=address_id)
         except ObjectDoesNotExist:
@@ -232,15 +225,13 @@ class UserViewSet(CustomMixinModelViewSet):
             }
         },
     )
-    @action(detail=False, methods=['get', 'post'],
-            url_path='import', serializer_class=UserImportGetDataSerializer, filter_backends=[], pagination_class=None)
+    @action(detail=False, methods=['post'],
+            url_path='import', serializer_class=UserImportFieldDataSerializer, filter_backends=[], pagination_class=None)
     def import_user_list(self, request):
         """
         MEH: Create User list from Excel File (up to 1000) (POST ACTION)
         give any Excel file with any col and row (Handle valid col header and row data)
         """
-        if request.method == 'GET': # MEH: Set this for showing valid cel field for Excel...
-            return Response({'detail': list(UserImportSetDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
         check_serializer = self.get_serializer(data=request.data)
         check_serializer.is_valid(raise_exception=True)
         excel_file = check_serializer.validated_data['excel_file']
@@ -257,19 +248,42 @@ class UserViewSet(CustomMixinModelViewSet):
             nested_field_category='user_profile',
             extra_fields=extra_fields,
         )
-        self.serializer_class = UserImportSetDataSerializer # MEH: Change Serializer class to Validate Posted Data with Excel
+        self.serializer_class = UserImportDataSerializer # MEH: Change Serializer class to Validate Posted Data with Excel
         res = self.custom_create(user_data_list, many=True) # MEH: Check, Validate (Raise Exception if any) & Save Data in DB 1 by 1
-        self.serializer_class = UserImportGetDataSerializer # MEH: Change back for View purpose in DRF UI
+        self.serializer_class = UserImportFieldDataSerializer # MEH: Change back for View purpose in DRF UI
         return res
 
-    @extend_schema(responses={200: UserDownloadDataSerializer(many=True)})
     @action(detail=False, methods=['get'],
-            url_path='download')
-    def download_user_list(self, request):
+            url_path='import-fields', serializer_class=UserImportDataSerializer, filter_backends=[], pagination_class=None)
+    def import_user_list_valid_field(self, request):
+        """
+        MEH: Set this for showing valid cel field for Excel...
+        """
+        all_fields = self.get_serializer_fields()
+        return Response({'detail': list(all_fields.keys())}, status=status.HTTP_200_OK)
+        # return Response({'detail': list(UserImportDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
+
+    @extend_schema(
+        responses={200: OpenApiTypes.BINARY}, # or a more specific file/media type
+        parameters=[
+            OpenApiParameter(
+                name='check_field',
+                description='Used for highlight User row in Excel file, if check_filed is None or 0',
+                required=False,
+                type=str,
+                location=OpenApiParameter.QUERY,
+                enum=list(UserDownloadDataSerializer().get_fields().keys())
+            )
+        ]
+    )
+    @action(detail=False, methods=['get'],
+            url_path='download', serializer_class=None)
+    def download_user_list(self, request, check_field=None):
         """
         MEH: Get User List with Filter and write data in Excel (up to 1000) (GET ACTION)
         (Direct Download)
         """
+        check_field = request.query_params.get('check_field')
         queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
         headers = list(UserDownloadDataSerializer().get_fields().keys()) # MEH: Get Header from Serializer
         rows = []
@@ -286,7 +300,7 @@ class UserViewSet(CustomMixinModelViewSet):
                 else:
                     row.append(str(value))
             rows.append(row)
-        return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field='national_id')
+        return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field=str(check_field))
 
     @action(detail=True, methods=['get', 'put', 'partial'],
             url_path='manually-verify-phone', serializer_class=UserManualVerifyPhoneSerializer, filter_backends=[None])
@@ -294,7 +308,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Update User verified_phone (PUT ACTION)
         """
-        queryset = self.get_object(pk=pk)
+        queryset = self.get_object()
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)
@@ -308,12 +322,12 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     queryset = Introduction.objects.all()
     serializer_class = IntroductionSerializer
     permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
-    # filter_backends = [
-    #     filters.SearchFilter,
-    #     filters.OrderingFilter,
-    # ]
-    # search_fields = ['title'] # MEH: Get search query
-    # ordering_fields = ['date_joined', 'order_count', 'last_order_date']
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = ['title'] # MEH: Get search query
+    ordering_fields = ['title', 'number']
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         'list': 'full_introductions',
         'retrieve': 'full_introductions',
@@ -344,7 +358,7 @@ class RoleViewSet(CustomMixinModelViewSet):
             url_path='bulk-delete')
     def bulk_delete(self, request):
         """
-        MEH: Delete List of Role Objects (use POST ACTION for sendin list of id in request body)
+        MEH: Delete List of Role Objects (use POST ACTION for sending list of id in request body)
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
