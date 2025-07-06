@@ -32,12 +32,8 @@ class EmployeeLevel(models.Model):
                                    blank=True, null=True)
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name="Is Active")
-    api_items = models.ManyToManyField(
-        ApiItem,
-        through='EmployeeLevelAccessApiItem',
-        through_fields=('employee_level', 'api_item'),
-        verbose_name="Api Items"
-    )
+    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items",
+                                       related_name="employee_levels")
 
     class Meta:
         verbose_name = "Employee Level"
@@ -45,16 +41,3 @@ class EmployeeLevel(models.Model):
 
     def __str__(self):
         return f'Employee Level: {self.title}'
-
-class EmployeeLevelAccessApiItem(models.Model):
-    employee_level = models.ForeignKey(EmployeeLevel, on_delete=models.CASCADE,
-                                       related_name='all_api_items',)
-    api_item = models.ForeignKey(ApiItem, on_delete=models.CASCADE,
-                                 related_name='all_employee_levels',)
-
-    class Meta:
-        verbose_name = "Employee Level Access API Item"
-        verbose_name_plural = "Employee Levels Access API Items"
-
-    def __str__(self):
-        return f'{self.employee_level} /Access For: {self.api_item}'

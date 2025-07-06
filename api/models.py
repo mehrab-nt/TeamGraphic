@@ -30,7 +30,7 @@ class ApiItem(models.Model):
                                  related_name='api_items')
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = [ 'category', '-sort_number',]
         verbose_name = 'API Item'
         verbose_name_plural = 'API Items'
 

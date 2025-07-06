@@ -117,12 +117,8 @@ class Role(models.Model):
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name="Is Active")
     is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
-    api_items = models.ManyToManyField(
-        ApiItem,
-        through='RoleAccessApiItem',
-        through_fields=('role', 'api_item'),
-        verbose_name="Api Items"
-    )
+    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items",
+                                       related_name='roles',)
 
     class Meta:
         ordering = ['sort_number']
@@ -147,20 +143,6 @@ class Role(models.Model):
         if self.is_default:
             raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
         super().delete(*args, **kwargs)
-
-
-class RoleAccessApiItem(models.Model):
-    role = models.ForeignKey(Role, on_delete=models.CASCADE,
-                             related_name='all_api_items',)
-    api_item = models.ForeignKey(ApiItem, on_delete=models.CASCADE,
-                                 related_name='all_role',)
-
-    class Meta:
-        verbose_name = "Role Access API Item"
-        verbose_name_plural = "Roles Access API Items"
-
-    def __str__(self):
-        return f'{self.role} /Access For: {self.api_item}'
 
 
 class Introduction(models.Model):
