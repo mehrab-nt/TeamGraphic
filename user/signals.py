@@ -28,7 +28,7 @@ def user_post_save(sender, instance, created, **kwargs):
     if not instance.role and not instance.is_employee and not instance.is_staff:
         instance.role = Role.objects.filter(is_default=True).first()
         flag = True
-    if instance.is_employee and instance.role:
+    if (instance.is_employee or instance.is_staff) and instance.role:
         instance.role = None
         flag = True
     if instance.introduce_from:
