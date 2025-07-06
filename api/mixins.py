@@ -2,12 +2,13 @@ from django.db import models
 from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
 from django.core.validators import MinLengthValidator, MaxLengthValidator
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from rest_framework import viewsets
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.exceptions import PermissionDenied, ValidationError
+from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from .responses import *
 
 
@@ -60,7 +61,31 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     required_api_keys = None # MEH: Override this In each model view set for handle Access
 
     def get_required_api_key(self): # MEH: Custom Pagination :) even LimitOffsetPagination
-        return self.required_api_keys.get(self.action)
+        return self.required_api_keys.get(self.action) or self.required_api_keys.get('__all__')
+
+    def get_serializer_fields(self, serializer=None, parent_prefix=''): # MEH: For get valid field from serializer (nested included)
+        fields = {}
+        if serializer is None:
+            serializer = self.get_serializer()
+        for name, field in serializer.fields.items():
+            full_name = f"{parent_prefix}{name}" if parent_prefix else name
+            if isinstance(field, serializers.BaseSerializer):
+                nested_fields = self.get_serializer_fields(field)
+                fields.update(nested_fields)
+            else:
+                fields[full_name] = field
+        return fields
+
+    def get_object(self, *args, **kwargs): # MEH: Override get single obj (with pk) (DEFAULT GET OBJECT ACTION) also use auto for PUT & DELETE
+        queryset = self.get_queryset()
+        lookup_value = self.kwargs.get(self.lookup_field, '')
+        try:
+            obj = queryset.get(pk=int(lookup_value))
+            return obj # MEH: Object Access check again after In has_object_permission
+        except ObjectDoesNotExist:
+            raise NotFound(TG_DATA_NOT_FOUND)
+        except ValueError:
+            raise NotFound(TG_EXPECTED_ID_NUMBER)
 
     def retrieve(self, request, *args, **kwargs): # MEH: not change for now
         return super().retrieve(request, *args, **kwargs)

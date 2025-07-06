@@ -154,10 +154,20 @@ class UserSerializer(CustomModelSerializer):
         return instance
 
 
-class UserImportSetDataSerializer(UserSerializer):
+class UserProfileImportDataSerializer(UserSerializer):
+    """
+    MEH: for handle User-Profile field -> Excel import user list
+    """
+    class Meta:
+        model = UserProfile
+        fields = ['gender', 'job', 'description']
+
+
+class UserImportDataSerializer(UserSerializer):
     """
     MEH: for handle User field -> Excel import user list
     """
+    user_profile = UserProfileImportDataSerializer(required=False)
     class Meta:
         model = User
         fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
@@ -165,7 +175,7 @@ class UserImportSetDataSerializer(UserSerializer):
         list_serializer_class = CustomBulkListSerializer
 
 
-class UserImportGetDataSerializer(CustomModelSerializer):
+class UserImportFieldDataSerializer(CustomModelSerializer):
     """
     MEH: temporary Serializer Class for handle Excel & user role -> (User import list)
     """
