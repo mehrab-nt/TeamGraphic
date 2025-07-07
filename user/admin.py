@@ -3,6 +3,7 @@ from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
 from .models import User, UserProfile, Role, Introduction, Address
+from django.contrib.gis.admin import GISModelAdmin
 from api.responses import TG_PREVENT_DELETE_DEFAULT
 
 
@@ -48,8 +49,8 @@ class IntroductionAdmin(admin.ModelAdmin):
     list_display = ['title', 'number', 'sort_number']
 
 
-class AddressAdmin(CustomModelAdmin):
-    list_display = ['title', 'user', 'province', 'city', 'content', 'plate_number', 'unit_number', 'is_default']
+class AddressAdmin(CustomModelAdmin, GISModelAdmin):
+    list_display = ['title', 'user', 'province', 'city', 'location', 'content', 'plate_number', 'unit_number', 'is_default']
     list_display_links = ['title']
     list_filter = ['is_default']
 

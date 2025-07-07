@@ -3,6 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.utils import timezone
 from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.contrib.gis.db import models as gis_models
 from city.models import City, Province
 from api.responses import *
 from api.models import ApiItem
@@ -166,11 +167,15 @@ class Address(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE,
                              blank=False, null=False,
                              related_name='user_addresses')
-    # todo: location GIS
     province = models.ForeignKey(Province, on_delete=models.PROTECT,
                                  blank=False, null=True)
     city = models.ForeignKey(City, on_delete=models.PROTECT,
                              blank=True, null=True)
+    location = gis_models.PointField(geography=True, blank=True, null=True)
+    # "location": {
+    #     "type": "Point",
+    #     "coordinates": [51.3890, 35.6892] // [longitude, latitude]
+    # } Sample Json Data
     content = models.TextField(max_length=236,
                                blank=False, null=False)
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],

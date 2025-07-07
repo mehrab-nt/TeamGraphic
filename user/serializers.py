@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework_gis.fields import GeometryField
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
@@ -295,6 +296,7 @@ class AddressSerializer(CustomModelSerializer):
     """
     submit_date = serializers.HiddenField(default=timezone.now) # MEH: Set date time to now every time address change!
     postal_code = serializers.CharField(default=None)
+    location = GeometryField()
 
     class Meta:
         model = Address

@@ -85,6 +85,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'drf_spectacular',
+    'django.contrib.gis',
     'user.apps.UsersConfig',
     'employee.apps.EmployeeConfig',
     'api.apps.ApiConfig',
@@ -137,7 +138,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'teamgraphic_db',
         'USER': 'teamgraphic_admin',
         'PASSWORD': '123456',
