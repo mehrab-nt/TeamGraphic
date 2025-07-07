@@ -17,7 +17,8 @@ class UserSignUpSerializer(CustomModelSerializer):
     """
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
-    password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True)
+    password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                     style={'input_type': 'password'})
     first_name = serializers.CharField(required=True, min_length=3, max_length=73)
     introduce_code = serializers.CharField(min_length=8, max_length=8, allow_blank=True, allow_null=True, write_only=True)
 
@@ -48,7 +49,8 @@ class UserSignInSerializer(serializers.Serializer):
     """
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
-    password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True)
+    password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                     style={'input_type': 'password'})
 
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
@@ -69,7 +71,7 @@ class UserProfileSerializer(CustomModelSerializer):
     MEH: Profile information about user (Gender, Photo, Job, ...)
     """
     user = serializers.SerializerMethodField()
-    gender = CustomChoiceField(choices=GENDER.choices)
+    gender = CustomChoiceField(choices=GENDER.choices, initial=GENDER.UNDEFINED)
     gender_display = serializers.SerializerMethodField()
     description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
     job = serializers.CharField(default=None)
@@ -98,6 +100,7 @@ class UserSerializer(CustomModelSerializer):
     national_id = serializers.CharField(required=False, allow_null=True,
                                         validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
+    role_display = serializers.StringRelatedField(source='role')
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
     invite_user_count = serializers.SerializerMethodField()
     introducer = serializers.StringRelatedField()
@@ -130,7 +133,7 @@ class UserSerializer(CustomModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
+                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
         read_only_fields = ['date_joined', 'is_active']
         list_serializer_class = CustomBulkListSerializer
 

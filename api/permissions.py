@@ -15,11 +15,11 @@ class ApiAccess(permissions.BasePermission):
             required_key = get_key_fn()
         else:
             required_key = None
-        print(required_key)
         if required_key:
             if required_key == 'allow_any': # MEH: Set action key (allow_any) -> Show to any User even not authenticated
                 return True
             elif request.user.is_authenticated: # MEH: If There is a key except (allow_any), so User most be authenticated
+                # todo: remove this print for publish
                 print(f"[PERMISSION] Checking key: {required_key} for user: {request.user}") # MEH: Log what User try to Access what Api...
                 if request.user.has_api_permission(required_key): # MEH: Check Api-Item list in Employee-Level (Super User Access it anyway)
                     return True
