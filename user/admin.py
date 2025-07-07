@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.models import Group
 from django.contrib.auth.admin import UserAdmin
 from django.contrib import messages
 from .models import User, UserProfile, Role, Introduction, Address
@@ -53,6 +54,7 @@ class AddressAdmin(CustomModelAdmin):
     list_filter = ['is_default']
 
 
+admin.site.unregister(Group)
 admin.site.register(User, CustomUserAdmin)
 admin.site.register(UserProfile, UserProfileAdmin)
 admin.site.register(Role, RoleAdmin)
