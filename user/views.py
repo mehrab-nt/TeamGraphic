@@ -345,7 +345,12 @@ class RoleViewSet(CustomMixinModelViewSet):
     """
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [ApiAccess]
+    required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
+        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete'], 'get_user_role_access'),
+        'create': 'create_user_role_access',
+        # 'set_level_for_employee': 'get_employee_level_access'
+    }
 
     @extend_schema(
         request=BulkDeleteSerializer,

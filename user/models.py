@@ -118,7 +118,7 @@ class Role(models.Model):
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name="Is Active")
     is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
-    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items",
+    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items", blank=True,
                                        related_name='roles',)
 
     class Meta:

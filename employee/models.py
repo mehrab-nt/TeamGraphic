@@ -32,7 +32,7 @@ class EmployeeLevel(models.Model):
                                    blank=True, null=True)
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name="Is Active")
-    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items",
+    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items", blank=True,
                                        related_name="employee_levels")
 
     class Meta:
