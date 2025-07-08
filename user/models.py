@@ -61,6 +61,7 @@ class User(AbstractUser):
             old_user = User.objects.get(pk=self.pk)
             if self.phone_number != old_user.phone_number:
                 self.phone_number_verified = False
+            self.is_employee = bool(getattr(self, 'employee_profile', None))
         if not self.public_key or 'tg-' not in self.public_key:
             self.public_key = self.generate_unique_key(User,'public_key', 8, 'tg-')
         if not self.private_key or len(self.private_key) != 16:
