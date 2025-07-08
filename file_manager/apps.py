@@ -35,7 +35,6 @@ class ExcelHandler:
         if check_field:
             if check_field in headers:
                 check_col_number = headers.index(check_field) + 1
-                print(check_col_number)
         ws.append(headers)
         for cell in ws[1]:
             cell.font = header_font

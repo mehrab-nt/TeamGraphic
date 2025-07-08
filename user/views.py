@@ -46,7 +46,7 @@ class UserViewSet(CustomMixinModelViewSet):
     """
     MEH: User Model viewset
     """
-    queryset = User.objects.all()
+    queryset = User.objects.all() # MEH: Override in get_query_set()
     serializer_class = UserSerializer
     filterset_class = CustomerFilter
     filter_backends = [
@@ -355,7 +355,7 @@ class RoleViewSet(CustomMixinModelViewSet):
     """
     MEH: Role Model viewset
     """
-    queryset = Role.objects.prefetch_related('api_aitems')
+    queryset = Role.objects.prefetch_related('api_items')
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category

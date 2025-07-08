@@ -1,6 +1,7 @@
 from rest_framework import permissions
 from rest_framework.exceptions import PermissionDenied
 from .responses import TG_PERMISSION_DENIED
+from user.models import User
 
 
 class ApiAccess(permissions.BasePermission):
