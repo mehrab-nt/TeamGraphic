@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.validators import RegexValidator
+from django.core.validators import RegexValidator, MinLengthValidator, MaxLengthValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
@@ -20,7 +20,7 @@ class UserSignUpSerializer(CustomModelSerializer):
     password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
                                      style={'input_type': 'password'})
     first_name = serializers.CharField(required=True, min_length=3, max_length=73)
-    introduce_code = serializers.CharField(min_length=8, max_length=8, allow_blank=True, allow_null=True, write_only=True)
+    introduce_code = serializers.CharField(min_length=8, max_length=8, allow_blank=True, allow_null=True, write_only=True, required=False)
 
     def validate_phone_number(self, data): # MEH: Validate if Phone Number is new or not
         if self.Meta.model.objects.filter(phone_number=data).exists():
@@ -64,6 +64,20 @@ class UserSignInSerializer(serializers.Serializer):
                 'id': user.id,
             }
         }
+
+    def get_fields(self):
+        fields = super().get_fields()
+        for name, field in fields.items():
+            if isinstance(field, serializers.CharField):
+                field.error_messages.update({
+                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG,
+                })
+            for validator in getattr(field, 'validators', []):
+                if isinstance(validator, MinLengthValidator):
+                    validator.message = TG_DATA_TOO_SHORT + str(validator.limit_value)
+                if isinstance(validator, MaxLengthValidator):
+                    validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
+        return fields
 
 
 class UserProfileSerializer(CustomModelSerializer):
@@ -109,15 +123,15 @@ class UserSerializer(CustomModelSerializer):
     @staticmethod
     def get_invite_user_count(obj):
         try:
-            return obj.invite_user_list.all().count()
+            return obj.invite_user_count
         except AttributeError:
             return None
 
     @staticmethod
     def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list query)
-        default_address = obj.user_addresses.filter(is_default=True).first()
-        if default_address and default_address.province:
-            return str(default_address.province)
+        if hasattr(obj, 'default_addresses') and obj.default_addresses:
+            province = obj.default_addresses[0].province
+            return str(province) if province else None
         return None
 
     @staticmethod
