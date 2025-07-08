@@ -6,7 +6,7 @@ from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
-from django.db.models import Subquery, OuterRef
+from django.db.models import Subquery, OuterRef, Count, Prefetch
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
                           UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
@@ -46,7 +46,7 @@ class UserViewSet(CustomMixinModelViewSet):
     """
     MEH: User Model viewset
     """
-    queryset = User.objects.prefetch_related('user_profile')
+    queryset = User.objects.all()
     serializer_class = UserSerializer
     filterset_class = CustomerFilter
     filter_backends = [
@@ -70,16 +70,28 @@ class UserViewSet(CustomMixinModelViewSet):
         'manually_verify_phone': 'verify_phone',
     }
 
-    def get_queryset(self):
+    def get_queryset(self, *args, **kwargs):
         """
-        MEH: Override Super QS for filter Employee and SuperUser from User List
-        Set subquery for getting province from default Address if there is any & Use it on filter User Province
+        MEH: Override queryset to
+        annotate invite_user_count, and default_province_id.
+        Also optimize address prefetching.
         """
-        qs = super().get_queryset().filter(is_employee=False, is_superuser=False)
-        default_province_id = Subquery(
-            Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
-        )
-        return qs.annotate(default_province_id=default_province_id)
+        qs = super().get_queryset().filter(is_employee=False, is_superuser=False).select_related('user_profile', 'role', 'introducer', 'introduce_from')
+        if self.action not in ('key', 'profile', 'accounting', 'activation'):
+            qs = qs.annotate(invite_user_count=Count('invite_user_list'))
+            qs = qs.annotate(
+                default_province_id=Subquery(
+                    Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
+                )
+            )
+            qs = qs.prefetch_related(
+                Prefetch(
+                    'user_addresses',
+                    queryset=Address.objects.filter(is_default=True).select_related('province'),
+                    to_attr='default_addresses'
+                )
+            )
+        return qs
 
     def get_object(self, *args, **kwargs):
         """
@@ -343,7 +355,7 @@ class RoleViewSet(CustomMixinModelViewSet):
     """
     MEH: Role Model viewset
     """
-    queryset = Role.objects.all()
+    queryset = Role.objects.prefetch_related('api_aitems')
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category

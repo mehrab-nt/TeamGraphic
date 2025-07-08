@@ -79,13 +79,13 @@ class User(AbstractUser):
         if not key:
             return False
         if self.is_employee: # MEH: Check Access for this Employee
-            employee = getattr(self, "employee_profile", None)
-            if employee and employee.level:
-                return employee.level.api_items.filter(key=key).exists()
+            level = getattr(getattr(self, "employee_profile", None), "level", None)
+            if level and hasattr(level, 'api_items'):
+                return any(item.key == key for item in level.api_items.all())
             return False
         role = getattr(self, "role", None) # MEH: Check Access for customer depend on their Role...
-        if role:
-            return role.api_items.filter(key=key).exists()
+        if role and hasattr(role, 'api_items'):
+            return any(item.key == key for item in role.api_items.all())
         return False
 
 
