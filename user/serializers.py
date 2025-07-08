@@ -22,14 +22,14 @@ class UserSignUpSerializer(CustomModelSerializer):
     first_name = serializers.CharField(required=True, min_length=3, max_length=73)
     introduce_code = serializers.CharField(min_length=8, max_length=8, allow_blank=True, allow_null=True, write_only=True, required=False)
 
+    class Meta:
+        model = User
+        fields = ['phone_number', 'password', 'first_name', 'introduce_from', 'introduce_code']
+
     def validate_phone_number(self, data): # MEH: Validate if Phone Number is new or not
         if self.Meta.model.objects.filter(phone_number=data).exists():
             raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
         return data
-
-    class Meta:
-        model = User
-        fields = ['phone_number', 'password', 'first_name', 'introduce_from', 'introduce_code']
 
     def create(self, validated_data, **kwargs): # MEH: override create super method (POST)
         password = validated_data.pop('password') # MEH: Safe drop password from data
@@ -120,19 +120,26 @@ class UserSerializer(CustomModelSerializer):
     introducer = serializers.StringRelatedField()
     province = serializers.SerializerMethodField()
 
+    class Meta:
+        model = User
+        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
+                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
+        read_only_fields = ['date_joined', 'is_active']
+        list_serializer_class = CustomBulkListSerializer
+
     @staticmethod
-    def get_invite_user_count(obj):
+    def get_invite_user_count(obj): # MEH: get Count of invite_user_list (in user list QS)
         try:
             return obj.invite_user_count
         except AttributeError:
-            return None
+            return 0
 
     @staticmethod
-    def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list query)
-        if hasattr(obj, 'default_addresses') and obj.default_addresses:
-            province = obj.default_addresses[0].province
-            return str(province) if province else None
-        return None
+    def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list QS)
+        try:
+            return obj.default_province
+        except AttributeError:
+            return None
 
     @staticmethod
     def validate_filed(user_data, pk=None): # MEH: validate phone or national_id is not in DB (except self data for update)
@@ -143,13 +150,6 @@ class UserSerializer(CustomModelSerializer):
             if user_data['national_id']:
                 if User.objects.exclude(pk=pk).filter(national_id=user_data['national_id']).exists():
                     raise serializers.ValidationError({'national_id': TG_UNIQUE_PROTECT})
-
-    class Meta:
-        model = User
-        fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
-        read_only_fields = ['date_joined', 'is_active']
-        list_serializer_class = CustomBulkListSerializer
 
     def create(self, validated_data, **kwargs): # MEH: Nested create a User with Profile (Just for Admin work) example like from Excel file...
         self.validate_filed(validated_data)
@@ -162,6 +162,8 @@ class UserSerializer(CustomModelSerializer):
         self.validate_filed(validated_data, instance.pk)
         profile_data = validated_data.pop('user_profile', {})
         for attr, value in validated_data.items():
+            if attr == 'phone_number' and instance.phone_number != value:
+                instance.phone_number_verified = False
             setattr(instance, attr, value)
         instance.save()
         if profile_data:
@@ -217,9 +219,9 @@ class UserDownloadDataSerializer(UserSerializer):
     class Meta:
         model = User
         fields = ['phone_number', 'first_name', 'last_name', 'date_joined', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
+                  'is_active', 'invite_user_count', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
         read_only_fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
+                  'is_active', 'invite_user_count', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
 
     @staticmethod
     def get_date_joined(obj):
@@ -256,6 +258,12 @@ class UserAccountingSerializer(CustomModelSerializer):
                                              validators=[RegexValidator(regex=r'^\d{1,16}$', message=TG_DATA_WRONG)])
     accounting_name = serializers.CharField(default=None)
 
+    class Meta:
+        model = User
+        fields = ['id', 'user', 'phone_number', 'national_id', 'first_name', 'last_name',
+                  'role', 'accounting_id', 'accounting_name']
+        read_only_fields = ['phone_number', 'national_id']
+
     def validate_accounting_id(self, data): # Make sure is Unique
         if not data:
             return data
@@ -263,12 +271,6 @@ class UserAccountingSerializer(CustomModelSerializer):
             if User.objects.exclude(pk=self.instance.id).filter(accounting_id=data).exists():
                 raise serializers.ValidationError(TG_UNIQUE_PROTECT)
         return data
-
-    class Meta:
-        model = User
-        fields = ['id', 'user', 'phone_number', 'national_id', 'first_name', 'last_name',
-                  'role', 'accounting_id', 'accounting_name']
-        read_only_fields = ['phone_number', 'national_id']
 
     @staticmethod
     def get_user(obj):
@@ -300,7 +302,7 @@ class UserManualVerifyPhoneSerializer(CustomModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'user', 'phone_number', 'phone_number_verified']
-        read_only_field = ['phone_number']
+        read_only_fields = ['phone_number']
 
     @staticmethod
     def get_user(obj):
@@ -314,11 +316,16 @@ class AddressSerializer(CustomModelSerializer):
     submit_date = serializers.HiddenField(default=timezone.now) # MEH: Set date time to now every time address change!
     postal_code = serializers.CharField(default=None)
     location = GeometryField()
+    user = serializers.SerializerMethodField()
 
     class Meta:
         model = Address
         fields = '__all__'
         read_only_fields = ['user']
+
+    @staticmethod
+    def get_user(obj):
+        return obj.user.get_full_name()
 
     def to_representation(self, instance): # MEH: for display Farsi name in Api alongside id
         data = super().to_representation(instance)
