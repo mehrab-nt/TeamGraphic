@@ -72,26 +72,22 @@ class UserViewSet(CustomMixinModelViewSet):
 
     def get_queryset(self, *args, **kwargs):
         """
-        MEH: Override queryset to
-        annotate invite_user_count, and default_province_id.
-        Also optimize address prefetching.
+        MEH: Override queryset
         """
-        qs = super().get_queryset().filter(is_employee=False, is_superuser=False).select_related('user_profile', 'role', 'introducer', 'introduce_from')
-        if self.action not in ('key', 'profile', 'accounting', 'activation'):
-            qs = qs.annotate(invite_user_count=Count('invite_user_list'))
-            qs = qs.annotate(
-                default_province_id=Subquery(
-                    Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province')[:1]
-                )
-            )
-            qs = qs.prefetch_related(
-                Prefetch(
-                    'user_addresses',
-                    queryset=Address.objects.filter(is_default=True).select_related('province'),
-                    to_attr='default_addresses'
-                )
-            )
-        return qs
+        qs = super().get_queryset().filter(is_employee=False, is_superuser=False)
+        if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
+            return qs
+        if self.action == 'accounting':
+            return qs.select_related('role')
+        if self.action == 'profile':
+            return qs.select_related('user_profile')
+        if self.action == 'get_address_list':
+            return qs.prefetch_related('user_addresses')
+        return (
+            qs.select_related('role', 'user_profile', 'introduce_from', 'introducer')
+            .annotate(default_province=Subquery(Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province__name')[:1]))
+            .annotate(invite_user_count=Count('invite_user_list'))
+        )
 
     def get_object(self, *args, **kwargs):
         """
@@ -189,9 +185,8 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User (with pk) Address list (GET ACTION)
         """
-        user = self.get_object()
-        queryset = user.user_addresses.all()
-        if not queryset.exists():
+        queryset = Address.objects.select_related('user', 'province', 'city').filter(user__pk=self.kwargs['pk'])
+        if not queryset:
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(queryset)
 
@@ -212,9 +207,9 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Address Detail (with pk), Update and Delete it (PUT/DELETE ACTION)
         """
-        user = self.get_object()
+        address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk)
         try:
-            instance = user.user_addresses.get(pk=address_id)
+            instance = address_list.get(pk=address_id)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         except ValueError:
