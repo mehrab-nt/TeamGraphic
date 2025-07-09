@@ -7,7 +7,8 @@ from django.utils import timezone
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
-from api.models import ApiItem, ApiCategory
+from api.models import ApiItem
+from config.images import *
 
 
 class UserSignUpSerializer(CustomModelSerializer):
@@ -79,10 +80,11 @@ class UserProfileSerializer(CustomModelSerializer):
     gender_display = serializers.SerializerMethodField()
     description = serializers.CharField(default=None, allow_null=True, style={'base_template': 'textarea.html'})
     job = serializers.CharField(default=None, allow_null=True)
+    profile_image = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
         model = UserProfile
-        fields = ['id', 'user', 'birth_date', 'description', 'job', 'gender', 'gender_display']
+        fields = ['id', 'user', 'profile_image', 'birth_date', 'description', 'job', 'gender', 'gender_display']
 
     @staticmethod
     def get_user(obj):
@@ -91,6 +93,34 @@ class UserProfileSerializer(CustomModelSerializer):
     @staticmethod
     def get_gender_display(obj):
         return obj.get_gender_display()
+
+    @staticmethod
+    def validate_profile_image(image): # MEH: Check uploaded Image for profile (Setting in config.images.py)
+        try:
+            size_mb = image.size / (1024 * 1024)
+            if size_mb > MAX_PROFILE_IMAGE_SIZE_MB:
+                raise serializers.ValidationError(f"{TG_MAX_IMAGE_SIZE} ({MAX_PROFILE_IMAGE_SIZE_MB} MB)")
+        except Exception:
+            return None
+        try:
+            img = Image.open(image)
+        except Exception as e:
+            raise serializers.ValidationError(TG_INVALID_IMAGE)
+        img_format = img.format.upper()
+        if img_format not in ALLOWED_IMAGE_FORMATS:
+            raise serializers.ValidationError(f"{TG_UNSUPPORTED_FORMAT} ({img_format})")
+        width, height = img.size
+        if width > MAX_PROFILE_IMAGE_WIDTH or height > MAX_PROFILE_IMAGE_HEIGHT:
+            raise serializers.ValidationError(f"{TG_MAX_IMAGE_DIMENSIONS}({MAX_PROFILE_IMAGE_WIDTH}x{MAX_PROFILE_IMAGE_HEIGHT}px)")
+        optimized_image = optimize_image(image)
+        return optimized_image
+
+    def update(self, instance, validated_data, **kwargs): # MEH: Nested update for User Profile
+        new_image = validated_data.get('profile_image', None)
+        if new_image: # MEH: check if new valid image here, delete old image
+            if instance.profile_image:
+                instance.profile_image.delete(save=False)
+        return super().update(instance, validated_data)
 
 
 class UserSerializer(CustomModelSerializer):
@@ -158,6 +188,10 @@ class UserSerializer(CustomModelSerializer):
         instance.save()
         if profile_data:
             profile = instance.user_profile
+            new_image = profile_data.get('profile_image', None)
+            if new_image: # MEH: check if new valid image here, delete old image
+                if profile.profile_image:
+                    profile.profile_image.delete(save=False)
             for attr, value in profile_data.items():
                 setattr(profile, attr, value)
             profile.save()

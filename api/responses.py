@@ -28,3 +28,7 @@ TG_MANY_DATA_DENIED = 'مجاز به ارسال لیست اطلاعات نیست
 TG_EXCEL_FILE_INVALID = 'فایل اکسل مشکل دارد: '
 TG_EXCEL_FILE_REQUIRED_COL = 'این ستون ها داخل اکسل الزامی است: '
 TG_EXCEL_FILE_LIMIT_1000 = 'حداکثر ۱۰۰۰ ستر قابل پردازش است.'
+TG_MAX_IMAGE_SIZE = 'حداکثر حجم تصویر قبول: '
+TG_MAX_IMAGE_DIMENSIONS = 'حداکثر ابعاد تصویر قبول: '
+TG_UNSUPPORTED_FORMAT = 'عدم پشتیبانی فرمت: '
+TG_INVALID_IMAGE = 'تصویر ارسالی مشکل دارد!'

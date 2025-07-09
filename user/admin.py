@@ -36,7 +36,7 @@ class CustomUserAdmin(UserAdmin):
 
 
 class UserProfileAdmin(admin.ModelAdmin):
-    list_display = ['id', 'user', 'birth_date', 'gender', 'job']
+    list_display = ['id', 'user', 'profile_image', 'birth_date', 'gender', 'job']
     search_fields = ['user__phone_number', 'user__first_name']
 
 

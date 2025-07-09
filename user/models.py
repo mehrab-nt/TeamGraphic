@@ -8,6 +8,7 @@ from city.models import City, Province
 from api.responses import *
 from api.models import ApiItem
 import string, random
+from config.images import *
 
 
 class User(AbstractUser):
@@ -89,12 +90,19 @@ class GENDER(models.TextChoices):
     UNDEFINED = 'U', 'تعیین نشده'
 
 
+def user_profile_upload_path(instance, filename):
+    return f'user/profile_images/#{instance.user.id}-profile.webp'
+
+
 class UserProfile(models.Model):
     birth_date = models.DateField(blank=True, null=True, verbose_name='Birth Date')
     gender = models.CharField(max_length=1, choices=GENDER.choices, default=GENDER.UNDEFINED, blank=False, null=False)
     description = models.TextField(blank=True, null=True)
     job = models.CharField(max_length=23, blank=True, null=True,
                            db_index=True)
+    profile_image = models.ImageField(upload_to=user_profile_upload_path,
+                                      blank=True, verbose_name='Profile Image')
+    # MEH todo: Add default image profile.png
 
     class Meta:
         ordering = ['user']
@@ -103,6 +111,11 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile: {self.user}"
+
+    def save(self, *args, **kwargs):
+        if not self.profile_image:
+            self.profile_image = 'user/profile_images/default-profile.webp'
+        super().save(*args, **kwargs)
 
 
 class Role(models.Model):
