@@ -49,7 +49,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         """
         MEH: Update User Employee Level (Get/PUT ACTION)
         """
-        queryset = self.get_object()
+        queryset = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(queryset)

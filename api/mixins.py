@@ -46,7 +46,7 @@ class CustomChoiceField(serializers.ChoiceField):
     def to_internal_value(self, data):
         try:
             return super().to_internal_value(data)
-        except serializers.ValidationError as e:
+        except serializers.ValidationError:
             raise serializers.ValidationError(TG_DATA_WRONG)
 
 
@@ -108,9 +108,9 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         return self.custom_destroy(instance)
 
-    def custom_get(self, queryset): # Mix retrieve & list method In 1
-        is_many = not isinstance(queryset, models.Model)
-        serializer = self.get_serializer(queryset, many=is_many)
+    def custom_get(self, data): # Mix retrieve & list method In 1
+        is_many = not isinstance(data, models.Model)
+        serializer = self.get_serializer(data, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_create(self, data, many=False, **kwargs):
@@ -149,7 +149,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def custom_destroy(self, instance, **kwargs):
+    def custom_destroy(self, instance):
         is_many = isinstance(instance, list)
         if is_many: # MEH: Many destroy disable here -> (handle with custom_bulk_destroy)
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)

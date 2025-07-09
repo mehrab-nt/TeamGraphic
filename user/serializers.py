@@ -42,7 +42,7 @@ class UserSignUpSerializer(CustomModelSerializer):
         return user
 
 
-class UserSignInSerializer(serializers.Serializer):
+class UserSignInSerializer(CustomModelSerializer):
     """
     MEH: Api for validate user sign in with phone number and password
     return: Access Token & Refresh Token
@@ -51,6 +51,10 @@ class UserSignInSerializer(serializers.Serializer):
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
                                      style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['phone_number', 'password']
 
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
@@ -64,20 +68,6 @@ class UserSignInSerializer(serializers.Serializer):
                 'id': user.id,
             }
         }
-
-    def get_fields(self):
-        fields = super().get_fields()
-        for name, field in fields.items():
-            if isinstance(field, serializers.CharField):
-                field.error_messages.update({
-                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG,
-                })
-            for validator in getattr(field, 'validators', []):
-                if isinstance(validator, MinLengthValidator):
-                    validator.message = TG_DATA_TOO_SHORT + str(validator.limit_value)
-                if isinstance(validator, MaxLengthValidator):
-                    validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
-        return fields
 
 
 class UserProfileSerializer(CustomModelSerializer):

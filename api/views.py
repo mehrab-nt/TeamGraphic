@@ -38,7 +38,7 @@ class ApiCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Get Api-Category (with pk) Api-Item List (GET/POST ACTION)
         """
-        api_category = self.get_object()
+        api_category = self.get_object(pk=pk)
         queryset = api_category.api_items.all()
         if not queryset.exists():
             raise NotFound(TG_DATA_EMPTY)

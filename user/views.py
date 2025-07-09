@@ -73,6 +73,7 @@ class UserViewSet(CustomMixinModelViewSet):
     def get_queryset(self, *args, **kwargs):
         """
         MEH: Override queryset
+        to parse only required table per action
         """
         qs = super().get_queryset().filter(is_employee=False, is_superuser=False)
         if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
@@ -131,8 +132,8 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User by phone_number (GET ACTION)
         """
-        queryset = self.get_object(phone_number=phone_number)
-        return self.custom_get(queryset)
+        user = self.get_object(phone_number=phone_number)
+        return self.custom_get(user)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='profile', serializer_class=UserProfileSerializer)
@@ -140,11 +141,11 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Profile information and Update it (with pk) (GET/PUT ACTION)
         """
-        user = self.get_object()
-        queryset = user.user_profile
+        user = self.get_object(pk=pk)
+        use_profile = user.user_profile
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(queryset)
+            return self.custom_update(use_profile, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(use_profile)
 
     @action(detail=True, methods=['get'],
             url_path='key', serializer_class=UserKeySerializer)
@@ -153,8 +154,8 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Get User Key information (GET ACTION)
         Update block (auto generated and never change)
         """
-        queryset = self.get_object()
-        return self.custom_get(queryset)
+        user_key = self.get_object(pk=pk)
+        return self.custom_get(user_key)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='accounting', serializer_class=UserAccountingSerializer)
@@ -162,10 +163,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Accounting information and Update it (GET/PUT ACTION)
         """
-        queryset = self.get_object()
+        user_accounting = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(queryset)
+            return self.custom_update(user_accounting, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user_accounting)
 
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='activation', serializer_class=UserActivationSerializer, filter_backends=[None])
@@ -173,10 +174,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Update User Activation (is_active) (GET/PUT ACTION)
         """
-        queryset = self.get_object()
+        user_activation = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(queryset)
+            return self.custom_update(user_activation, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user_activation)
 
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get'],
@@ -184,21 +185,12 @@ class UserViewSet(CustomMixinModelViewSet):
     def get_address_list(self, request, pk=None):
         """
         MEH: Get User (with pk) Address list (GET ACTION)
+        Inline Queryset
         """
-        queryset = Address.objects.select_related('user', 'province', 'city').filter(user__pk=self.kwargs['pk'])
-        if not queryset:
+        address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk)
+        if not address_list:
             raise NotFound(TG_DATA_EMPTY)
-        return self.custom_get(queryset)
-
-    @extend_schema(tags=['Users-Addresses'])
-    @action(detail=True, methods=['post'],
-            url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
-    def create_address(self, request, pk=None):
-        """
-        MEH: Add New Address for User (with pk) (POST ACTION)
-        """
-        user = self.get_object()
-        return self.custom_create(request.data, user=user)
+        return self.custom_get(address_list)
 
     @extend_schema(tags=['Users-Addresses'])
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
@@ -209,16 +201,26 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk)
         try:
-            instance = address_list.get(pk=address_id)
+            address = address_list.get(pk=address_id)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         except ValueError:
             raise NotFound(TG_EXPECTED_ID_NUMBER)
         if request.method == 'DELETE':
-            return self.custom_destroy(instance)
+            return self.custom_destroy(address)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(instance, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(instance)
+            return self.custom_update(address, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(address)
+
+    @extend_schema(tags=['Users-Addresses'])
+    @action(detail=True, methods=['post'],
+            url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
+    def create_address(self, request, pk=None):
+        """
+        MEH: Add New Address for User (with pk) (POST ACTION)
+        """
+        user = self.get_object(pk=pk)
+        return self.custom_create(request.data, user=user)
 
     @extend_schema(
         request={ # MEH: Set this for API document (DRF & SCHEMA)
@@ -268,7 +270,6 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         all_fields = self.get_serializer_fields()
         return Response({'detail': list(all_fields.keys())}, status=status.HTTP_200_OK)
-        # return Response({'detail': list(UserImportDataSerializer().get_fields().keys())}, status=status.HTTP_200_OK)
 
     @extend_schema(
         responses={200: OpenApiTypes.BINARY}, # or a more specific file/media type
@@ -285,7 +286,7 @@ class UserViewSet(CustomMixinModelViewSet):
     )
     @action(detail=False, methods=['get'],
             url_path='download', serializer_class=None)
-    def download_user_list(self, request, check_field=None):
+    def download_user_list(self, request):
         """
         MEH: Get User List with Filter and write data in Excel (up to 1000) (GET ACTION)
         (Direct Download)
@@ -315,10 +316,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Update User verified_phone (PUT ACTION)
         """
-        queryset = self.get_object()
+        user_verified_phone = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(queryset, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(queryset)
+            return self.custom_update(user_verified_phone, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user_verified_phone)
 
 
 @extend_schema(tags=["Users-Introduction"])
@@ -336,12 +337,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     search_fields = ['title'] # MEH: Get search query
     ordering_fields = ['title', 'number']
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        'list': 'full_introductions',
-        'retrieve': 'full_introductions',
-        'create': 'full_introductions',
-        'update': 'full_introductions',
-        'partial_update': 'full_introductions',
-        'destroy': 'full_introductions',
+        '__all__': "full_introductions"
     }
 
 
@@ -356,7 +352,6 @@ class RoleViewSet(CustomMixinModelViewSet):
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete'], 'get_user_role_access'),
         'create': 'create_user_role_access',
-        # 'set_level_for_employee': 'get_employee_level_access'
     }
 
     @extend_schema(
