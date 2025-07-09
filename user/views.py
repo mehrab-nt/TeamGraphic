@@ -12,7 +12,7 @@ from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerial
                           UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer,
-                          RoleSerializer, RoleApiCategorySerializer)
+                          RoleSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -21,7 +21,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
-from api.serializers import BulkDeleteSerializer
+from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
 from file_manager.apps import ExcelHandler
 
 
@@ -356,7 +356,7 @@ class RoleViewSet(CustomMixinModelViewSet):
         'create': 'create_user_role_access',
     }
 
-    @action(detail=False, methods=['get'], serializer_class=RoleApiCategorySerializer,
+    @action(detail=False, methods=['get'], serializer_class=ApiCategorySerializer,
             url_path='api-list')
     def role_api_item_list(self, request):
         """
