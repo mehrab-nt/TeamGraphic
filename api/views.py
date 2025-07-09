@@ -29,7 +29,7 @@ class ApiCategoryViewSet(CustomMixinModelViewSet):
     required_api_keys = {} # MEH: Empty mean just Admin can Access
 
     def get_queryset(self):
-        qs = super().get_queryset().filter(role_base=False)
+        qs = super().get_queryset().filter(role_base=False).order_by('sort_number')
         if action == 'api_item_list':
             qs = qs.prefetch_related('api_items')
         return qs
@@ -52,7 +52,8 @@ class ApiItemViewSet(CustomMixinModelViewSet):
     """
     MEH: Api Item Model viewset
     """
-    queryset = ApiItem.objects.prefetch_related('category')
+    queryset = (ApiItem.objects.prefetch_related('category')
+                .order_by('sort_number'))
     serializer_class = AdminApiItemSerializer
     filter_backends = [
         DjangoFilterBackend,

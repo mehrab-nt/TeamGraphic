@@ -18,8 +18,11 @@ from api.mixins import CustomMixinModelViewSet
 class EmployeeViewSet(CustomMixinModelViewSet):
     """
     MEH: Employee Model viewset
+    (Employee dont back super user in any way)
     """
-    queryset = Employee.objects.all()
+    queryset = (Employee.objects.select_related('user', 'user__user_profile', 'level')
+                .filter(user__is_superuser=False)
+                .order_by('-user'))
     serializer_class = EmployeeSerializer
     filterset_class = EmployeeFilter
     filter_backends = [
@@ -35,20 +38,14 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         'create': 'create_employee',
     }
 
-    def get_queryset(self):
-        """
-        MEH: Override Super QS for filter SuperUser from User List
-        Api don't back super-user information in any way!
-        """
-        return super().get_queryset().select_related('user', 'user__user_profile', 'level').filter(user__is_superuser=False)
-
 
 @extend_schema(tags=['Employee-Level'])
 class EmployeeLevelViewSet(CustomMixinModelViewSet):
     """
     MEH: Employee Level Model viewset
     """
-    queryset = EmployeeLevel.objects.all()
+    queryset = (EmployeeLevel.objects.select_related('manager')
+                .prefetch_related('api_items'))
     serializer_class = EmployeeLevelSerializer
     filterset_class = EmployeeLevelFilter
     filter_backends = [
@@ -63,12 +60,6 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
         '__all__': 'get_employee_level_access',
         'create': 'create_employee_level_access',
     }
-
-    def get_queryset(self):
-        """
-        MEH: Override Super QS for reduce query
-        """
-        return super().get_queryset().select_related('manager').prefetch_related('api_items')
 
     def create(self, request, *args, **kwargs):
         """

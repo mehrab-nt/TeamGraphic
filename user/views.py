@@ -77,7 +77,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Override queryset
         to parse only required table per action
         """
-        qs = super().get_queryset().filter(is_employee=False, is_superuser=False)
+        qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
         if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
             return qs
         if self.action == 'accounting':
@@ -189,7 +189,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Get User (with pk) Address list (GET ACTION)
         Inline Queryset
         """
-        address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk)
+        address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk).order_by('-is_default', 'title')
         if not address_list:
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(address_list)
@@ -265,7 +265,7 @@ class UserViewSet(CustomMixinModelViewSet):
         return res
 
     @action(detail=False, methods=['get'],
-            url_path='import-fields', serializer_class=UserImportDataSerializer, filter_backends=[], pagination_class=None)
+            url_path='import-fields', serializer_class=UserImportDataSerializer, filter_backends=[None], pagination_class=None)
     def import_user_list_valid_field(self, request):
         """
         MEH: Set this for showing valid cel field for Excel...
@@ -329,7 +329,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     """
     MEH: Introduction Model viewset
     """
-    queryset = Introduction.objects.all()
+    queryset = Introduction.objects.all().order_by('sort_number')
     serializer_class = IntroductionSerializer
     permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     filter_backends = [
@@ -348,7 +348,8 @@ class RoleViewSet(CustomMixinModelViewSet):
     """
     MEH: Role Model viewset
     """
-    queryset = Role.objects.prefetch_related('api_items')
+    queryset = (Role.objects.prefetch_related('api_items')
+                .order_by('-is_default', 'sort_number'))
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
