@@ -12,6 +12,7 @@ class Employee(models.Model):
                               related_name="employee_list")
     rate = models.FloatField(default=5,
                              blank=False, null=False)
+    full_name = models.CharField(max_length=73, blank=True, null=False)
 
     class Meta:
         ordering = ['-user__date_joined']
@@ -19,7 +20,12 @@ class Employee(models.Model):
         verbose_name_plural = "Employees"
 
     def __str__(self):
-        return f'Employee: {self.user.first_name} {self.user.last_name}'
+        return f'Employee: {self.full_name}'
+
+    def save(self, *args, **kwargs):
+        if not self.full_name:
+            self.full_name = f'{self.user.first_name} {self.user.last_name}'
+        super().save(*args, **kwargs)
 
 
 class EmployeeLevel(models.Model):
