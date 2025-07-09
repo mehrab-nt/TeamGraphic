@@ -80,7 +80,7 @@ INSTALLED_APPS = [
     'silk',
     'django_filters',
     'api.apps.ApiConfig',
-    "rest_wind",
+    'drf_material',
     'rest_framework',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
