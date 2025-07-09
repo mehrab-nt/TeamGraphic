@@ -19,7 +19,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     """
     MEH: Employee Model viewset
     """
-    queryset = Employee.objects.prefetch_related('user', 'level')
+    queryset = Employee.objects.all()
     serializer_class = EmployeeSerializer
     filterset_class = EmployeeFilter
     filter_backends = [
@@ -31,7 +31,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     ordering_fields = ['rate']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy'], 'get_employee'),
+        '__all__': 'get_employee',
         'create': 'create_employee',
     }
 
@@ -60,7 +60,7 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
     ordering_fields = ['title']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy'], 'get_employee_level_access'),
+        '__all__': 'get_employee_level_access',
         'create': 'create_employee_level_access',
     }
 
@@ -74,7 +74,7 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
         """
         MEH: Override this for automatically set manager who create Employee-Level
         """
-        if getattr(request.user, 'employee_profile', False): # MEH: Make sure correct Employee received here!
+        if getattr(request.user, 'employee_profile', False): # MEH: Make sure correct Employee manager received here!
             employee = request.user.employee_profile
             return self.custom_create(request.data, manager=employee)
         raise PermissionDenied(TG_PERMISSION_DENIED)
