@@ -6,11 +6,13 @@ from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
+from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count, Prefetch
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
                           UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
-                          UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer, RoleSerializer)
+                          UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer,
+                          RoleSerializer, RoleApiCategorySerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -350,9 +352,20 @@ class RoleViewSet(CustomMixinModelViewSet):
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete'], 'get_user_role_access'),
+        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete', 'role_api_item_list'], 'get_user_role_access'),
         'create': 'create_user_role_access',
     }
+
+    @action(detail=False, methods=['get'], serializer_class=RoleApiCategorySerializer,
+            url_path='api-list')
+    def role_api_item_list(self, request):
+        """
+        MEH: List of Api Item a Role can have (role_base=True)
+        """
+        api_category_list = ApiCategory.objects.prefetch_related('api_items').filter(role_base=True)
+        if not api_category_list:
+            raise NotFound(TG_DATA_EMPTY)
+        return self.custom_get(api_category_list)
 
     @extend_schema(
         request=BulkDeleteSerializer,
