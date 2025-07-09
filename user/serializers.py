@@ -77,8 +77,8 @@ class UserProfileSerializer(CustomModelSerializer):
     user = serializers.SerializerMethodField()
     gender = CustomChoiceField(choices=GENDER.choices, initial=GENDER.UNDEFINED)
     gender_display = serializers.SerializerMethodField()
-    description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
-    job = serializers.CharField(default=None)
+    description = serializers.CharField(default=None, allow_null=True, style={'base_template': 'textarea.html'})
+    job = serializers.CharField(default=None, allow_null=True)
 
     class Meta:
         model = UserProfile
@@ -348,23 +348,3 @@ class RoleSerializer(CustomModelSerializer):
     class Meta:
         model = Role
         fields = '__all__'
-
-
-class RoleApiItemSerializer(CustomModelSerializer):
-    """
-    MEH: Role Api Category full list with nested Api Items
-    """
-    class Meta:
-        model = ApiItem
-        fields = ['id', 'title']
-
-
-class RoleApiCategorySerializer(CustomModelSerializer):
-    """
-    MEH: Role Api Category full list with nested Api Items
-    """
-    api_items = RoleApiItemSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = ApiCategory
-        fields = ['id', 'title', 'api_items']
