@@ -70,11 +70,12 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
             return self.custom_create(request.data, manager=employee)
         raise PermissionDenied(TG_PERMISSION_DENIED)
 
+    @extend_schema(summary='Api Item list for each EmployeeLevel')
     @action(detail=False, methods=['get'], serializer_class=ApiCategorySerializer,
             url_path='api-list')
     def employee_level_api_item_list(self, request):
         """
-        MEH: List of Api Item a Employee can have (role_base=False)
+        MEH: List of Api Item a EmployeeLevel can have for Employee (role_base=False)
         """
         api_category_list = ApiCategory.objects.prefetch_related('api_items').filter(role_base=False)
         if not api_category_list:

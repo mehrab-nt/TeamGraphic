@@ -25,19 +25,19 @@ from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
 from file_manager.apps import ExcelHandler
 
 
-@extend_schema(tags=["Auth"])
+@extend_schema(tags=["Auth"], summary="Get Refresh Token")
 class CustomTokenRefreshView(TokenRefreshView):
     """
-    MEH: Get Refresh Token
+    MEH: Send `refresh_token` to get a new `access_token`
     """
     permission_classes = [AllowAny]
     pass
 
 
-@extend_schema(tags=["Auth"])
+@extend_schema(tags=["Auth"], summary="Verify Access Token")
 class CustomTokenVerifyView(TokenVerifyView):
     """
-    MEH: Verify Access Token
+    MEH: Send `access_token` token to get status OK if verified
     """
     permission_classes = [AllowAny]
     pass
@@ -105,43 +105,44 @@ class UserViewSet(CustomMixinModelViewSet):
                 raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
         return super().get_object(*args, **kwargs) # MEH: Super default behavior with pk
 
-    @extend_schema(tags=['Auth'])
+    @extend_schema(tags=['Auth'], summary="Sign Up request")
     @action(detail=False, methods=['post'],
             url_path='sign-up', serializer_class=UserSignUpSerializer,
             permission_classes=[IsNotAuthenticated])
     def sign_up(self, request):
         """
-        MEH: User Sign Up action (POST ACTION) for customer that not authenticated
+        MEH: User Sign Up (POST ACTION) Only User that not authenticated have permission.
         """
         return self.custom_create(request.data)
 
-    @extend_schema(tags=['Auth'])
+    @extend_schema(tags=['Auth'], summary="Sign In request")
     @action(detail=False, methods=['post'],
             url_path='sign-in', serializer_class=UserSignInSerializer,
             permission_classes=[IsNotAuthenticated])
     def sign_in(self, request):
         """
-        User Sign In action (POST ACTION) and get Access & Refresh Token for customer that not authenticated
-        handle serializer manually
+        MEH: User Sign In (POST ACTION) and get `access_token` & `refresh_token` | Only User that not authenticated have permission
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
+    @extend_schema(summary="Get User by phone number")
     @action(detail=False, methods=['get'],
             url_path='by-phone/(?P<phone_number>\\d{11})')
     def get_by_phone(self, request, phone_number=None):
         """
-        MEH: Get User by phone_number (GET ACTION)
+        MEH: Get User by `phone_number` (GET ACTION)
         """
         user = self.get_object(phone_number=phone_number)
         return self.custom_get(user)
 
+    @extend_schema(summary="Get User Profile information")
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='profile', serializer_class=UserProfileSerializer)
     def profile(self, request, pk=None):
         """
-        MEH: Get User Profile information and Update it (with pk) (GET/PUT ACTION)
+        MEH: Get User Profile information and Update it with `pk` (GET/PUT ACTION)
         """
         user = self.get_object(pk=pk)
         use_profile = user.user_profile
@@ -149,44 +150,47 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(use_profile, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(use_profile)
 
+    @extend_schema(summary="Get User Key information")
     @action(detail=True, methods=['get'],
             url_path='key', serializer_class=UserKeySerializer)
     def key(self, request, pk=None):
         """
-        MEH: Get User Key information (GET ACTION)
+        MEH: Get User Key information with `pk` (GET ACTION)
         Update block (auto generated and never change)
         """
         user_key = self.get_object(pk=pk)
         return self.custom_get(user_key)
 
+    @extend_schema(summary="Get User Accounting information")
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='accounting', serializer_class=UserAccountingSerializer)
     def accounting(self, request, pk=None):
         """
-        MEH: Get User Accounting information and Update it (GET/PUT ACTION)
+        MEH: Get User Accounting information and Update it with `pk` (GET/PUT ACTION)
         """
         user_accounting = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(user_accounting, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(user_accounting)
 
+    @extend_schema(summary="Get User Activation information")
     @action(detail=True, methods=['get', 'put', 'patch'],
             url_path='activation', serializer_class=UserActivationSerializer, filter_backends=[None])
     def activation(self, request, pk=None):
         """
-        MEH: Update User Activation (is_active) (GET/PUT ACTION)
+        MEH: Get User Activation information with `pk` to Update `is_active` (GET/PUT ACTION)
         """
         user_activation = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(user_activation, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(user_activation)
 
-    @extend_schema(tags=['Users-Addresses'])
+    @extend_schema(tags=['Users-Addresses'], summary="Get User Address list")
     @action(detail=True, methods=['get'],
             url_path='address-list', serializer_class=AddressSerializer, filter_backends=[None])
     def get_address_list(self, request, pk=None):
         """
-        MEH: Get User (with pk) Address list (GET ACTION)
+        MEH: Get User full Address list with `pk` (GET ACTION)
         Inline Queryset
         """
         address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk).order_by('-is_default', 'title')
@@ -194,12 +198,12 @@ class UserViewSet(CustomMixinModelViewSet):
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(address_list)
 
-    @extend_schema(tags=['Users-Addresses'])
+    @extend_schema(tags=['Users-Addresses'], summary="User Address details")
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
             url_path='address/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None])
     def address_detail(self, request, pk=None, address_id=None):
         """
-        MEH: Get User Address Detail (with pk), Update and Delete it (PUT/DELETE ACTION)
+        MEH: Get User Address Detail `user.pk` & `address_id`, Update and Delete it (PUT/DELETE ACTION)
         """
         address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk)
         try:
@@ -214,17 +218,18 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(address, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(address)
 
-    @extend_schema(tags=['Users-Addresses'])
+    @extend_schema(tags=['Users-Addresses'], summary="Add Address for User")
     @action(detail=True, methods=['post'],
             url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
     def create_address(self, request, pk=None):
         """
-        MEH: Add New Address for User (with pk) (POST ACTION)
+        MEH: Add New Address for User with `pk` (POST ACTION)
         """
         user = self.get_object(pk=pk)
         return self.custom_create(request.data, user=user)
 
     @extend_schema(
+        summary = "Upload Excel for add User list",
         request={ # MEH: Set this for API document (DRF & SCHEMA)
             'multipart/form-data': {
                 'type': 'object',
@@ -264,21 +269,23 @@ class UserViewSet(CustomMixinModelViewSet):
         self.serializer_class = UserImportFieldDataSerializer # MEH: Change back for View purpose in DRF UI
         return res
 
+    @extend_schema(summary = "Valid header for Import Excel")
     @action(detail=False, methods=['get'],
             url_path='import-fields', serializer_class=UserImportDataSerializer, filter_backends=[None], pagination_class=None)
     def import_user_list_valid_field(self, request):
         """
-        MEH: Set this for showing valid cel field for Excel...
+        MEH: Get a list of valid User field for upload Excel
         """
         all_fields = self.get_serializer_fields()
         return Response({'detail': list(all_fields.keys())}, status=status.HTTP_200_OK)
 
     @extend_schema(
+        summary = "Download Excel of User list",
         responses={200: OpenApiTypes.BINARY}, # or a more specific file/media type
         parameters=[
             OpenApiParameter(
                 name='check_field',
-                description='Used for highlight User row in Excel file, if check_filed is None or 0',
+                description='Used for highlight User row in Excel file, if check_filed is None or 0 in Excel cell',
                 required=False,
                 type=str,
                 location=OpenApiParameter.QUERY,
@@ -290,8 +297,7 @@ class UserViewSet(CustomMixinModelViewSet):
             url_path='download', serializer_class=None)
     def download_user_list(self, request):
         """
-        MEH: Get User List with Filter and write data in Excel (up to 1000) (GET ACTION)
-        (Direct Download)
+        MEH: Direct Download Excel of User List with Filter (up to 1000) (GET ACTION)
         """
         check_field = request.query_params.get('check_field')
         queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
@@ -312,11 +318,12 @@ class UserViewSet(CustomMixinModelViewSet):
             rows.append(row)
         return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field=str(check_field))
 
+    @extend_schema(summary="Verify User phone number manually")
     @action(detail=True, methods=['get', 'put', 'partial'],
             url_path='manually-verify-phone', serializer_class=UserManualVerifyPhoneSerializer, filter_backends=[None])
     def manually_verify_phone(self, request, pk=None):
         """
-        MEH: Update User verified_phone (PUT ACTION)
+        MEH: Get User Verify phone information with `pk` to Update `verified_phone` manually (GET/PUT ACTION)
         """
         user_verified_phone = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
@@ -357,17 +364,19 @@ class RoleViewSet(CustomMixinModelViewSet):
         'create': 'create_user_role_access',
     }
 
+    @extend_schema(summary='Api Item list for each Role for User')
     @action(detail=False, methods=['get'], serializer_class=ApiCategorySerializer,
             url_path='api-list')
     def role_api_item_list(self, request):
         """
-        MEH: List of Api Item a Role can have (role_base=True)
+        MEH: List of Api Item a Role can have for User (role_base=True)
         """
         api_category_list = ApiCategory.objects.prefetch_related('api_items').filter(role_base=True)
         if not api_category_list:
             raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(api_category_list)
 
+    @extend_schema(summary='Delete a list of Role')
     @extend_schema(
         request=BulkDeleteSerializer,
         responses={
@@ -379,7 +388,7 @@ class RoleViewSet(CustomMixinModelViewSet):
             url_path='bulk-delete')
     def bulk_delete(self, request):
         """
-        MEH: Delete List of Role Objects (use POST ACTION for sending list of id in request body)
+        MEH: Delete List of Role Objects (use POST ACTION for sending list of id `ids` in request body)
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
