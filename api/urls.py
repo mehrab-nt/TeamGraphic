@@ -1,11 +1,10 @@
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
-
-from .models import ApiItem
 from .views import ApiCategoryViewSet, ApiItemViewSet
 from user.views import UserViewSet, RoleViewSet, IntroductionViewSet
 from employee.views import EmployeeViewSet, EmployeeLevelViewSet
+from product.views import ProductCategoryViewSet
 
 
 router = DefaultRouter()
@@ -16,6 +15,9 @@ router.register(r'employee-level', EmployeeLevelViewSet, basename='employee-leve
 router.register(r'user', UserViewSet, basename='user')
 router.register(r'role', RoleViewSet, basename='role')
 router.register(r'introduction', IntroductionViewSet, basename='introduction')
+router.register(r'category', ProductCategoryViewSet, basename='product-category')
+
+
 urlpatterns = [
     path('schema/', SpectacularAPIView.as_view(), name='schema'),
     path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),

@@ -59,7 +59,7 @@ class LandingCategory(models.Model):
     #                        blank=False, null=False)
 
     class Meta:
-        ordering = ['parent_category', '-sort_number']
+        ordering = ['-sort_number']
         verbose_name = "Landing Category"
         verbose_name_plural = "Landing Categories"
 

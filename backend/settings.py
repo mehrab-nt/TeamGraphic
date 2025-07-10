@@ -59,6 +59,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Users-Introduction', 'description': 'Introduction for Users'},
         {'name': 'Employee', 'description': 'Operations Related to Employees'},
         {'name': 'Employee-Level', 'description': 'Operations Related to Employees Levels'},
+        {'name': 'Products', 'description': 'Operations Related to Products'},
         {'name': 'Api-Access', 'description': 'Operations Related to Api Access Categories & Items (Only Admin)'},
     ],
     'SAVE_INCLUDE_SCHEMA': False,

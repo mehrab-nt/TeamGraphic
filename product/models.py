@@ -2,6 +2,7 @@ from django.db import models
 from django.core import validators
 from landing.models import Landing
 from file_manager.models import FileItem
+from config.images import *
 
 
 class ProductStatus(models.TextChoices):
@@ -11,8 +12,8 @@ class ProductStatus(models.TextChoices):
 
 
 class CountingUnit(models.TextChoices):
-    NUMBER = 'عدد'
-    TIRAGE = "تیراژ"
+    NUMBER = 'NUM', 'عدد'
+    TIRAGE = 'TIR', "تیراژ"
 
 
 class RoundPriceType(models.IntegerChoices):
@@ -20,6 +21,27 @@ class RoundPriceType(models.IntegerChoices):
     R10 = 10
     R100 = 100
     R1000 = 1000
+    DEF = -1
+
+
+def product_upload_path(instance):
+    category = instance.parent_category
+    path_parts = []
+    while category:
+        path_parts.insert(0, safe_slug(category.title))
+        category = category.parent_category
+    path = '/'.join(path_parts)
+    return path
+
+def category_image_path(instance, filename):
+    path = product_upload_path(instance)
+    filename = f"cat-{safe_slug(instance.title)}.webp"
+    return f'file_manager/system/product/images/{path}/{filename}'
+
+def category_icon_path(instance, filename):
+    path = product_upload_path(instance)
+    filename = f"cat-{safe_slug(instance.title)}.svg"
+    return f'file_manager/system/product/icons/{path}/icon-{filename}'
 
 
 class ProductCategory(models.Model):
@@ -30,17 +52,17 @@ class ProductCategory(models.Model):
     parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
                                         blank=True, null=True, verbose_name='Parent Category',
                                         related_name='sub_categories')
-    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
+    image = models.ImageField(upload_to=category_image_path, blank=True, null=False)
     # video = models.FileField(upload_to="videos/", blank=False, null=False)
-    # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
+    icon = models.ImageField(upload_to=category_icon_path, blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=True, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
     gallery = models.ForeignKey('GalleryCategory', on_delete=models.PROTECT,
                                 blank=True, null=True,
                                 related_name='linked_product_category_list')
-    status = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+    status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
     accounting_id = models.PositiveBigIntegerField(default=0,
@@ -49,11 +71,12 @@ class ProductCategory(models.Model):
                                      blank=False, null=False, verbose_name='Fast Order')
     fast_order_title = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
                                         blank=True, null=True, verbose_name='Fast Order Title')
-    counting_unit = models.PositiveSmallIntegerField(choices=CountingUnit.choices, default=CountingUnit.NUMBER,
+    counting_unit = models.CharField(max_length=3, validators=[validators.MinLengthValidator(2)],
+                                     choices=CountingUnit.choices, default=CountingUnit.NUMBER,
                                      blank=True, null=True, verbose_name="Counting Unit")
     free_order = models.BooleanField(default=True, blank=False, null=False, verbose_name="Free Order")
-    round_price = models.CharField(choices=RoundPriceType.choices, default=RoundPriceType.R1000,
-                                   blank=False, null=False, verbose_name='Round Price')
+    round_price = models.PositiveSmallIntegerField(choices=RoundPriceType.choices, default=RoundPriceType.DEF,
+                                                   blank=True, null=True, verbose_name='Round Price')
     is_landing = models.BooleanField(default=True,
                                      blank=False, null=False, verbose_name='Is Landing')
     landing = models.OneToOneField(Landing, on_delete=models.PROTECT,
@@ -63,9 +86,21 @@ class ProductCategory(models.Model):
     class Meta:
         verbose_name = "Category"
         verbose_name_plural = "Categories"
+        ordering = ['sort_number', 'title']
 
     def __str__(self):
         return f'TGC-{self.pk}: {self.title}'
+
+    def save(self, *args, **kwargs):
+        if not self.alt:
+            self.alt = f'{self.title}عکس دسته محصولات '
+        if not self.image:
+            self.image = 'file_manager/system/product/default-product-image.webp'
+        if self.fast_order and not self.fast_order_title:
+            self.fast_order_title = self.title
+        if self.landing:
+            self.is_landing = True
+        super().save(*args, **kwargs)
 
 
 class ProductType(models.TextChoices):
@@ -74,6 +109,15 @@ class ProductType(models.TextChoices):
     DIGITAL = 'DIG', 'دیجیتال'
     ITEM = 'ITM', 'محصول عمومی'
 
+def product_image_path(instance, filename):
+    path = product_upload_path(instance)
+    filename = f"pro-{safe_slug(instance.title)}.webp"
+    return f'file_manager/system/product/images/{path}/{filename}'
+
+def product_icon_path(instance, filename):
+    path = product_upload_path(instance)
+    filename = f"{safe_slug(instance.title)}-pro{instance.id}.svg"
+    return f'file_manager/system/product/icons/{path}/icon-{filename}'
 
 class Product(models.Model):
     title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
@@ -83,13 +127,15 @@ class Product(models.Model):
                             blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
-    category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
+    parent_category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
                                  blank=False, null=False,
                                  related_name='product_list')
-    # image = models.ImageField(upload_to="products/", blank=False, null=False)
-    # icon = models.ImageField(upload_to="products/", blank=True, null=True)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
+    image = models.ImageField(upload_to=product_image_path,
+                              blank=True, null=False)
+    icon = models.ImageField(upload_to=product_icon_path,
+                             blank=True, null=True)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=True, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
     template = models.ForeignKey('TemplateFile', on_delete=models.SET_NULL,
@@ -127,12 +173,19 @@ class Product(models.Model):
                                                     blank=False, null=False, verbose_name='Total Option Sale')
 
     class Meta:
-        ordering = ('-sort_number', 'category')
+        ordering = ('parent_category', '-sort_number')
         verbose_name = "Product"
         verbose_name_plural = "Products"
 
     def __str__(self):
         return f'TGP-{self.pk}: {self.title}'
+
+    def save(self, *args, **kwargs):
+        if not self.alt:
+            self.alt = f'{self.title}عکس محصول '
+        if not self.image:
+            self.image = 'file_manager/system/product/default-product-image.webp'
+        super().save(*args, **kwargs)
 
 
 class TemplateFile(models.Model):
