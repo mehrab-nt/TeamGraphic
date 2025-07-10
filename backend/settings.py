@@ -59,6 +59,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Users-Introduction', 'description': 'Introduction for Users'},
         {'name': 'Employee', 'description': 'Operations Related to Employees'},
         {'name': 'Employee-Level', 'description': 'Operations Related to Employees Levels'},
+        {'name': 'File-Manager', 'description': 'Operations Related to Files'},
         {'name': 'Products', 'description': 'Operations Related to Products'},
         {'name': 'Api-Access', 'description': 'Operations Related to Api Access Categories & Items (Only Admin)'},
     ],
@@ -99,7 +100,7 @@ INSTALLED_APPS = [
     'landing.apps.LandingConfig',
     'config.apps.ConfigConfig',
     'file_manager.apps.FileManagerConfig',
-    'city.apps.CityConfig',
+    'django_cleanup.apps.CleanupConfig',
 ]
 
 MIDDLEWARE = [

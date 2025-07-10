@@ -2,6 +2,9 @@ from django.db import models
 from django.core import validators
 from django.utils import timezone
 from employee.models import Employee
+import os
+from .images import *
+from django.utils.text import slugify
 
 
 class FileDirectory(models.Model):
@@ -9,10 +12,6 @@ class FileDirectory(models.Model):
                             blank=False, null=False)
     create_date = models.DateField(default=timezone.now,
                                    blank=True, null=True, verbose_name='Create Date')
-    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=True, null=True,
-                                 related_name='create_directory_list')
-    volume = models.IntegerField(default=0,
-                                 blank=False, null=False)
     parent_directory = models.ForeignKey('self', on_delete=models.PROTECT,
                                blank=True, null=True, verbose_name='Parent Directory',
                                related_name='sub_dirs')
@@ -26,29 +25,68 @@ class FileDirectory(models.Model):
         if self.parent_directory:
             return f"{self.parent_directory}/{self.name}/"
         else:
-            return f"{self.name}/"
+            return f"{self.name}"
+
+
+def upload_path(instance):
+    directory = instance.parent_directory
+    path_parts = []
+    while directory:
+        path_parts.insert(0, safe_slug(directory.name))
+        directory = directory.parent_directory
+    path = '/'.join(path_parts)
+    return path
+
+
+def preview_image_path(instance, filename):
+    path = upload_path(instance)
+    filename = f"thumb-{safe_slug(instance.name)}.webp"
+    return f'file_manager/{path}/thumbnails/{filename}'
+
+
+def upload_file_path(instance, filename):
+    path = upload_path(instance)
+    filename = f"{safe_slug(instance.name)}.{instance.type}"
+    return f'file_manager/{path}/{filename}'
 
 
 class FileItem(models.Model):
     name = models.CharField(max_length=78, validators=[validators.MinLengthValidator(1)],
-                            blank=False, null=False)
+                            blank=True, null=False)
     type = models.CharField(max_length=5, validators=[validators.MinLengthValidator(1)],
-                            blank=False, null=False)
-    # preview = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
-    # file = models.FileField(upload_to="uploads/", blank=False, null=False)
-    upload_date = models.DateField(default=timezone.now,
-                                   blank=True, null=True, verbose_name='Upload Date')
-    employee = models.ForeignKey(Employee, on_delete=models.SET_NULL, blank=True, null=True,
-                                 related_name='upload_file_list')
-    volume = models.IntegerField(default=0,
-                                 blank=False, null=False)
-    directory = models.ForeignKey(FileDirectory, on_delete=models.PROTECT, blank=True, null=True,
+                            blank=True, null=False)
+    preview = models.ImageField(upload_to=preview_image_path, blank=True, null=True)
+    file = models.FileField(upload_to=upload_file_path, blank=False, null=False)
+    create_date = models.DateField(default=timezone.now,
+                                   blank=True, null=True, verbose_name='Create Date')
+    volume = models.FloatField(default=0,
+                               blank=False, null=False)
+    parent_directory = models.ForeignKey(FileDirectory, on_delete=models.PROTECT, blank=True, null=True,
                                   related_name='sub_files')
+    seo_base = models.BooleanField(default=False,
+                                   blank=False, null=False, verbose_name='SEO Base')
 
     class Meta:
-        ordering = ['-upload_date', 'directory']
+        ordering = ['-create_date']
         verbose_name = "File Item"
         verbose_name_plural = "File Items"
 
     def __str__(self):
         return f"File: {self.name}.{self.type}"
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.name:
+            filename = self.file.name.split('/')[-1]
+            self.name, ext = os.path.splitext(filename)
+            self.type = ext.lstrip('.')
+            self.volume = self.file.size / 1024
+        if self.file and not self.preview and self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']:
+            self.preview = create_square_thumbnail(self.file, size=(128, 128))
+        super().save(*args, **kwargs)
+
+    @property
+    def full_filename(self):
+        return f'{self.name}.{self.type}'
+
+    def get_download_url(self):
+        return self.file.url

@@ -2,7 +2,7 @@ from django.db import models
 from django.core import validators
 from landing.models import Landing
 from file_manager.models import FileItem
-from config.images import *
+from file_manager.images import *
 
 
 class ProductStatus(models.TextChoices):

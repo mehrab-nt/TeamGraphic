@@ -10,6 +10,8 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from .responses import *
+from file_manager.images import *
+from typing import Optional, Dict
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -37,6 +39,28 @@ class CustomModelSerializer(serializers.ModelSerializer):
                 if isinstance(validator, MaxLengthValidator):
                     validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
         return fields
+
+    @staticmethod
+    def validate_upload_image(image, max_image_size=10, max_width=1024, max_height=1024, size=(256, 256)):
+        try:
+            size_mb = image.size / (1024 * 1024)
+            if size_mb > max_image_size:
+                raise serializers.ValidationError(f"{TG_MAX_IMAGE_SIZE} ({max_image_size} MB)")
+        except (AttributeError, TypeError):
+            raise serializers.ValidationError(TG_INVALID_IMAGE)
+        try:
+            img = Image.open(image)
+        except (UnidentifiedImageError, OSError):
+            raise serializers.ValidationError(TG_INVALID_IMAGE)
+        img_format = img.format.upper()
+        if img_format not in ALLOWED_IMAGE_FORMATS:
+            raise serializers.ValidationError(f"{TG_UNSUPPORTED_FORMAT} ({img_format})")
+        width, height = img.size
+        if max_width and max_height:
+            if width > max_width or height > max_height:
+                raise serializers.ValidationError(
+                    f"{TG_MAX_IMAGE_DIMENSIONS}({max_width}x{max_height}px)")
+        return optimize_image(image, size=size)
 
 
 class CustomChoiceField(serializers.ChoiceField):

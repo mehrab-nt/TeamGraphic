@@ -5,6 +5,7 @@ from .views import ApiCategoryViewSet, ApiItemViewSet
 from user.views import UserViewSet, RoleViewSet, IntroductionViewSet
 from employee.views import EmployeeViewSet, EmployeeLevelViewSet
 from product.views import ProductCategoryViewSet
+from file_manager.views import FileDirectoryViewSet, FileItemViewSet
 
 
 router = DefaultRouter()
@@ -15,7 +16,10 @@ router.register(r'employee-level', EmployeeLevelViewSet, basename='employee-leve
 router.register(r'user', UserViewSet, basename='user')
 router.register(r'role', RoleViewSet, basename='role')
 router.register(r'introduction', IntroductionViewSet, basename='introduction')
-router.register(r'category', ProductCategoryViewSet, basename='product-category')
+router.register(r'file-manager/directory', FileDirectoryViewSet, basename='file-directory')
+router.register(r'file-manager', FileItemViewSet, basename='file-item')
+router.register(r'product/category', ProductCategoryViewSet, basename='product-category')
+router.register(r'product', ProductViewSet, basename='product')
 
 
 urlpatterns = [
