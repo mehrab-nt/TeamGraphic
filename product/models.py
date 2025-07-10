@@ -26,26 +26,6 @@ class RoundPriceType(models.IntegerChoices):
     DEF = -1
 
 
-def product_upload_path(instance):
-    category = instance.parent_category
-    path_parts = []
-    while category:
-        path_parts.insert(0, safe_slug(category.title))
-        category = category.parent_category
-    path = '/'.join(path_parts)
-    return path
-
-def category_image_path(instance, filename):
-    path = product_upload_path(instance)
-    filename = f"cat-{safe_slug(instance.title)}.webp"
-    return f'file_manager/system/product/images/{path}/{filename}'
-
-def category_icon_path(instance, filename):
-    path = product_upload_path(instance)
-    filename = f"cat-{safe_slug(instance.title)}.svg"
-    return f'file_manager/system/product/icons/{path}/icon-{filename}'
-
-
 class ProductCategory(models.Model):
     title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
@@ -54,11 +34,17 @@ class ProductCategory(models.Model):
     parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
                                         blank=True, null=True, verbose_name='Parent Category',
                                         related_name='sub_categories')
-    image = models.ImageField(upload_to=category_image_path, blank=True, null=False)
-    # video = models.FileField(upload_to="videos/", blank=False, null=False)
-    icon = models.ImageField(upload_to=category_icon_path, blank=True, null=True)
+    image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='image_for_product_categories')
     alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
                            blank=True, null=False)
+    icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                             blank=True, null=True,
+                             related_name='icon_for_product_categories')
+    video = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='video_for_product_categories')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
     gallery = models.ForeignKey('GalleryCategory', on_delete=models.PROTECT,
@@ -94,10 +80,8 @@ class ProductCategory(models.Model):
         return f'TGC-{self.pk}: {self.title}'
 
     def save(self, *args, **kwargs):
-        if not self.alt:
+        if self.image and not self.alt:
             self.alt = f'{self.title}عکس دسته محصولات '
-        if not self.image:
-            self.image = 'file_manager/system/product/default-product-image.webp'
         if self.fast_order and not self.fast_order_title:
             self.fast_order_title = self.title
         if self.landing:
@@ -118,15 +102,6 @@ class ProductType(models.TextChoices):
     DIGITAL = 'DIG', 'دیجیتال'
     ITEM = 'ITM', 'محصول عمومی'
 
-def product_image_path(instance, filename):
-    path = product_upload_path(instance)
-    filename = f"pro-{safe_slug(instance.title)}.webp"
-    return f'file_manager/system/product/images/{path}/{filename}'
-
-def product_icon_path(instance, filename):
-    path = product_upload_path(instance)
-    filename = f"{safe_slug(instance.title)}-pro{instance.id}.svg"
-    return f'file_manager/system/product/icons/{path}/icon-{filename}'
 
 class Product(models.Model):
     title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
@@ -139,10 +114,9 @@ class Product(models.Model):
     parent_category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
                                  blank=False, null=False,
                                  related_name='product_list')
-    image = models.ImageField(upload_to=product_image_path,
-                              blank=True, null=False)
-    icon = models.ImageField(upload_to=product_icon_path,
-                             blank=True, null=True)
+    image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='image_for_products')
     alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
                            blank=True, null=False)
     sort_number = models.SmallIntegerField(default=0,
@@ -190,10 +164,8 @@ class Product(models.Model):
         return f'TGP-{self.pk}: {self.title}'
 
     def save(self, *args, **kwargs):
-        if not self.alt:
+        if self.image and not self.alt:
             self.alt = f'{self.title}عکس محصول '
-        if not self.image:
-            self.image = 'file_manager/system/product/default-product-image.webp'
         super().save(*args, **kwargs)
 
 

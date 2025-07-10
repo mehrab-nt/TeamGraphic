@@ -8,7 +8,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import ProductCategory, Product
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count, Prefetch
-from .serializers import ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer
+from .serializers import ProductSerializer, ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 # from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -36,23 +36,24 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     search_fields = ['title']
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
-    required_api_keys = {}
+    required_api_keys = {
+        '__all__': 'allow_any',
+    }
 
     def get_queryset(self, *args, **kwargs):
-        qs = super().get_queryset().select_related('gallery', 'landing')
-        return qs
+        return super().get_queryset().select_related('gallery', 'image', 'landing')
 
     @extend_schema(
         description="MEH: Use `parent_id` in query or body to assign a parent_category. If omitted, category will be created at root level.",
         parameters=[
             OpenApiParameter(
                 name='parent_id',
-                description='ID of the parent_category. If omitted, creates root category.',
+                description='ID of the parent_category. If omitted, creates root Category.',
                 type=int,
                 required=False,
                 location=OpenApiParameter.QUERY
             ),
-        ]
+        ],
     )
     def create(self, request, *args, **kwargs):
         data = request.data.copy()
@@ -70,8 +71,14 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         return self.custom_create(data, *args, **kwargs)
 
     @extend_schema(
+        summary='Tree list of Both Product & Category',
         parameters=[
-            OpenApiParameter(name='parent_id', type=int, required=False, description='ID of the parent category')
+            OpenApiParameter(
+                name='parent_id',
+                type=int,
+                required=False,
+                description='ID of the parent category'
+            ),
         ],
         tags=['Products'],
     )
@@ -79,8 +86,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
             url_path='explorer')
     def product_explore_view(self, request):
         """
-        MEH: Return mixed list of category (list_type=category) and product (list_type=product)
-        for (parent_id = x) or root level (parent_category = None)
+        MEH: Return mixed list of Category `type='CAT'` & Product `type in ['OFF','LAR',...]`
+        for parent_id = x or root level parent_id = None
         """
         parent_id = request.query_params.get('parent_id')
         parent = None
@@ -94,3 +101,42 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         category_data = ProductCategoryBriefSerializer(categories, many=True).data
         product_data = ProductBriefSerializer(products, many=True).data
         return Response(category_data + product_data, status=status.HTTP_200_OK)
+
+
+@extend_schema(tags=['Products'])
+class ProductViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Product Model viewset
+    """
+    queryset = Product.objects.all()
+    serializer_class = ProductSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = ['title']
+    ordering_fields = ['parent_category_display', 'sort_number', 'title']
+    permission_classes = [ApiAccess]
+    required_api_keys = {
+        '__all__': 'allow_any',
+    }
+
+    @extend_schema(exclude=True) # MEH: Hidden list from Api Documentation (only Admin work)
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        description="MEH: Use `parent_id` in query or body to assign a parent_category. If omitted, Product will be created at root level.",
+        parameters=[
+            OpenApiParameter(
+                name='parent_id',
+                description='ID of the parent_category. If omitted, creates Product at root level.',
+                type=int,
+                required=False,
+                location=OpenApiParameter.QUERY
+            ),
+        ]
+    )
+    def create(self, request, *args, **kwargs):
+        return ProductCategoryViewSet.create(self, request, *args, **kwargs)
