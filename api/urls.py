@@ -4,8 +4,8 @@ from rest_framework.routers import DefaultRouter
 from .views import ApiCategoryViewSet, ApiItemViewSet
 from user.views import UserViewSet, RoleViewSet, IntroductionViewSet
 from employee.views import EmployeeViewSet, EmployeeLevelViewSet
-from product.views import ProductCategoryViewSet
 from file_manager.views import FileDirectoryViewSet, FileItemViewSet
+from product.views import ProductViewSet, ProductCategoryViewSet
 
 
 router = DefaultRouter()

@@ -3,6 +3,8 @@ from django.core import validators
 from landing.models import Landing
 from file_manager.models import FileItem
 from file_manager.images import *
+from django.core.exceptions import ValidationError
+from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
 
 
 class ProductStatus(models.TextChoices):
@@ -75,8 +77,8 @@ class ProductCategory(models.Model):
                                      choices=CountingUnit.choices, default=CountingUnit.NUMBER,
                                      blank=True, null=True, verbose_name="Counting Unit")
     free_order = models.BooleanField(default=True, blank=False, null=False, verbose_name="Free Order")
-    round_price = models.PositiveSmallIntegerField(choices=RoundPriceType.choices, default=RoundPriceType.DEF,
-                                                   blank=True, null=True, verbose_name='Round Price')
+    round_price = models.SmallIntegerField(choices=RoundPriceType.choices, default=RoundPriceType.DEF,
+                                           blank=True, null=True, verbose_name='Round Price')
     is_landing = models.BooleanField(default=True,
                                      blank=False, null=False, verbose_name='Is Landing')
     landing = models.OneToOneField(Landing, on_delete=models.PROTECT,
@@ -101,6 +103,13 @@ class ProductCategory(models.Model):
         if self.landing:
             self.is_landing = True
         super().save(*args, **kwargs)
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        current = self.parent_category
+        while current:
+            if current == self:
+                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_category
 
 
 class ProductType(models.TextChoices):

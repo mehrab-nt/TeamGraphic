@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     'drf_spectacular',
     'django.contrib.gis',
     'user.apps.UsersConfig',
+    'city.apps.CityConfig',
     'employee.apps.EmployeeConfig',
     'financial.apps.FinancialConfig',
     'delivery.apps.DeliveryConfig',

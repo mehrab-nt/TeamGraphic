@@ -2,9 +2,9 @@ from django.db import models
 from django.core import validators
 from django.utils import timezone
 from employee.models import Employee
-import os
 from .images import *
-from django.utils.text import slugify
+from django.core.exceptions import ValidationError
+from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
 
 
 class FileDirectory(models.Model):
@@ -26,6 +26,13 @@ class FileDirectory(models.Model):
             return f"{self.parent_directory}/{self.name}/"
         else:
             return f"{self.name}"
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        current = self.parent_directory
+        while current:
+            if current == self:
+                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_directory
 
 
 def upload_path(instance):

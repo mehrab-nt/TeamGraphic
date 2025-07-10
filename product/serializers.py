@@ -1,12 +1,10 @@
 from rest_framework import serializers
 from django.core.validators import RegexValidator
-
 from landing.models import Landing
 from .models import Product, ProductType, ProductCategory, GalleryCategory, ProductStatus, TemplateFile, CountingUnit, \
     RoundPriceType
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField
-from config.images import *
 
 
 class ProductCategoryBriefSerializer(CustomModelSerializer):

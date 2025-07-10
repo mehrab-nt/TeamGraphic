@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
 from rest_framework_simplejwt.tokens import RefreshToken
-from django.core.validators import RegexValidator, MinLengthValidator, MaxLengthValidator
+from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from .models import User, UserProfile, Introduction, Role, Address, GENDER

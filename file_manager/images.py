@@ -1,4 +1,5 @@
 from PIL import Image, UnidentifiedImageError
+import os
 from io import BytesIO
 from django.core.files.base import ContentFile
 

@@ -1,13 +1,13 @@
 from rest_framework import status, filters
 from datetime import datetime, date
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
-from django.db.models import Subquery, OuterRef, Count, Prefetch
+from django.db.models import Subquery, OuterRef, Count
 from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
                           UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,

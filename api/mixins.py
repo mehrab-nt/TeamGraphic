@@ -87,14 +87,15 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     def get_required_api_key(self): # MEH: Custom Pagination :) even LimitOffsetPagination
         return self.required_api_keys.get(self.action) or self.required_api_keys.get('__all__')
 
-    def get_serializer_fields(self, serializer=None, parent_prefix=''): # MEH: For get valid field from serializer (nested included)
-        fields = {}
+    def get_serializer_fields(self, serializer: Optional[serializers.BaseSerializer] = None,
+                              parent_prefix: str = '') -> Dict[str, serializers.Field]:
+        fields = {} # MEH: For get valid field from serializer (nested included)
         if serializer is None:
             serializer = self.get_serializer()
         for name, field in serializer.fields.items():
             full_name = f"{parent_prefix}{name}" if parent_prefix else name
             if isinstance(field, serializers.BaseSerializer):
-                nested_fields = self.get_serializer_fields(field)
+                nested_fields = self.get_serializer_fields(serializer=field)
                 fields.update(nested_fields)
             else:
                 fields[full_name] = field
