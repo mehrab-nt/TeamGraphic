@@ -12,6 +12,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from .responses import *
 from file_manager.images import *
 from typing import Optional, Dict
+from django.db import transaction
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -182,30 +183,49 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             if instance.is_default:
                 raise PermissionDenied(TG_PREVENT_DELETE_DEFAULT)
         try:
-            self.perform_destroy(instance)
+            deleted_count = 0
+            with transaction.atomic():
+                if hasattr(instance, 'delete_recursive'):
+                    deleted_count = instance.delete_recursive()
+                else:
+                    self.perform_destroy(instance)
         except ProtectedError: # Model on-delete=PROTECT
             raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
         except DatabaseError as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if deleted_count:
+            return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count,}, status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
-    def custom_list_destroy(self, ids): # MEH: Handle delete list of object with 1 request
-        queryset = self.queryset.filter(id__in=ids)
-        if hasattr(queryset.model, 'is_default'):
-            default_objs = queryset.filter(is_default=True)
-            if default_objs.exists():
-                skipped_ids = list(default_objs.values_list('id', flat=True))
-                queryset = queryset.exclude(id__in=skipped_ids)
+    @staticmethod
+    def custom_list_destroy(queryset_list: list): # MEH: Handle bulk delete list of object with 1 request
+        total_delete = 0
+        skipped_ids = []
         try:
-            deleted_count, _ = queryset.delete()
+            with transaction.atomic():
+                for qs in queryset_list:
+                    model = qs.model
+                    if hasattr(model, 'is_default'):
+                        default_objs = qs.filter(is_default=True)
+                        if default_objs.exists():
+                            ids = list(default_objs.values_list('id', flat=True))
+                            skipped_ids.extend(ids)
+                            qs = qs.exclude(id__in=ids)
+                    if not qs.exists():
+                        continue
+                    if hasattr(model, 'delete_recursive'):
+                        for obj in qs:  # MEH: Recursively delete obj
+                            total_delete += obj.delete_recursive()
+                    else:
+                        deleted_count, _ = qs.delete()
+                        total_delete += deleted_count
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        if not deleted_count:
+        if total_delete == 0:
             return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_400_BAD_REQUEST)
-        print("HERE")
-        return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count}, status=status.HTTP_200_OK)
+        return Response({"detail": TG_DATA_DELETED, "deleted_count": total_delete, "skipped_ids": skipped_ids,}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
         serializer.save(**kwargs)

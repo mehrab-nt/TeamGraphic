@@ -1,6 +1,6 @@
 from rest_framework import status, filters
 from rest_framework.response import Response
-from api.permissions import ApiAccess, IsNotAuthenticated
+from api.permissions import ApiAccess
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import FileDirectory, FileItem
@@ -121,13 +121,8 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         dir_ids = serializer.validated_data.get('layer_ids', [])
         file_qs = FileItem.objects.filter(id__in=file_ids)
         dir_qs = FileDirectory.objects.filter(id__in=dir_ids)
-        if not file_qs.exists() or not dir_qs.exists():
-            return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_400_BAD_REQUEST)
-        file_qs.delete() # MEH: Delete FileItems
-        for dir_obj in dir_qs: # MEH: Recursively delete directories
-            dir_obj.delete_recursive()
         self.serializer_class = FileDirectorySerializer # MEH: Just for drf view
-        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
+        return self.custom_list_destroy([file_qs, dir_qs])
 
 
 @extend_schema(tags=['File-Manager'])

@@ -25,12 +25,6 @@ class FileDirectorySerializer(CustomModelSerializer):
     def get_preview(obj):
         return None
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        instance = self.instance
-        if instance and isinstance(instance, FileDirectory):
-            self.fields['parent_category'].queryset = FileDirectory.objects.exclude(pk=instance.pk)
-
     def validate_parent_directory(self, value): # MEH: Prevent from loop Directory A->B->C->A
         instance = self.instance
         if not instance or not value:

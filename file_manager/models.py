@@ -35,10 +35,13 @@ class FileDirectory(models.Model):
             current = current.parent_directory
 
     def delete_recursive(self):
+        deleted_count = 0
         for sub_dir in self.sub_dirs.all(): # MEH: First delete subdirectories recursively
-            sub_dir.delete_recursive()
-        self.sub_files.all().delete() # MEH: Delete files in this directory
+            deleted_count += sub_dir.delete_recursive()
+        files_deleted, _ = self.sub_files.all().delete() # MEH: Delete files in this directory
+        deleted_count += files_deleted
         self.delete() # MEH: Then delete the directory itself
+        return deleted_count
 
 
 def upload_path(instance): # MEH: Tree based Directory handle (and safe slug for names)
