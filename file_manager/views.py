@@ -1,24 +1,14 @@
 from rest_framework import status, filters
-from datetime import datetime, date
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import FileDirectory, FileItem
-from api.models import ApiCategory
-from django.db.models import Subquery, OuterRef, Count, Prefetch
 from .serializers import FileDirectorySerializer, FileItemSerializer
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-# from .filters import CustomerFilter
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.exceptions import NotFound
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import CombineBulkDeleteSerializer
-from file_manager.apps import ExcelHandler
 
 
 @extend_schema(tags=['File-Manager'])
@@ -112,10 +102,10 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         return Response(dir_data + file_data, status=status.HTTP_200_OK)
 
     @extend_schema(
-        summary='Delete list of files and directories',
+        summary='Delete list of Directories & Files',
         request=CombineBulkDeleteSerializer,
         responses={
-            200: OpenApiResponse(description="Successfully deleted files and directories."),
+            200: OpenApiResponse(description="Successfully deleted Directories & Files."),
             400: OpenApiResponse(description="Invalid IDs or constraint violation."),
         },
     )

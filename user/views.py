@@ -393,5 +393,5 @@ class RoleViewSet(CustomMixinModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         ids = serializer.validated_data['ids']
-        self.serializer_class = RoleSerializer
+        self.serializer_class = RoleSerializer # MEH: Just for drf view
         return self.custom_list_destroy(ids)

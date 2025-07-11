@@ -1,23 +1,14 @@
 from rest_framework import status, filters
 from datetime import datetime, date
-from rest_framework.permissions import IsAuthenticated, IsAdminUser, AllowAny
 from rest_framework.response import Response
-from api.permissions import ApiAccess, IsNotAuthenticated
+from api.permissions import ApiAccess
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import ProductCategory, Product
-from api.models import ApiCategory
-from django.db.models import Subquery, OuterRef, Count, Prefetch
 from .serializers import ProductSerializer, ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer
-from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
-# from .filters import CustomerFilter
-from django.core.exceptions import ObjectDoesNotExist
-from rest_framework.exceptions import NotFound
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
-from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
 from file_manager.apps import ExcelHandler
 
 

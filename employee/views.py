@@ -1,5 +1,5 @@
-from rest_framework import viewsets, status, filters
-from api.permissions import ApiAccess, IsNotAuthenticated
+from rest_framework import filters
+from api.permissions import ApiAccess
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
@@ -7,9 +7,9 @@ from api.models import ApiCategory
 from .serializers import EmployeeSerializer, EmployeeLevelSerializer
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
-from django.core.exceptions import ObjectDoesNotExist, PermissionDenied
-from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from django.core.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
+from drf_spectacular.utils import extend_schema
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 
