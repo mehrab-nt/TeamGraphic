@@ -1,11 +1,8 @@
 from rest_framework import serializers
-from django.core.validators import RegexValidator
-from landing.models import Landing
 from .models import FileDirectory, FileItem
 from api.responses import *
-from api.mixins import CustomModelSerializer, CustomChoiceField
+from api.mixins import CustomModelSerializer
 from django.utils import timezone
-from .images import *
 
 
 class FileDirectorySerializer(CustomModelSerializer):

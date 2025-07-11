@@ -34,8 +34,14 @@ class FileDirectory(models.Model):
                 raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
             current = current.parent_directory
 
+    def delete_recursive(self):
+        for sub_dir in self.sub_dirs.all(): # MEH: First delete subdirectories recursively
+            sub_dir.delete_recursive()
+        self.sub_files.all().delete() # MEH: Delete files in this directory
+        self.delete() # MEH: Then delete the directory itself
 
-def upload_path(instance):
+
+def upload_path(instance): # MEH: Tree based Directory handle (and safe slug for names)
     directory = instance.parent_directory
     path_parts = []
     while directory:
@@ -44,14 +50,12 @@ def upload_path(instance):
     path = '/'.join(path_parts)
     return path
 
-
-def preview_image_path(instance, filename):
+def preview_image_path(instance, filename): # MEH: Create a dir for thumbnail in each folder
     path = upload_path(instance)
     filename = f"thumb-{safe_slug(instance.name)}.webp"
     return f'file_manager/{path}/thumbnails/{filename}'
 
-
-def upload_file_path(instance, filename):
+def upload_file_path(instance, filename): # MEH: Upload File here (with safe slug name)
     path = upload_path(instance)
     filename = f"{safe_slug(instance.name)}.{instance.type}"
     return f'file_manager/{path}/{filename}'
@@ -82,11 +86,11 @@ class FileItem(models.Model):
         return f"File: {self.name}.{self.type}"
 
     def save(self, *args, **kwargs):
-        if self.file and not self.name:
+        if self.file: # MEH: Set attr first time File save in system
             filename = self.file.name.split('/')[-1]
             self.name, ext = os.path.splitext(filename)
             self.type = ext.lstrip('.')
-            self.volume = self.file.size / 1024
+            self.volume = self.file.size / 1024 # MEH: KB
         if self.file and not self.preview and self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']:
             self.preview = create_square_thumbnail(self.file, size=(128, 128))
         super().save(*args, **kwargs)

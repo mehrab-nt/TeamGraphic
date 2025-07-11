@@ -17,7 +17,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
-from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
+from api.serializers import CombineBulkDeleteSerializer
 from file_manager.apps import ExcelHandler
 
 
@@ -37,9 +37,13 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     ordering_fields = ['create_date', 'name', 'type']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'allow_any',
-        'list': ''
+        '__all__': 'file_manager',
+        **dict.fromkeys(['retrieve', 'update', 'partial_update'], ''), # MEH: Admin User
     }
+
+    @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(exclude=True)  # MEH: Hidden PUT from Api Documentation (only Admin work!)
     def update(self, request, *args, **kwargs):
@@ -107,6 +111,34 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         file_data = FileItemSerializer(files, context={'request': request}, many=True).data
         return Response(dir_data + file_data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        summary='Delete list of files and directories',
+        request=CombineBulkDeleteSerializer,
+        responses={
+            200: OpenApiResponse(description="Successfully deleted files and directories."),
+            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
+        },
+    )
+    @action(detail=False, methods=['post'], serializer_class=CombineBulkDeleteSerializer,
+            url_path='bulk-delete')
+    def bulk_delete(self, request):
+        """
+        MEH: Delete List of File Item Objects (use POST ACTION for sending last_date in request body)
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        file_ids = serializer.validated_data.get('item_ids', [])
+        dir_ids = serializer.validated_data.get('layer_ids', [])
+        file_qs = FileItem.objects.filter(id__in=file_ids)
+        dir_qs = FileDirectory.objects.filter(id__in=dir_ids)
+        if not file_qs.exists() or not dir_qs.exists():
+            return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_400_BAD_REQUEST)
+        file_qs.delete() # MEH: Delete FileItems
+        for dir_obj in dir_qs: # MEH: Recursively delete directories
+            dir_obj.delete_recursive()
+        self.serializer_class = FileDirectorySerializer # MEH: Just for drf view
+        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
+
 
 @extend_schema(tags=['File-Manager'])
 class FileItemViewSet(CustomMixinModelViewSet):
@@ -124,10 +156,14 @@ class FileItemViewSet(CustomMixinModelViewSet):
     ordering_fields = ['create_date', 'name', 'type', 'volume']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'allow_any',
-        'update': '',
-        'partial_update': '',
+        '__all__': 'file_manager',
+        'old_file_bulk_delete': 'file_manager_bulk_delete',
+        **dict.fromkeys(['retrieve', 'update', 'partial_update'], ''), # MEH: Admin User
     }
+
+    @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
 
     @extend_schema(exclude=True) # MEH: Hidden PUT from Api Documentation (only Admin work!)
     def update(self, request, *args, **kwargs):

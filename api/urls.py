@@ -17,7 +17,7 @@ router.register(r'user', UserViewSet, basename='user')
 router.register(r'role', RoleViewSet, basename='role')
 router.register(r'introduction', IntroductionViewSet, basename='introduction')
 router.register(r'file-manager/directory', FileDirectoryViewSet, basename='file-directory')
-router.register(r'file-manager', FileItemViewSet, basename='file-item')
+router.register(r'file-manager/item', FileItemViewSet, basename='file-item')
 router.register(r'product/category', ProductCategoryViewSet, basename='product-category')
 router.register(r'product', ProductViewSet, basename='product')
 
