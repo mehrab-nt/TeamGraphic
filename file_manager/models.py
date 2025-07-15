@@ -100,7 +100,7 @@ class FileItem(models.Model):
         super().save(*args, **kwargs)
 
     @property
-    def full_filename(self):
+    def full_file_name(self):
         return f'{self.name}.{self.type}'
 
     def get_download_url(self):

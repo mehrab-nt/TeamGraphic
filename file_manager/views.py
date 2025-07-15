@@ -17,7 +17,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     """
     MEH: File Directory Model viewset
     """
-    queryset = FileDirectory.objects.all()
+    queryset = FileDirectory.objects.all().order_by('-create_date')
     serializer_class = FileDirectorySerializer
     filter_backends = [
         DjangoFilterBackend,
@@ -26,6 +26,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['name']
     ordering_fields = ['create_date', 'name']
+    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['file_manager'],
@@ -112,7 +113,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
             url_path='bulk-delete', filter_backends=[None])
     def bulk_delete(self, request):
         """
-        MEH: Delete List of File Item Objects (use POST ACTION for sending last_date in request body)
+        MEH: Delete List of Directory & File Item Objects (use POST ACTION for sending ids list in request body)
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -129,7 +130,7 @@ class FileItemViewSet(CustomMixinModelViewSet):
     """
     MEH: File Item Model viewset
     """
-    queryset = FileItem.objects.all()
+    queryset = FileItem.objects.all().order_by('-create_date')
     serializer_class = FileItemSerializer
     filter_backends = [
         DjangoFilterBackend,
@@ -138,6 +139,7 @@ class FileItemViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['name']
     ordering_fields = ['create_date', 'name', 'type', 'volume']
+    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['file_manager'],

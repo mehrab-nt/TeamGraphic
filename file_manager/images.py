@@ -1,5 +1,7 @@
 from PIL import Image, UnidentifiedImageError
 from io import BytesIO
+import os
+import uuid
 from django.core.files.base import ContentFile
 
 ALLOWED_IMAGE_FORMATS = ['JPEG', 'PNG', 'WEBP', 'JPG']

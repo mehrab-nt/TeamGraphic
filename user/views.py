@@ -10,13 +10,11 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count
-from .serializers import (UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, UserSerializer,
-                          UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer,
-                          UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
-                          UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
-                          UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer,
-                          RoleSerializer, UserChangePasswordSerializer,
-                          UserResendCodeSerializer)
+from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, UserSerializer, \
+    UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
+    UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
+    UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, UserAccountingSerializer, \
+    AddressSerializer, IntroductionSerializer, RoleSerializer, UserChangePasswordSerializer, UserResendCodeSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist

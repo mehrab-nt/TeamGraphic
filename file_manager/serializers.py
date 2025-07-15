@@ -50,8 +50,8 @@ class FileItemSerializer(CustomModelSerializer):
 
     def validate(self, data): # MEH: Check uploaded Image size and Image -> SEO Base request (Optimize in filemanager.images.py)
         file = data.get('file')
-        width = data.pop('img_width') or 0
-        height = data.pop('img_height') or 0
+        width = data.pop('img_width', 0)
+        height = data.pop('img_height', 0)
         if file:
             size_mb = file.size / (1024 * 1024)
             if size_mb > 100:
