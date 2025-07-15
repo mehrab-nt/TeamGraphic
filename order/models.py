@@ -1,6 +1,7 @@
 from django.db import models
 from django.core import validators
 from django.utils import timezone
+from file_manager.models import FileItem
 from product.models import Product
 from user.models import User
 from employee.models import Employee
@@ -114,6 +115,7 @@ class Order(models.Model):
                              related_name='order_list')
     product_price = models.PositiveIntegerField(default=0,
                                                 blank=False, null=False, verbose_name='Product Price')
+    files = models.ManyToManyField(FileItem, blank=True, related_name='for_orders')
     fields = models.JSONField(default=dict,
                               blank=False, null=False)
     options = models.JSONField(default=dict,
