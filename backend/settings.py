@@ -73,6 +73,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Employee-Level', 'description': 'Operations Related to Employees Levels'},
         {'name': 'File-Manager', 'description': 'Operations Related to Files'},
         {'name': 'Products', 'description': 'Operations Related to Products'},
+        {'name': 'Gallery', 'description': 'Operations Related to Galleries'},
         {'name': 'Api-Access', 'description': 'Operations Related to Api Access Categories & Items (Only Admin)'},
     ],
     'SAVE_INCLUDE_SCHEMA': False,

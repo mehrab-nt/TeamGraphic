@@ -194,49 +194,98 @@ class TemplateFile(models.Model):
 
 
 class GalleryCategory(models.Model):
-    title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    # gallery_image_file = models.ImageField(upload_to="gallery/", blank=False, null=False)
-    # gallery_image_thumbnail = models.ImageField(upload_to="gallery/", blank=False, null=False)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
+    name = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
+                            blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
     parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
                                         blank=True, null=True,
                                         related_name='sub_galleries')
-    active_link = models.BooleanField(default=False,
-                                      blank=False, null=False, verbose_name='Active Link')
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = ['sort_number', 'name']
         verbose_name = 'Gallery Category'
         verbose_name_plural = 'Gallery Categories'
 
     def __str__(self):
-        return f'Gallery Category #{self.pk}: {self.title}'
+        if self.parent_category:
+            return f"{self.parent_category}/{self.name}/"
+        else:
+            return f"{self.name}"
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        current = self.parent_category
+        while current:
+            if current == self:
+                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_category
+
+    def delete_recursive(self):
+        deleted_count = 0
+        for sub_galleries in self.sub_galleries.all(): # MEH: First delete subgalleries recursively
+            deleted_count += sub_galleries.delete_recursive()
+        image_deleted, _ = self.sub_images.all().delete() # MEH: Delete images in this gallery
+        deleted_count += image_deleted
+        self.delete() # MEH: Then delete the gallery itself
+        return deleted_count
+
+
+def get_random_basename(instance):
+    if not hasattr(instance, "_random_basename"):
+        instance._random_basename = uuid.uuid4().hex[:8]
+    return instance._random_basename
+
+def preview_image_path(instance, filename): # MEH: Create a dir for thumbnail in each folder
+    base_name = get_random_basename(instance)
+    filename = f"thumb-{base_name}.webp"
+    return f'gallery/thumbnails/{filename}'
+
+def upload_file_path(instance, filename): # MEH: Upload File here (with safe slug name)
+    base_name = get_random_basename(instance)
+    filename = f"{base_name}.{instance.type}"
+    return f'gallery/{filename}'
 
 
 class GalleryImage(models.Model):
-    title = models.CharField(max_length=78, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    # image_file = models.ImageField(upload_to="gallery/", blank=False, null=False)
-    # image_thumbnail = models.ImageField(upload_to="gallery/", blank=False, null=False)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
+    name = models.CharField(max_length=78, validators=[validators.MinLengthValidator(3)],
+                            blank=False, null=False)
+    type = models.CharField(max_length=5, validators=[validators.MinLengthValidator(1)],
+                            blank=True, null=False)
+    preview = models.ImageField(upload_to=preview_image_path, blank=True, null=True)
+    image_file = models.FileField(upload_to=upload_file_path, blank=False, null=False)
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    category = models.ForeignKey(GalleryCategory, on_delete=models.PROTECT,
-                                 blank=True, null=True,
-                                 related_name='gallery_image_list')
+    parent_category = models.ForeignKey(GalleryCategory, on_delete=models.PROTECT,
+                                        blank=True, null=True,
+                                        related_name='sub_images')
 
     class Meta:
-        ordering = ['-sort_number', 'category']
+        ordering = ['sort_number', 'parent_category']
         verbose_name = 'Gallery Image'
         verbose_name_plural = 'Gallery Images'
 
     def __str__(self):
-        return f'Image #{self.pk}: {self.title}'
+        return f'Image #{self.pk}: {self.name}'
+
+    def save(self, *args, **kwargs):
+        filename = self.image_file.name.split('/')[-1]
+        name, ext = os.path.splitext(filename)
+        if not self.name:
+            self.name = name
+        self.type = ext.lstrip('.').lower()
+        if self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']: # MEH: Just save image type file!
+            if not os.path.basename(self.preview.name or '').__contains__(os.path.basename(self.image_file.name)):
+                self.preview = create_square_thumbnail(self.image_file, size=(128, 128))
+            super().save(*args, **kwargs)
+
+    @property
+    def full_image_name(self):
+        return f'{self.name}.{self.type}'
+
+    def get_download_url(self):
+        return self.image_file.url
 
 
 class FieldName(models.TextChoices):
