@@ -9,7 +9,7 @@ from .serializers import ProductSerializer, ProductCategorySerializer, ProductCa
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
-from file_manager.apps import ExcelHandler
+from file_manager.excel_handler import ExcelHandler
 
 
 @extend_schema(tags=['Products'])
@@ -28,7 +28,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'allow_any',
+        '__all__': ['allow_any'],
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -110,7 +110,7 @@ class ProductViewSet(CustomMixinModelViewSet):
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'allow_any',
+        '__all__': ['allow_any'],
     }
 
     @extend_schema(exclude=True) # MEH: Hidden list from Api Documentation (only Admin work)

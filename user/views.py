@@ -26,7 +26,7 @@ from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
-from file_manager.apps import ExcelHandler
+from file_manager.excel_handler import ExcelHandler
 
 
 @extend_schema(tags=["Auth"], summary="Get Refresh Token")
@@ -221,20 +221,20 @@ class UserViewSet(CustomMixinModelViewSet):
 
     @extend_schema(summary="Get User Profile information")
     @action(detail=True, methods=['get', 'put', 'patch'],
-            url_path='profile', serializer_class=UserProfileSerializer)
+            url_path='profile', serializer_class=UserProfileSerializer, filter_backends=[None])
     def profile(self, request, pk=None):
         """
         MEH: Get User Profile information and Update it with `pk` (GET/PUT ACTION)
         """
         user = self.get_object(pk=pk)
-        use_profile = user.user_profile
+        user_profile = user.user_profile
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(use_profile, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(use_profile)
+            return self.custom_update(user_profile, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user_profile)
 
     @extend_schema(summary="Get User Key information")
     @action(detail=True, methods=['get'],
-            url_path='key', serializer_class=UserKeySerializer)
+            url_path='key', serializer_class=UserKeySerializer, filter_backends=[None])
     def key(self, request, pk=None):
         """
         MEH: Get User Key information with `pk` (GET ACTION)
@@ -245,7 +245,7 @@ class UserViewSet(CustomMixinModelViewSet):
 
     @extend_schema(summary="Get User Accounting information")
     @action(detail=True, methods=['get', 'put', 'patch'],
-            url_path='accounting', serializer_class=UserAccountingSerializer)
+            url_path='accounting', serializer_class=UserAccountingSerializer, filter_backends=[None])
     def accounting(self, request, pk=None):
         """
         MEH: Get User Accounting information and Update it with `pk` (GET/PUT ACTION)
@@ -327,7 +327,7 @@ class UserViewSet(CustomMixinModelViewSet):
         },
     )
     @action(detail=False, methods=['post'],
-            url_path='import', serializer_class=UserImportFieldDataSerializer, filter_backends=[], pagination_class=None)
+            url_path='import', serializer_class=UserImportFieldDataSerializer, filter_backends=[None], pagination_class=None)
     def import_user_list(self, request):
         """
         MEH: Create User list from Excel File (up to 1000) (POST ACTION)

@@ -4,6 +4,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
+from datetime import timedelta
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
@@ -11,6 +12,7 @@ from api.models import ApiItem
 from file_manager.images import *
 import random
 from .task import send_phone_verification_code
+from django.core.cache import cache
 
 
 class UserSignUpManualSerializer(CustomModelSerializer):
@@ -511,8 +513,7 @@ class AddressSerializer(CustomModelSerializer):
         return data
 
     def create(self, validated_data, **kwargs):
-        address = Address(**validated_data, **kwargs) # MEH: for parse User in **kwargs
-        address.save()
+        address = Address.objects.create(**validated_data, **kwargs) # MEH: for parse User in **kwargs
         return address
 
 
