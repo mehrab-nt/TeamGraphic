@@ -139,14 +139,14 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def custom_create(self, data, many=False, **kwargs):
+    def custom_create(self, data, many=False, customize_response=None, **kwargs):
         is_many = isinstance(data, list)
         if is_many and not many: # MEH: Many Post Handle from View Actions -> (many=T or F)...
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(data=data, many=many)
         try:
             serializer.is_valid(raise_exception=True)
-            self.perform_create(serializer, **kwargs)
+            created_data = self.perform_create(serializer, **kwargs)
         except ValidationError as e:
             return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
@@ -155,16 +155,18 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if customize_response:
+            return Response({'detail': created_data}, status=status.HTTP_202_ACCEPTED)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 
-    def custom_update(self, instance, data, partial=False, **kwargs):
+    def custom_update(self, instance, data, partial=False, customize_response=None, **kwargs):
         is_many = isinstance(data, list)
         if is_many: # MEH: Many Update disable...
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
         serializer = self.get_serializer(instance, data=data, partial=partial)
         try:
             serializer.is_valid(raise_exception=True)
-            self.perform_update(serializer, **kwargs)
+            updated_data = self.perform_update(serializer, **kwargs)
         except ValidationError as e:
             return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
@@ -173,6 +175,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        if customize_response:
+            return Response({'detail': updated_data}, status=status.HTTP_200_OK)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_destroy(self, instance):
@@ -184,11 +188,11 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                 raise PermissionDenied(TG_PREVENT_DELETE_DEFAULT)
         try:
             deleted_count = 0
-            with transaction.atomic():
-                if hasattr(instance, 'delete_recursive'):
+            if hasattr(instance, 'delete_recursive'):
+                with transaction.atomic():
                     deleted_count = instance.delete_recursive()
-                else:
-                    self.perform_destroy(instance)
+            else:
+                self.perform_destroy(instance)
         except ProtectedError: # Model on-delete=PROTECT
             raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
         except DatabaseError as e:
@@ -228,19 +232,23 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         return Response({"detail": TG_DATA_DELETED, "deleted_count": total_delete, "skipped_ids": skipped_ids,}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
-        serializer.save(**kwargs)
+        with transaction.atomic(): # MEH: With transaction if anything wrong, Everything in DB roll back to first place
+            return serializer.save(**kwargs)
 
     def perform_update(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
-        serializer.save(**kwargs)
+        with transaction.atomic():
+            return serializer.save(**kwargs)
 
     def perform_destroy(self, instance): # MEH: not change for now
-        instance.delete()
+        with transaction.atomic():
+            instance.delete()
 
 
 class CustomBulkListSerializer(serializers.ListSerializer):
     def create(self, validated_data):
         """
         # MEH: Handle bulk create (1 by 1) (instead of .bulk_create: because 1 by 1 maybe slower but safer!)
+        Used for import data with Excel
         """
         data_list = []
         for i, data in enumerate(validated_data): # MEH: First Validate data 1 by 1 if anything wrong, No Data Create at all
