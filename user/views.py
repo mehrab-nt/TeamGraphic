@@ -4,6 +4,8 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated, IsOwner
 from rest_framework.decorators import action
+from rest_framework.throttling import ScopedRateThrottle
+from api.throttles import PhoneNumberRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
@@ -50,6 +52,7 @@ class UserViewSet(CustomMixinModelViewSet):
     """
     MEH: User Model viewset
     """
+    throttle_scope = ''
     queryset = User.objects.all() # MEH: Override in get_query_set()
     serializer_class = UserSerializer
     filterset_class = CustomerFilter
