@@ -1,6 +1,7 @@
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save, m2m_changed
 from django.dispatch import receiver
-from .models import Employee
+from django.core.cache import cache
+from .models import Employee, EmployeeLevel
 from user.models import User
 
 
@@ -38,3 +39,9 @@ def employee_post_delete(sender, instance, **kwargs):
         instance.user.delete()
     except User.DoesNotExist:
         pass
+
+
+@receiver(m2m_changed, sender=EmployeeLevel.api_items.through)
+def clear_employee_level_api_keys_cache(sender, instance, **kwargs):
+    cache_key = f"employee_level_api_keys:{instance.pk}"
+    cache.delete(cache_key)

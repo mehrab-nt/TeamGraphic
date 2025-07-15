@@ -9,12 +9,14 @@ from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
 from api.models import ApiItem
 from file_manager.images import *
+import random
+from .task import send_phone_verification_code
 
 
-class UserSignUpSerializer(CustomModelSerializer):
+class UserSignUpManualSerializer(CustomModelSerializer):
     """
-    MEH: Api for sign up user with phone number & simple password (min:8) & first name (full name)
-    SMS check phone number set in NUXT front end
+    MEH: Api for sign up user with phone number & first name (full name)
+    with simple password (min 8) without code verification (in person)
     """
     phone_number = serializers.CharField(required=True,
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
@@ -40,10 +42,145 @@ class UserSignUpSerializer(CustomModelSerializer):
         user = User.objects.create_user(**validated_data, username=validated_data['phone_number'])
         user.set_password(password) # MEH: Set Password with Hashing
         user.save()
-        return user
+        return {
+            'user': {
+                'id': user.id,
+                'phone_number': user.phone_number
+            }
+        }
 
 
-class UserSignInSerializer(CustomModelSerializer):
+class UserSignUpRequestSerializer(CustomModelSerializer):
+    """
+    MEH: Api for request sign up User with just phone number and wait for SMS code
+    """
+    phone_number = serializers.CharField(required=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+
+    class Meta:
+        model = User
+        fields = ['phone_number']
+
+    def validate_phone_number(self, data): # MEH: Validate if Phone Number is new or not
+        if self.Meta.model.objects.filter(phone_number=data).exists():
+            raise serializers.ValidationError(TG_SIGNUP_INTEGRITY)
+        return data
+
+    def create(self, validated_data, **kwargs):
+        phone_number = validated_data['phone_number']
+        code = str(random.randint(1000, 9999))
+        cache.set(f"sms-code:{phone_number}", code, timeout=300) # MEH: 5 min verify code!
+        send_phone_verification_code.delay(code, phone_number) # MEH: Celery task run in background
+        return TG_VERIFICATION_CODE_SENT
+
+
+class UserSignUpVerifySerializer(UserSignUpRequestSerializer):
+    """
+    MEH: Api for verify sign up user with phone number & SMS code & first name (full name)
+    without password!
+    """
+    sms_code = serializers.CharField(min_length=4, max_length=4, required=True, allow_null=False, write_only=True)
+    first_name = serializers.CharField(required=True, min_length=3, max_length=73)
+    introduce_code = serializers.CharField(min_length=8, max_length=8, allow_blank=True, allow_null=True, write_only=True, required=False)
+
+    class Meta:
+        model = User
+        fields = ['phone_number', 'sms_code', 'first_name', 'introduce_from', 'introduce_code']
+
+    def validate(self, data):
+        phone_number = data['phone_number']
+        code = data['sms_code']
+        cached_code = cache.get(f"sms-code:{phone_number}")
+        if cached_code is None or str(cached_code) != str(code):
+            raise serializers.ValidationError(TG_AUTH_INVALID_CODE)
+        return data
+
+    def create(self, validated_data, **kwargs): # MEH: override create super method (POST)
+        phone_number = validated_data['phone_number']
+        validated_data.pop('sms_code')
+        cache.delete(f"sms-code:{phone_number}") # MEH: Delete sms code from cache
+        introduce_code = validated_data.pop('introduce_code', None)
+        if introduce_code:
+            validated_data['introducer'] = User.objects.filter(public_key=introduce_code).first()
+        user = User.objects.create_user(**validated_data, username=phone_number, phone_number_verified=True)
+        user.save()
+        refresh = RefreshToken.for_user(user) # MEH: Auto signed in
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+            }
+        }
+
+
+class UserSignInRequestSerializer(UserSignUpRequestSerializer):
+    """
+    MEH: Inherit from UserSignUpRequestSerializer to request SMS code -> just change validate_phone_number
+    """
+    def validate_phone_number(self, data): # MEH: Validate if Phone Number is exist or not
+        if self.Meta.model.objects.filter(phone_number=data).exists():
+            return data
+        raise serializers.ValidationError(TG_SIGNIN_ERROR)
+
+
+class UserSignInWithCodeSerializer(UserSignInRequestSerializer):
+    """
+    MEH: Api for validate user sign in with phone number and verify SMS code
+    return: Access Token & Refresh Token
+    """
+    sms_code = serializers.CharField(min_length=4, max_length=4, required=True, allow_null=False, write_only=True)
+    keep_me_signed_in = serializers.BooleanField(required=False, default=False)
+
+    class Meta:
+        model = User
+        fields = ['phone_number', 'sms_code', 'keep_me_signed_in']
+
+    def validate(self, data):
+        phone_number = data['phone_number']
+        cached_code = cache.get(f"sms-code:{phone_number}")
+        code = data.pop('sms_code', None)
+        if cached_code is None or str(cached_code) != str(code):
+            raise serializers.ValidationError(TG_AUTH_INVALID_CODE)
+        cache.delete(f"sms-code:{phone_number}") # MEH: Delete sms code from cache
+        user = User.objects.get(phone_number=phone_number)
+        data['user'] = user
+        return data
+
+    def create(self, validated_data, **kwargs):
+        user = validated_data['user']
+        if not user.phone_number_verified:
+            user.phone_number_verified = True
+            user.save(update_fields=['phone_number_verified'])
+        refresh = RefreshToken.for_user(user)
+        if validated_data['keep_me_signed_in']:
+            refresh.set_exp(lifetime=timedelta(days=30)) # MEH: Long life access token!
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user': {
+                'id': user.id,
+            }
+        }
+
+
+class UserResendCodeSerializer(UserSignUpRequestSerializer):
+    """
+    MEH: Api for request re-send code for sign-up or sign-in
+    """
+    def validate_phone_number(self, data): # MEH: Override Validate phone_number for both exist or not
+        cache_key = f'sms-code:{data}'
+        cached_code = cache.get(cache_key)
+        if not cached_code: # MEH: Check if this phone number really want resend code, or it's a new request!
+            raise serializers.ValidationError(TG_VERIFICATION_CODE_RESENT_DENIED)
+        return data
+
+    def create(self, validated_data, **kwargs):
+        super().create(validated_data, **kwargs)
+        return TG_VERIFICATION_CODE_RESENT
+
+
+class UserSignInWithPasswordSerializer(CustomModelSerializer):
     """
     MEH: Api for validate user sign in with phone number and password
     return: Access Token & Refresh Token
@@ -52,16 +189,24 @@ class UserSignInSerializer(CustomModelSerializer):
                                          validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
                                      style={'input_type': 'password'})
+    keep_me_signed_in = serializers.BooleanField(required=False, default=False)
 
     class Meta:
         model = User
-        fields = ['phone_number', 'password']
+        fields = ['phone_number', 'password', 'keep_me_signed_in']
 
     def validate(self, data):
         user = authenticate(phone_number=data['phone_number'], password=data['password'])
         if not user:
             raise serializers.ValidationError(TG_SIGNIN_ERROR)
+        data['user'] = user
+        return user
+
+    def create(self, validated_data, **kwargs):
+        user = validated_data['user']
         refresh = RefreshToken.for_user(user)
+        if validated_data['keep_me_signed_in']:
+            refresh.set_exp(lifetime=timedelta(days=30))
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
@@ -69,6 +214,36 @@ class UserSignInSerializer(CustomModelSerializer):
                 'id': user.id,
             }
         }
+
+
+class UserChangePasswordSerializer(CustomModelSerializer):
+    """
+    MEH: Api for validate user old Password & change it (or set New pass for first time)
+    """
+    old_password = serializers.CharField(default=None, required=False, min_length=8, max_length=32, write_only=True, allow_null=True,
+                                         style={'input_type': 'password'})
+    new_password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                         style={'input_type': 'password'})
+    new_password_repeat = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                                style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['id', 'old_password', 'new_password', 'new_password_repeat']
+
+    def validate(self, data):
+        request_user = self.context['request'].user
+        if data['new_password'] != data['new_password_repeat']:
+            raise serializers.ValidationError(TG_WRONG_REPEAT_PASSWORD)
+        if request_user.has_usable_password(): # MEH: User has a Password already
+            if not data['old_password'] or not request_user.check_password(data['old_password']):
+                raise serializers.ValidationError(TG_WRONG_PASSWORD)
+        return data
+
+    def update(self, instance, validated_data):
+        instance.set_password(validated_data['new_password'])
+        instance.save()
+        return TG_PASSWORD_CHANGED
 
 
 class UserProfileSerializer(CustomModelSerializer):

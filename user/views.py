@@ -8,11 +8,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count
-from .serializers import (UserSignUpSerializer, UserSignInSerializer, UserSerializer,
+from .serializers import (UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, UserSerializer,
+                          UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer,
                           UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer,
                           UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer,
                           UserKeySerializer, UserAccountingSerializer, AddressSerializer, IntroductionSerializer,
-                          RoleSerializer)
+                          RoleSerializer, UserChangePasswordSerializer,
+                          UserResendCodeSerializer)
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -105,27 +107,97 @@ class UserViewSet(CustomMixinModelViewSet):
                 raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
         return super().get_object(*args, **kwargs) # MEH: Super default behavior with pk
 
-    @extend_schema(tags=['Auth'], summary="Sign Up request")
-    @action(detail=False, methods=['post'],
-            url_path='sign-up', serializer_class=UserSignUpSerializer,
-            permission_classes=[IsNotAuthenticated])
-    def sign_up(self, request):
-        """
-        MEH: User Sign Up (POST ACTION) Only User that not authenticated have permission.
-        """
-        return self.custom_create(request.data)
+    @extend_schema(exclude=True)  # MEH: Hidden POST from Api Documentation (only Admin work!)
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
 
-    @extend_schema(tags=['Auth'], summary="Sign In request")
+    @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
-            url_path='sign-in', serializer_class=UserSignInSerializer,
-            permission_classes=[IsNotAuthenticated])
-    def sign_in(self, request):
+            url_path='sign-up', serializer_class=UserSignUpManualSerializer,
+            permission_classes=[ApiAccess])
+    def sign_up_manual(self, request):
         """
-        MEH: User Sign In (POST ACTION) and get `access_token` & `refresh_token` | Only User that not authenticated have permission
+        MEH: User Sign Up (POST ACTION) Only Employee with access have permission
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.validated_data, status=status.HTTP_200_OK)
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Sign Up request code")
+    @action(detail=False, methods=['post'],
+            url_path='sign-up-request', serializer_class=UserSignUpRequestSerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'phone', throttle_classes=[PhoneNumberRateThrottle])
+    def sign_up_request(self, request):
+        """
+        MEH: User request Sign Up (POST ACTION) and get code via SMS Only User that not authenticated have permission
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Request resend code")
+    @action(
+        detail=False, methods=['post'],
+        url_path='resend-code', serializer_class=UserResendCodeSerializer, filter_backends=[None],
+        permission_classes=[IsNotAuthenticated], throttle_scope='phone', throttle_classes=[PhoneNumberRateThrottle]
+    )
+    def resend_code(self, request):
+        """
+        MEH: Re-send the last verification code
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Sign Up verify code")
+    @action(detail=False, methods=['post'],
+            url_path='sign-up-verify', serializer_class=UserSignUpVerifySerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'auth', throttle_classes=[ScopedRateThrottle])
+    def sign_up_verify(self, request):
+        """
+        MEH: User Sign Up (POST ACTION) to verify SMS code
+        Only User that not authenticated have permission
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Sign In with password")
+    @action(detail=False, methods=['post'],
+            url_path='sign-in-with-password', serializer_class=UserSignInWithPasswordSerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'auth', throttle_classes=[ScopedRateThrottle])
+    def sign_in_with_password(self, request):
+        """
+        MEH: User Sign In with password (POST ACTION) and get `access_token` & `refresh_token`
+        Only User that not authenticated have permission
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Sign In request code")
+    @action(detail=False, methods=['post'],
+            url_path='sign-in-request', serializer_class=UserSignInRequestSerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'phone', throttle_classes=[PhoneNumberRateThrottle])
+    def sign_in_request(self, request):
+        """
+        MEH: User request Sign In (POST ACTION) and get SMS code
+        Only User that not authenticated have permission.
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Sign In verify code")
+    @action(detail=False, methods=['post'],
+            url_path='sign-in-verify', serializer_class=UserSignInWithCodeSerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'auth', throttle_classes=[ScopedRateThrottle])
+    def sign_in_verify(self, request):
+        """
+        MEH: User Sign In with code (POST ACTION) to verify SMS code and get `access_token` & `refresh_token`
+        Only User that not authenticated have permission
+        """
+        return self.custom_create(request.data, customize_response=True)
+
+    @extend_schema(tags=['Auth'], summary="Change Password request")
+    @action(detail=True, methods=['put'],
+            url_path='change-password', serializer_class=UserChangePasswordSerializer, filter_backends=[None],
+            permission_classes=[IsOwner])
+    def change_password(self, request, pk=None):
+        """
+        MEH: User can try change old password (most authenticate)
+        """
+        user = self.get_object()
+        self.check_object_permissions(request, user)
+        return self.custom_update(user, request.data, customize_response=True)
 
     @extend_schema(summary="Get User by phone number")
     @action(detail=False, methods=['get'],

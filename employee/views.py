@@ -12,6 +12,7 @@ from rest_framework.exceptions import NotFound, PermissionDenied
 from drf_spectacular.utils import extend_schema
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
+from user.serializers import UserChangePasswordSerializer
 
 
 @extend_schema(tags=['Employee'])
@@ -37,6 +38,18 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         '__all__': 'get_employee',
         'create': 'create_employee',
     }
+
+    @extend_schema(summary="Change Password request")
+    @action(detail=True, methods=['put'],
+            url_path='change-password', serializer_class=UserChangePasswordSerializer, filter_backends=[None],
+            permission_classes=[IsOwner])
+    def change_password(self, request, pk=None):
+        """
+        MEH: Employee User can try change old password (most authenticate)
+        """
+        employee = self.get_object()
+        self.check_object_permissions(request, employee)
+        return self.custom_update(employee.user, request.data, customize_response=True)
 
 
 @extend_schema(tags=['Employee-Level'])

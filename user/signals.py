@@ -1,6 +1,7 @@
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save, pre_save, m2m_changed
 from django.dispatch import receiver
 from django.db.models import F
+from django.core.cache import cache
 from .models import Role, User, UserProfile
 
 
@@ -71,3 +72,9 @@ def user_post_delete(sender, instance, **kwargs):
         instance.user_profile.delete()
     except UserProfile.DoesNotExist:
         pass
+
+
+@receiver(m2m_changed, sender=Role.api_items.through)
+def clear_role_api_keys_cache(sender, instance, **kwargs):
+    cache_key = f"role_api_keys:{instance.pk}"
+    cache.delete(cache_key)
