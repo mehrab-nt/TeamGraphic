@@ -4,6 +4,9 @@ attrs==25.3.0
 billiard==4.2.1
 celery==5.5.3
 click==8.2.1
+click-didyoumean==0.3.1
+click-plugins==1.1.1.2
+click-repl==0.3.0
 Django==5.2.1
 django-cleanup==9.0.0
 django-cors-headers==4.7.0
@@ -29,6 +32,7 @@ kombu==5.5.4
 openpyxl==3.1.5
 packaging==25.0
 pillow==11.2.1
+prompt_toolkit==3.0.51
 psycopg2-binary==2.9.10
 PyJWT==2.9.0
 python-dateutil==2.9.0.post0
