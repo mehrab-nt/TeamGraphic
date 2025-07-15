@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import FileDirectory, FileItem
+from .models import FileDirectory, FileItem, ClearFileHistory
 
 
 class FileDirectoryAdmin(admin.ModelAdmin):
@@ -14,5 +14,10 @@ class FileItemAdmin(admin.ModelAdmin):
     list_filter = ['parent_directory', 'type']
 
 
+class ClearFileHistoryAdmin(admin.ModelAdmin):
+    list_display = ['id', 'from_date', 'until_date', 'employee', 'submit_date']
+
+
 admin.site.register(FileDirectory, FileDirectoryAdmin)
 admin.site.register(FileItem, FileItemAdmin)
+admin.site.register(ClearFileHistory, ClearFileHistoryAdmin)

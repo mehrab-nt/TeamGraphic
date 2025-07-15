@@ -75,8 +75,9 @@ class FileItem(models.Model):
                                    blank=True, null=True, verbose_name='Create Date')
     volume = models.FloatField(default=0,
                                blank=False, null=False)
-    parent_directory = models.ForeignKey(FileDirectory, on_delete=models.PROTECT, blank=True, null=True,
-                                  related_name='sub_files')
+    parent_directory = models.ForeignKey(FileDirectory, on_delete=models.PROTECT,
+                                         blank=True, null=True, verbose_name='Parent Directory',
+                                         related_name='sub_files')
     seo_base = models.BooleanField(default=False,
                                    blank=False, null=False, verbose_name='SEO Base')
 
@@ -104,3 +105,21 @@ class FileItem(models.Model):
 
     def get_download_url(self):
         return self.file.url
+
+
+class ClearFileHistory(models.Model):
+    employee = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=False, null=False,
+                                 related_name='clear_file_actions')
+    from_date = models.DateField(blank=False, null=False)
+    until_date = models.DateField(blank=False, null=False)
+    submit_date = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ['-submit_date']
+        verbose_name = "Clear File History"
+        verbose_name_plural = "Clear File Histories"
+
+    def clear_order_files(self): # MEH: Delete old file in request range if The File in for an Order (for delete Other Files di it manually)
+        qs_file = FileItem.objects.filter(create_date__range=[self.from_date, self.until_date], for_orders__isnull=False).distinct()
+        deleted_count, _ = qs_file.delete()
+        return deleted_count

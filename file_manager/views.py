@@ -3,12 +3,13 @@ from rest_framework.response import Response
 from api.permissions import ApiAccess
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from .models import FileDirectory, FileItem
-from .serializers import FileDirectorySerializer, FileItemSerializer
+from .models import FileDirectory, FileItem, ClearFileHistory
+from .serializers import FileDirectorySerializer, FileItemSerializer, ClearFileSerializer
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import CombineBulkDeleteSerializer
+from django.core.cache import cache
 
 
 @extend_schema(tags=['File-Manager'])
@@ -56,19 +57,17 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         ],
     )
     def create(self, request, *args, **kwargs):
-        data = request.data.copy()
         parent_id = request.query_params.get('parent_id')
         if not parent_id: # MEH: it can be in body
-            parent_id = data.get('parent_id')
+            parent_id = request.data.get('parent_id')
         if parent_id in ['', 'None', None]:
-            data['parent_directory'] = None
+            parent_directory = None
         else:
             try:
                 parent_directory = FileDirectory.objects.get(pk=parent_id)
-                data['parent_directory'] = parent_directory.pk
             except FileDirectory.DoesNotExist:
                 return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        return self.custom_create(data, *args, **kwargs)
+        return self.custom_create(request.data, parent_directory=parent_directory)
 
     @extend_schema(
         summary='Tree list of Both Directories & Files',
@@ -95,10 +94,10 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
                 parent = FileDirectory.objects.get(pk=parent_id)
             except FileDirectory.DoesNotExist:
                 return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        directories = FileDirectory.objects.filter(parent_directory=parent).order_by('-create_date', 'name').prefetch_related('sub_dirs')
+        directories = FileDirectory.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
         files = FileItem.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
         dir_data = FileDirectorySerializer(directories, many=True).data
-        file_data = FileItemSerializer(files, context={'request': request}, many=True).data
+        file_data = FileItemSerializer(files, many=True).data
         return Response(dir_data + file_data, status=status.HTTP_200_OK)
 
     @extend_schema(
@@ -110,7 +109,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         },
     )
     @action(detail=False, methods=['post'], serializer_class=CombineBulkDeleteSerializer,
-            url_path='bulk-delete')
+            url_path='bulk-delete', filter_backends=[None])
     def bulk_delete(self, request):
         """
         MEH: Delete List of File Item Objects (use POST ACTION for sending last_date in request body)
@@ -172,3 +171,19 @@ class FileItemViewSet(CustomMixinModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return FileDirectoryViewSet.create(self, request, *args, **kwargs)
+
+    @extend_schema(summary = "Related to Clear old file from Orders")
+    @action(detail=False, methods=['get', 'post'],
+            url_path='clear-old-files', serializer_class=ClearFileSerializer, filter_backends=[None])
+    def clear_old_files(self, request):
+        cache_key = 'clear_old_files'
+        if request.method == 'POST':
+            cache.delete(cache_key)
+            return self.custom_create(request.data)
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return Response(cached_data)
+        histories = ClearFileHistory.objects.select_related('employee').order_by('-submit_date')
+        res = self.custom_get(histories)
+        cache.set(cache_key, res.data, timeout=60 * 60 * 24 * 365)
+        return res
