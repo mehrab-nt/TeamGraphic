@@ -11,7 +11,7 @@ class ApiCategory(models.Model):
                                     verbose_name='Role Base')
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = ['role_base', '-sort_number']
         verbose_name = 'API Category'
         verbose_name_plural = 'API Categories'
 

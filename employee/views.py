@@ -1,5 +1,5 @@
 from rest_framework import filters
-from api.permissions import ApiAccess
+from api.permissions import ApiAccess, IsOwner
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
@@ -35,8 +35,8 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     ordering_fields = ['rate']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': 'get_employee',
-        'create': 'create_employee',
+        '__all__': ['get_employee'],
+        'create': ['create_employee'],
     }
 
     @extend_schema(summary="Change Password request")
@@ -70,8 +70,8 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
     ordering_fields = ['title']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': 'get_employee_level_access',
-        'create': 'create_employee_level_access',
+        '__all__': ['get_employee_level_access'],
+        'create': ['create_employee_level_access'],
     }
 
     def create(self, request, *args, **kwargs):

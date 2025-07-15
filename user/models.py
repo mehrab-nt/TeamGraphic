@@ -8,6 +8,7 @@ from city.models import City, Province
 from api.responses import *
 from api.models import ApiItem
 import string, random
+from django.core.cache import cache
 
 
 class User(AbstractUser):
@@ -66,20 +67,25 @@ class User(AbstractUser):
             self.username = self.phone_number
         super().save(*args, **kwargs)
 
-    def has_api_permission(self, key: str):
-        # todo: after test clean comment
-        # if self.is_staff or self.is_superuser:
-        #     return True
-        if not key:
+    def has_api_permission(self, keys):
+        if not keys:
             return False
         if self.is_employee: # MEH: Check Access for this Employee
             level = getattr(getattr(self, "employee_profile", None), "level", None)
-            if level and hasattr(level, 'api_items'):
-                return any(item.key == key for item in level.api_items.all())
-            return False
-        role = getattr(self, "role", None) # MEH: Check Access for customer depend on their Role...
-        if role and hasattr(role, 'api_items'):
-            return any(item.key == key for item in role.api_items.all())
+            if level:
+                cache_key = f"employee_level_api_keys:{level.pk}"
+                api_keys = cache.get(cache_key)
+                if api_keys is None: # MEH: Check if already Cached or not
+                    api_keys = list(level.api_items.values_list("key", flat=True))
+                    cache.set(cache_key, api_keys, timeout=None) # MEH: Cache it forever (only changed when m2m changed signal receive!)
+                return any(key in api_keys for key in keys)
+        elif self.role: # MEH: Check Access for customer depend on their Role...
+            cache_key = f"role_api_keys:{self.role.pk}"
+            api_keys = cache.get(cache_key)
+            if api_keys is None: # MEH: Check if already Cached or not
+                api_keys = list(self.role.api_items.values_list("key", flat=True))
+                cache.set(cache_key, api_keys, timeout=None) # MEH: Cache it forever (only changed when m2m changed signal receive!)
+            return any(key in api_keys for key in keys)
         return False
 
 

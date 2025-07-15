@@ -2,7 +2,7 @@ from rest_framework import status, filters
 from datetime import datetime, date
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from api.permissions import ApiAccess, IsNotAuthenticated
+from api.permissions import ApiAccess, IsNotAuthenticated, IsOwner
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
@@ -62,16 +62,19 @@ class UserViewSet(CustomMixinModelViewSet):
     ordering_fields = ['date_joined', 'order_count', 'last_order_date']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'get_by_phone', 'key'], 'get_users'),
-        **dict.fromkeys(['update', 'partial_update', 'profile', 'accounting'], 'update_user'),
-        **dict.fromkeys(['get_address_list', 'address_detail'], 'get_address'),
-        'create': 'create_user',
-        'destroy': 'delete_user',
-        'activation': 'active_user',
-        **dict.fromkeys(['import_user_list', 'import_user_list_valid_field'], 'import_user_list'),
-        'download_user_list': 'download_user_list',
-        'create_address': 'create_address',
-        'manually_verify_phone': 'verify_phone',
+        **dict.fromkeys(['list', 'retrieve'], ['get_users', 'customer_dashboard']),
+        **dict.fromkeys(['get_by_phone', 'key'], ['get_users']),
+        **dict.fromkeys(['update', 'partial_update', 'accounting'], ['update_user']),
+        'profile': ['update_user', 'customer_dashboard'],
+        **dict.fromkeys(['get_address_list', 'address_detail'], ['get_address', 'customer_dashboard']),
+        'sign_up_manual': ['create_user'],
+        'destroy': ['delete_user'],
+        'activation': ['active_user'],
+        **dict.fromkeys(['import_user_list', 'import_user_list_valid_field'], ['import_user_list']),
+        'download_user_list': ['download_user_list'],
+        'create_address': ['create_address', 'customer_address'],
+        'manually_verify_phone': ['verify_phone'],
+        'create': []
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -79,20 +82,24 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Override queryset
         to parse only required table per action
         """
-        qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
-        if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
-            return qs
-        if self.action == 'accounting':
-            return qs.select_related('role')
-        if self.action == 'profile':
-            return qs.select_related('user_profile')
-        if self.action == 'get_address_list':
-            return qs.prefetch_related('user_addresses')
-        return (
-            qs.select_related('role', 'user_profile', 'introduce_from', 'introducer')
-            .annotate(default_province=Subquery(Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province__name')[:1]))
-            .annotate(invite_user_count=Count('invite_user_list'))
-        )
+        user = self.request.user
+        is_employee = getattr(user, 'is_employee', False)
+        if user.is_superuser or is_employee:
+            qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
+            if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
+                return qs
+            if self.action == 'accounting':
+                return qs.select_related('role')
+            if self.action == 'profile':
+                return qs.select_related('user_profile')
+            if self.action == 'get_address_list':
+                return qs.prefetch_related('user_addresses')
+            return (
+                qs.select_related('role', 'user_profile', 'introduce_from', 'introducer')
+                .annotate(default_province=Subquery(Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province__name')[:1]))
+                .annotate(invite_user_count=Count('invite_user_list'))
+            )
+        return User.objects.filter(id=user.id)
 
     def get_object(self, *args, **kwargs):
         """
@@ -268,6 +275,7 @@ class UserViewSet(CustomMixinModelViewSet):
         address_list = Address.objects.select_related('user', 'province', 'city').filter(user__pk=pk).order_by('-is_default', 'title')
         if not address_list:
             raise NotFound(TG_DATA_EMPTY)
+        self.check_object_permissions(request, address_list.first())
         return self.custom_get(address_list)
 
     @extend_schema(tags=['Users-Addresses'], summary="User Address details")
@@ -284,6 +292,7 @@ class UserViewSet(CustomMixinModelViewSet):
             raise NotFound(TG_DATA_NOT_FOUND)
         except ValueError:
             raise NotFound(TG_EXPECTED_ID_NUMBER)
+        self.check_object_permissions(request, address)
         if request.method == 'DELETE':
             return self.custom_destroy(address)
         if request.method in ['PUT', 'PATCH']:
@@ -298,6 +307,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Add New Address for User with `pk` (POST ACTION)
         """
         user = self.get_object(pk=pk)
+        self.check_object_permissions(request, user)
         return self.custom_create(request.data, user=user)
 
     @extend_schema(
@@ -418,7 +428,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     search_fields = ['title'] # MEH: Get search query
     ordering_fields = ['title', 'number']
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': "full_introductions"
+        '__all__': ['full_introductions']
     }
 
 

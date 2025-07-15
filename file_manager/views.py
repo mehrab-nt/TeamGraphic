@@ -24,11 +24,11 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter,
     ]
     search_fields = ['name']
-    ordering_fields = ['create_date', 'name', 'type']
+    ordering_fields = ['create_date', 'name']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'file_manager',
-        **dict.fromkeys(['retrieve', 'update', 'partial_update'], ''), # MEH: Admin User
+        '__all__': ['file_manager'],
+        **dict.fromkeys(['retrieve', 'update', 'partial_update'], []), # MEH: Admin User
     }
 
     @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
@@ -141,9 +141,9 @@ class FileItemViewSet(CustomMixinModelViewSet):
     ordering_fields = ['create_date', 'name', 'type', 'volume']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': 'file_manager',
-        'old_file_bulk_delete': 'file_manager_bulk_delete',
-        **dict.fromkeys(['retrieve', 'update', 'partial_update'], ''), # MEH: Admin User
+        '__all__': ['file_manager'],
+        'clear_old_files': ['clear_old_files'],
+        **dict.fromkeys(['retrieve', 'update', 'partial_update'], []), # MEH: Admin User
     }
 
     @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
