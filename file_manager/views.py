@@ -52,7 +52,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
                 description='ID of the parent_directory. If omitted, creates root Directory.',
                 type=int,
                 required=False,
-                location=OpenApiParameter.QUERY
+                location='query'
             ),
         ],
     )
@@ -165,7 +165,7 @@ class FileItemViewSet(CustomMixinModelViewSet):
                 description='ID of the parent_directory. If omitted, uploaded File at root level.',
                 type=int,
                 required=False,
-                location=OpenApiParameter.QUERY
+                location='query'
             ),
         ]
     )

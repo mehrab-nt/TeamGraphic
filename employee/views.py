@@ -47,7 +47,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         """
         MEH: Employee User can try change old password (most authenticate)
         """
-        employee = self.get_object()
+        employee = self.get_object(pk=pk)
         self.check_object_permissions(request, employee)
         return self.custom_update(employee.user, request.data, customize_response=True)
 

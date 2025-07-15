@@ -205,7 +205,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: User can try change old password (most authenticate)
         """
-        user = self.get_object()
+        user = self.get_object(pk=pk)
         self.check_object_permissions(request, user)
         return self.custom_update(user, request.data, customize_response=True)
 
@@ -373,7 +373,7 @@ class UserViewSet(CustomMixinModelViewSet):
                 description='Used for highlight User row in Excel file, if check_filed is None or 0 in Excel cell',
                 required=False,
                 type=str,
-                location=OpenApiParameter.QUERY,
+                location='query',
                 enum=list(UserDownloadDataSerializer().get_fields().keys())
             )
         ]

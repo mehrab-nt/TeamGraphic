@@ -1,12 +1,11 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import status, filters
+from rest_framework import filters
 from rest_framework.decorators import action
 from .mixins import CustomMixinModelViewSet
 from .models import ApiItem, ApiCategory
 from .permissions import ApiAccess
 from .serializers import AdminApiCategorySerializer, AdminApiCategoryItemSerializer, AdminApiItemSerializer
 from rest_framework.exceptions import NotFound
-from django.core.exceptions import ObjectDoesNotExist
 from django_filters.rest_framework import DjangoFilterBackend
 from .responses import *
 

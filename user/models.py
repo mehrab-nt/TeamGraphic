@@ -2,7 +2,7 @@ from django.db import models, transaction
 from django.contrib.auth.models import AbstractUser
 from django.core import validators
 from django.utils import timezone
-from django.core.exceptions import ValidationError, ObjectDoesNotExist
+from django.core.exceptions import ValidationError
 from django.contrib.gis.db import models as gis_models
 from city.models import City, Province
 from api.responses import *
