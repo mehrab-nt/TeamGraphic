@@ -5,6 +5,7 @@ from file_manager.models import FileItem
 from file_manager.images import *
 from django.core.exceptions import ValidationError
 from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
+import math
 
 
 class ProductStatus(models.TextChoices):
@@ -31,6 +32,8 @@ class ProductCategory(models.Model):
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
+    product_description = models.TextField(max_length=236,
+                                           blank=True, null=True, verbose_name='Product Description')
     parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
                                         blank=True, null=True, verbose_name='Parent Category',
                                         related_name='sub_categories')
@@ -95,12 +98,26 @@ class ProductCategory(models.Model):
                 raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
             current = current.parent_category
 
+    def update_all_subcategories_and_items(self): # MEH: Call when update status of a category
+        stack = [self]
+        new_status = self.status
+        while stack:
+            current = stack.pop()
+            current.sub_categories.update(status=new_status)
+            current.product_list.update(status=new_status)
+            stack.extend(current.sub_categories.all())
+
 
 class ProductType(models.TextChoices):
     OFFSET = 'OFF', 'افست'
     LARGE_FORMAT = 'LAR', 'لارج فرمت'
     DIGITAL = 'DIG', 'دیجیتال'
-    ITEM = 'ITM', 'محصول عمومی'
+    SOLID = 'SLD', 'محصول عمومی'
+
+class GalleryType(models.TextChoices):
+    SHOW = 'SHO', 'نمایش'
+    OPTIONAL = 'OPT', 'قابل انتخاب'
+    MANDATARY = 'MAN', 'اجباری'
 
 
 class Product(models.Model):
@@ -111,9 +128,11 @@ class Product(models.Model):
                             blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
+    category_description = models.BooleanField(default=True,
+                                               blank=False, null=False, verbose_name='Category Description')
     parent_category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
-                                 blank=False, null=False,
-                                 related_name='product_list')
+                                        blank=True, null=True,
+                                        related_name='product_list')
     image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                               blank=True, null=True,
                               related_name='image_for_products')
@@ -121,12 +140,15 @@ class Product(models.Model):
                            blank=True, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    template = models.ForeignKey('TemplateFile', on_delete=models.SET_NULL,
+    template = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                                  blank=True, null=True,
-                                 related_name='product_list')
+                                 related_name='template_for_products')
     gallery = models.ForeignKey('GalleryCategory', on_delete=models.PROTECT,
                                 blank=True, null=True,
-                                related_name='linked_product_list')
+                                related_name='gallery_for_products')
+    gallery_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                    choices=GalleryType.choices,
+                                    blank=True, null=True)
     status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
@@ -134,19 +156,21 @@ class Product(models.Model):
                                      blank=False, null=False, verbose_name='Is Private')
     accounting_id = models.PositiveBigIntegerField(default=0,
                                                    blank=True, null=True, verbose_name='Accounting ID')
-    price = models.JSONField(default=dict,
-                             blank=False, null=False)
+    accept_copies = models.BooleanField(default=True,
+                                        blank=False, null=False, verbose_name='Accept Copies')
+    min_copies = models.PositiveSmallIntegerField(default=1,
+                                                  blank=False, null=False, verbose_name='Min Copies')
+    designs = models.ManyToManyField('Design', blank=True,
+                                    related_name='design_for_products')
+    files = models.ManyToManyField('ProductFileField', blank=True,
+                                   related_name='file_for_products')
+    check_file = models.BooleanField(default=False,
+                                     blank=False, null=False, verbose_name='Check File')
     options = models.ManyToManyField(
         'Option',
         through='ProductOption',
         through_fields=('product', 'option')
     )
-    inventory = models.SmallIntegerField(default=-1, blank=False, null=False)
-    is_landing = models.BooleanField(default=True,
-                                     blank=False, null=False, verbose_name='Is Landing')
-    landing = models.OneToOneField(Landing, on_delete=models.PROTECT,
-                                   blank=True, null=True,
-                                   related_name='landing_product')
     total_order = models.PositiveIntegerField(default=0,
                                               blank=False, null=False, verbose_name='Total Order')
     last_order = models.DateField(blank=True, null=True, verbose_name='Last Order')
@@ -156,7 +180,7 @@ class Product(models.Model):
                                                     blank=False, null=False, verbose_name='Total Option Sale')
 
     class Meta:
-        ordering = ('parent_category', '-sort_number')
+        ordering = ('parent_category', 'sort_number')
         verbose_name = "Product"
         verbose_name_plural = "Products"
 
@@ -169,28 +193,538 @@ class Product(models.Model):
         super().save(*args, **kwargs)
 
 
-class TemplateFile(models.Model):
-    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+class SizeMethod(models.TextChoices):
+    FIXED_ONE = 'FIX', 'ثابت'
+    FIXED_MULTIPLE = 'MUL', 'ثابت انتخابی'
+    CUSTOM_INPUT = 'CUS', 'دلخواه'
+    SUGGESTED_AND_CUSTOM = 'COM', 'پیشنهادی و دلخواه'
+
+
+class OffsetProduct(models.Model):
+    """
+    MEH: Offset Product related models
+    """
+    product_info = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True,
+                                        blank=False, null=False, verbose_name='Product Info',
+                                        related_name='offset_info')
+    one_face = models.BooleanField(default=True,
+                                   blank=False, null=False, verbose_name='One Face')
+    tow_face = models.BooleanField(default=True,
+                                   blank=False, null=False, verbose_name='Tow Face')
+    size_method = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                   choices=SizeMethod.choices, default=SizeMethod.FIXED_ONE)
+    min_max_size = models.JSONField(default=dict,
+                                    blank=True, null=True, verbose_name='Min & Max Size')
+    size_list = models.ManyToManyField('Size', blank=False)
+    tirage_list = models.ManyToManyField('Tirage', blank=False)
+    page_list = models.ManyToManyField('Page', blank=True)
+    duration_list = models.ManyToManyField('Duration', blank=False)
+    folding_list = models.ManyToManyField('Folding', blank=True)
+    manual_price = models.JSONField(default=dict,
+                                    blank=True, null=True, verbose_name='Manual Price')
+
+
+class Size(models.Model):
+    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
                             blank=False, null=False)
+    display_name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
+                            blank=False, null=False, verbose_name='Display Name')
     description = models.TextField(max_length=78,
                                    blank=True, null=True)
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-    file = models.OneToOneField(FileItem, on_delete=models.SET_NULL,
-                                blank=True, null=True, related_name='template_file')
-    # image = models.ImageField(upload_to="images/", blank=False, null=False)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
-    download_counter = models.PositiveSmallIntegerField(default=0,
-                                                      blank=False, null=False, verbose_name='Download Counter')
+    length = models.FloatField(default=0,
+                               blank=False, null=False)
+    width = models.FloatField(default=0,
+                              blank=False, null=False)
+    base_cutting_edge = models.FloatField(default=0,
+                                          blank=False, null=False, verbose_name='Base Cutting Edge')
+    lat = models.BooleanField(default=False,
+                              blank=False, null=False)
 
     class Meta:
-        ordering = ['-sort_number']
-        verbose_name = "Template File"
-        verbose_name_plural = "Template Files"
+        ordering = ['display_name']
+        verbose_name = 'Size'
+        verbose_name_plural = 'Sizes'
 
     def __str__(self):
-        return f'Template: {self.name}'
+        return f'Size: {self.display_name}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        paper_list = self.paper_list.all()
+        for paper in paper_list:
+            paper.save()
+
+
+class Tirage(models.Model):
+    amount = models.PositiveSmallIntegerField(unique=True, blank=False, null=False)
+
+    class Meta:
+        ordering = ['amount']
+        verbose_name = "Tirage"
+        verbose_name_plural = "Tirages"
+
+    def __str__(self):
+        return f'Tirage #{self.amount}'
+
+
+class Page(models.Model):
+    number = models.PositiveSmallIntegerField(unique=True, blank=False, null=False)
+
+    class Meta:
+        ordering = ['number']
+        verbose_name = "Page"
+        verbose_name_plural = "Pages"
+
+    def __str__(self):
+        return f'Tirage #{self.number}'
+
+
+class Duration(models.Model):
+    title = models.CharField(max_length=78, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    day = models.PositiveSmallIntegerField(blank=False, null=False)
+    before_12 = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['day']
+        verbose_name = "Duration"
+        verbose_name_plural = "Durations"
+
+    def __str__(self):
+        return f'Duration #{self.title}'
+
+
+class LargeFormatProduct(models.Model):
+    """
+    MEH: Large Format Product related models
+    """
+    product_info = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True,
+                                        blank=False, null=False, verbose_name='Product Info',
+                                        related_name='large_format_info')
+    min_width = models.PositiveSmallIntegerField(default=100,
+                                                 blank=False, null=False, verbose_name='Min Width')
+    min_height = models.PositiveSmallIntegerField(default=100,
+                                                  blank=False, null=False, verbose_name='Min Height')
+    banner_list = models.ManyToManyField('Banner', blank=False)
+    print_price = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Print Price')
+    waste_price = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Waste Price')
+    gap_price = models.PositiveSmallIntegerField(default=0,
+                                                 blank=False, null=False, verbose_name='Gap Price')
+
+    punch_price = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Punch Price')
+    leaf_size = models.PositiveSmallIntegerField(default=0,
+                                                 blank=False, null=False, verbose_name='Leaf Amount')
+    leaf_price = models.PositiveSmallIntegerField(default=0,
+                                                  blank=False, null=False, verbose_name='Leaf Price')
+    print_length_discount = models.JSONField(default=dict,
+                                             blank=True, null=True, verbose_name='Print Length Discount')
+
+    def save(self, *args, **kwargs):
+        if self.print_price and not self.waste_price:
+            self.waste_price = self.print_price
+        if self.waste_price and not self.gap_price:
+            self.gap_price = self.waste_price
+        super().save()
+
+
+class Banner(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    width = models.PositiveSmallIntegerField(default=0,
+                                             blank=False, null=False)
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name='Is Active')
+    total_print = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Print")
+    total_waste = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Waste")
+    total_leaf = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Leaf")
+    total_gap = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Gap")
+
+    class Meta:
+        ordering = ['title']
+        verbose_name = "Banner"
+        verbose_name_plural = "Banners"
+
+    def __str__(self):
+        return f'{self.title}'
+
+
+class SolidProduct(models.Model):
+    """
+    MEH: Solid Product related models
+    """
+    product_info = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True,
+                                        blank=False, null=False, verbose_name='Product Info',
+                                        related_name='solid_info')
+    brief_information = models.JSONField(default=dict,
+                                         blank=True, null=True, verbose_name='Brief Information')
+    color_inventory_list = models.JSONField(default=dict,
+                                            blank=False, null=False, verbose_name='Color Inventory List')
+    sizable = models.BooleanField(default=False,
+                                  blank=False, null=False)
+    size_price = models.BooleanField(default=False,
+                                     blank=False, null=False)
+    min_max_size = models.JSONField(default=dict,
+                                    blank=True, null=True, verbose_name='Min & Max Size')
+
+
+class Color(models.Model):
+    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                            blank=False, null=False)
+    code = models.CharField(max_length=6, default='000', unique=True, validators=[validators.MinLengthValidator(3)],
+                            blank=False, null=False)
+
+    class Meta:
+        ordering = ['name']
+        verbose_name = 'Color'
+        verbose_name_plural = 'Colors'
+
+    def __str__(self):
+        return f'#{self.code}: {self.name}'
+
+
+class DigitalProduct(models.Model):
+    """
+    MEH: Digital Product related models
+    """
+    product_info = models.OneToOneField(Product, on_delete=models.CASCADE, primary_key=True,
+                                        blank=False, null=False, verbose_name='Product Info',
+                                        related_name='digital_info')
+    one_face = models.BooleanField(default=True,
+                                   blank=False, null=False, verbose_name='One Face')
+    tow_face = models.BooleanField(default=True,
+                                   blank=False, null=False, verbose_name='Tow Face')
+    pageable = models.BooleanField(default=False,
+                                   blank=False, null=False)
+    size_method = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                   choices=SizeMethod.choices, default=SizeMethod.FIXED_ONE)
+    size_list = models.ManyToManyField('Size', blank=False)
+    min_max_size = models.JSONField(default=dict,
+                                    blank=True, null=True, verbose_name='Min & Max Size')
+    min_tirage = models.PositiveSmallIntegerField(default=1,
+                                                  blank=False, null=False, verbose_name='Min Tirage')
+    max_tirage = models.PositiveSmallIntegerField(default=1000,
+                                                  blank=False, null=False, verbose_name='Max Tirage')
+    paper_list = models.ManyToManyField('Paper', blank=False,
+                                        related_name='paper_list_for_digital')
+    cover_paper_list = models.ManyToManyField('Paper', blank=True,
+                                              related_name='paper_list_for_digital_cover')
+    folding_list = models.ManyToManyField('Folding', blank=True)
+    formula = models.TextField(max_length=1378, blank=True, null=True)
+
+
+class SheetPaper(models.Model):
+    material = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
+                                blank=False, null=False)
+    display_name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
+                                    blank=False, null=False, verbose_name='Display Name')
+    description = models.TextField(max_length=78, blank=True, null=True)
+    length = models.FloatField(default=0,
+                               blank=False, null=False)
+    width = models.FloatField(default=0,
+                              blank=False, null=False)
+    weight = models.FloatField(default=0,
+                               blank=False, null=False)
+    sheet_paper_number = models.PositiveSmallIntegerField(default=0,
+                                                          blank=False, null=False, verbose_name='Sheet Paper Number')
+    purchase_price = models.PositiveIntegerField(default=0,
+                                            blank=False, null=False, verbose_name='Purchase Price')
+    cutting_price = models.PositiveIntegerField(default=0,
+                                                blank=False, null=False, verbose_name='Cutting Price')
+    inventory = models.PositiveIntegerField(default=0,
+                                            blank=False, null=False)
+
+    class Meta:
+        ordering = ['display_name']
+        verbose_name = 'Sheet Paper'
+        verbose_name_plural = 'Sheet Papers'
+
+    def __str__(self):
+        return f'Sheet Paper: {self.display_name}'
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        paper_list = self.paper_list.all()
+        for paper in paper_list:
+            paper.save()
+
+
+class Paper(models.Model):
+    sheet_paper = models.ForeignKey(SheetPaper, on_delete=models.PROTECT,
+                                    blank=False, null=False,
+                                    related_name='paper_list')
+    size = models.ForeignKey(Size, on_delete=models.PROTECT,
+                             blank=False, null=False,
+                             related_name='paper_list')
+    inventory = models.PositiveIntegerField(default=0,
+                                            blank=False, null=False)
+    per_paper_price = models.PositiveIntegerField(default=0,
+                                                  blank=False, null=False, verbose_name='Per-Paper Price')
+    color_print_price = models.PositiveIntegerField(default=0,
+                                                    blank=False, null=False, verbose_name='Color Print Price')
+    baw_print_price = models.PositiveIntegerField(default=0,
+                                                  blank=False, null=False, verbose_name='Baw Print Price')
+    cutting_price = models.PositiveSmallIntegerField(default=0,
+                                                     blank=False, null=False, verbose_name='Cutting Price')
+    folding_price = models.PositiveSmallIntegerField(default=0,
+                                                     blank=False, null=False, verbose_name='Folding Price')
+
+    class Meta:
+        ordering = ['sheet_paper']
+        verbose_name = 'Paper'
+        verbose_name_plural = 'Papers'
+
+    def __str__(self):
+        return f'Paper: {self.sheet_paper.display_name} #{self.size.display_name}'
+
+    def save(self, *args, **kwargs):
+        self.per_paper_price = self.calculate_paper_price_per_size()
+        super().save(*args, **kwargs)
+
+    def calculate_paper_price_per_size(self):
+        fit_along_length = self.sheet_paper.length // self.size.length
+        fit_along_width = self.sheet_paper.width //  self.size.width
+        rotated_fit_along_length = self.sheet_paper.length //  self.size.width
+        rotated_fit_along_width = self.sheet_paper.width //  self.size.length
+        total_fit = max(
+            fit_along_length * fit_along_width,
+            rotated_fit_along_length * rotated_fit_along_width
+        )
+        if total_fit == 0:
+            return 0  # MEH: can't cut this size from the sheet
+        price_per_piece = self.sheet_paper.purchase_price / self.sheet_paper.sheet_paper_number / total_fit
+        price_per_piece += self.sheet_paper.cutting_price / self.sheet_paper.sheet_paper_number / total_fit
+        return price_per_piece # MEH: Calculated base price per piece
+
+
+class Folding(models.Model):
+    folding_number = models.PositiveSmallIntegerField(default=1,
+                                                      blank=False, null=False, verbose_name='Folding Number')
+    title = models.CharField(max_length=78,
+                             blank=False, null=False)
+    description = models.TextField(max_length=236, blank=True, null=True)
+    icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                             blank=True, null=True,
+                             related_name='icon_for_lats')
+
+
+class FileColorMode(models.TextChoices):
+    CMYK = 'CMYK', 'CMYK'
+    RGB = 'RGB', 'RGB'
+    BOTH = 'BOTH', 'هر دو'
+
+class FileType(models.TextChoices):
+    JPEG = 'JPEG', 'JPEG'
+    JPG = 'JPG', 'JPG'
+    TIF = 'TIF', 'TIF'
+    ZIP = 'ZIP', 'ZIP'
+    RAR = 'RAR', 'RAR'
+    PDF = 'PDF', 'PDF'
+    PSD = 'PSD', 'PSD'
+    CDR = 'CDR', 'CDR'
+    AI = 'AI', 'AI'
+    EPS = 'EPS', 'EPS'
+
+
+class ProductFileField(models.Model):
+    title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=236,
+                                   blank=True, null=True)
+    depend_on = models.ForeignKey('self', on_delete=models.PROTECT,
+                                  blank=True, null=True,
+                                  related_name='parent_file')
+    sort_number = models.SmallIntegerField(default=0,
+                                           blank=False, null=False, verbose_name='Sort Number')
+    Color_mode = models.CharField(max_length=4, validators=[validators.MinLengthValidator(3)],
+                                  choices=FileColorMode.choices,
+                                  blank=True, null=True, verbose_name='Color Mode')
+    resolution = models.PositiveSmallIntegerField(default=300,
+                                                  blank=False, null=False)
+    mandatory = models.BooleanField(default=False,
+                                    blank=False, null=False)
+    accept_type = models.JSONField(default=dict,
+                                   blank=False, null=False, verbose_name='Accept Type')
+
+    class Meta:
+        ordering = ['sort_number', 'title']
+        verbose_name = 'Product File'
+        verbose_name_plural = 'Product Files'
+
+    def __str__(self):
+        return f'File #{self.title}'
+
+
+class DesignVariantType(models.TextChoices):
+    FACE = 'FAC', 'وجه'
+    LAT = 'LAT', 'لت'
+    PAGE = 'PAG', 'صفحه'
+
+
+class Design(models.Model):
+    title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=236,
+                                   blank=True, null=True)
+    base_price = models.PositiveIntegerField(default=0,
+                                             blank=False, null=False, verbose_name='Base Price')
+    second_price = models.PositiveIntegerField(default=0,
+                                               blank=True, null=True, verbose_name='Second Price')
+    variant_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                    choices=DesignVariantType.choices,
+                                    blank=True, null=True, verbose_name='Variant Type')
+    sort_number = models.SmallIntegerField(default=0,
+                                           blank=False, null=False, verbose_name='Sort Number')
+    avg_duration = models.PositiveSmallIntegerField(default=0,
+                                                    blank=False, null=False, verbose_name='Average Duration')
+    category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
+                                 blank=False, null=False,
+                                 related_name='design_list')
+    image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='image_for_designs')
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=True, null=False)
+    total_order = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Total Order')
+    last_order = models.DateField(blank=True, null=True, verbose_name='Last Order')
+    total_sale = models.PositiveIntegerField(default=0,
+                                             blank=False, null=False, verbose_name='Total Sale')
+
+    class Meta:
+        ordering = ['sort_number', 'category']
+        verbose_name = "Design"
+        verbose_name_plural = "Designs"
+
+    def __str__(self):
+        return f'Design #{self.pk}: {self.title}'
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.alt:
+            self.alt = f'{self.title}عکس طراحی '
+        super().save(*args, **kwargs)
+
+
+class OptionInputType(models.TextChoices):
+    CHECKBOX = 'CHE', 'چک باکس'
+    RADIOBUTTON = 'RAD', 'رادیو'
+    WATERFALL = 'WAT', 'آبشاری'
+    NUMBER = 'NUM', 'عدد'
+    TEXTFIELD = 'TXF', 'متن'
+    TEXTBOX = 'TXB', 'ناحیه متنی'
+    DATE = 'DAT', 'تاریخ'
+    FILE = 'FIL', 'فایل'
+
+
+class OptionCategory(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=236,
+                                   blank=True, null=True)
+    product_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                    choices=ProductType.choices, default=None,
+                                    blank=True, null=True)
+    input_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                  choices=OptionInputType.choices,
+                                  blank=False, null=False, verbose_name='Input Type')
+    parent_category = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True,
+                                        related_name='sub_categories')
+    icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                             blank=True, null=True,
+                             related_name='icon_for_options')
+    mandatory = models.BooleanField(default=False,
+                                    blank=False, null=False)
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name='Is Active')
+    in_formula = models.BooleanField(default=False,
+                                     blank=False, null=False, verbose_name='In Formula')
+    keyword = models.CharField(max_length=23, unique=True,
+                               blank=False, null=False)
+    after_print = models.BooleanField(default=False,
+                                      blank=False, null=False, verbose_name='After Print')
+    sort_number = models.SmallIntegerField(default=0,
+                                           blank=False, null=False, verbose_name='Sort Number')
+
+    class Meta:
+        ordering = ['sort_number']
+        verbose_name = "Option Category"
+        verbose_name_plural = "Option Categories"
+
+    def __str__(self):
+        return f'Option Category: {self.title}'
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        current = self.parent_category
+        while current:
+            if current == self:
+                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_category
+
+    def update_all_subcategories_and_items(self): # MEH: Call when update is_active of a category
+        stack = [self]
+        new_is_active = self.is_active
+        while stack:
+            current = stack.pop()
+            current.sub_categories.update(is_active=new_is_active)
+            current.option_list.update(is_active=new_is_active)
+            stack.extend(current.sub_categories.all())
+
+
+class PriceAmountType(models.TextChoices):
+    PERCENT = 'PER', 'درصدی'
+    FIX = 'FIX', 'ثابت'
+
+
+class Option(models.Model):
+    title = models.CharField(max_length=23, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=236,
+                                   blank=True, null=True)
+    parent_category = models.ForeignKey(OptionCategory, on_delete=models.PROTECT,
+                                        blank=False, null=False,
+                                        related_name='option_list')
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name='Is Active')
+    is_numberize = models.BooleanField(default=True,
+                                       blank=False, null=False, verbose_name='Is Numberize')
+    base_amount = models.FloatField(default=0,
+                                    blank=False, null=False, verbose_name='Base Amount')
+    price_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                  choices=PriceAmountType.choices, default=PriceAmountType.FIX)
+    sort_number = models.SmallIntegerField(default=0,
+                                           blank=False, null=False, verbose_name='Sort Number')
+
+    class Meta:
+        ordering = ['parent_category', 'sort_number']
+        verbose_name = 'Option'
+        verbose_name_plural = 'Options'
+
+    def __str__(self):
+        return f'Option: {self.title}'
+
+
+class ProductOption(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,
+                                related_name='option_list')
+    option = models.ForeignKey(Option, on_delete=models.CASCADE,
+                               related_name='product_list')
+    base_multiply = models.FloatField(blank=True, null=True)
+    count_discount = models.JSONField(default=dict,
+                                      blank=True, null=True, verbose_name='Tirage Discount')
+    always_show = models.BooleanField(default=True,
+                                      blank=False, null=False, verbose_name='Always Show')
+    dependent_option = models.ManyToManyField('Option')
+
+    class Meta:
+        ordering = ['product', 'option']
+        verbose_name = 'Product Option'
+        verbose_name_plural = 'Product Options'
+        unique_together = ('product', 'option')
+
+    def __str__(self):
+        return f'{self.product}: {self.option}'
 
 
 class GalleryCategory(models.Model):
@@ -230,17 +764,17 @@ class GalleryCategory(models.Model):
         return deleted_count
 
 
-def get_random_basename(instance):
+def get_random_basename(instance): # MEH: With this image and thumbnail get equal name
     if not hasattr(instance, "_random_basename"):
         instance._random_basename = uuid.uuid4().hex[:8]
     return instance._random_basename
 
-def preview_image_path(instance, filename): # MEH: Create a dir for thumbnail in each folder
+def gallery_preview_image_path(instance, filename): # MEH: Create a dir for thumbnail in each folder
     base_name = get_random_basename(instance)
     filename = f"thumb-{base_name}.webp"
     return f'gallery/thumbnails/{filename}'
 
-def upload_file_path(instance, filename): # MEH: Upload File here (with safe slug name)
+def gallery_upload_image_path(instance, filename): # MEH: Upload File here (with safe slug name)
     base_name = get_random_basename(instance)
     filename = f"{base_name}.{instance.type}"
     return f'gallery/{filename}'
@@ -251,8 +785,8 @@ class GalleryImage(models.Model):
                             blank=False, null=False)
     type = models.CharField(max_length=5, validators=[validators.MinLengthValidator(1)],
                             blank=True, null=False)
-    preview = models.ImageField(upload_to=preview_image_path, blank=True, null=True)
-    image_file = models.FileField(upload_to=upload_file_path, blank=False, null=False)
+    preview = models.ImageField(upload_to=gallery_preview_image_path, blank=True, null=True)
+    image_file = models.FileField(upload_to=gallery_upload_image_path, blank=False, null=False)
     alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
                            blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0,
@@ -276,7 +810,7 @@ class GalleryImage(models.Model):
             self.name = name
         self.type = ext.lstrip('.').lower()
         if self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']: # MEH: Just save image type file!
-            if not os.path.basename(self.preview.name or '').__contains__(os.path.basename(self.image_file.name)):
+            if not self.preview:
                 self.preview = create_square_thumbnail(self.image_file, size=(128, 128))
             super().save(*args, **kwargs)
 
@@ -286,370 +820,6 @@ class GalleryImage(models.Model):
 
     def get_download_url(self):
         return self.image_file.url
-
-
-class FieldName(models.TextChoices):
-    FACE = 'FAC', 'وجه'
-    SIZE = 'SIZ', 'ابعاد'
-    PAPER_TYPE = 'PAP', 'جنس'
-    TIRAGE = 'TIR', 'تیراژ'
-    COPIES = 'COP', 'نسخه'
-    DESIGN = 'DES', 'طراحی'
-    UPLOAD_FILE = 'UPF', 'فایل'
-    COLOR = 'COL', 'رنگ'
-    DURATION = 'DUR', 'تحویل کاری'
-    BANNER = 'BAN', 'مشخصات بنر'
-
-
-class FaceType(models.TextChoices):
-    ONE = 'ONE', 'یک رو'
-    TWO = 'TOW', 'دو رو'
-
-
-class SizeMethod(models.TextChoices):
-    FIX = 'FIX', 'ثابت'
-    OPTIONAL = 'OPT', 'دلخواه'
-
-
-class TirageMethod(models.TextChoices):
-    FIX = 'FIX', 'ثابت'
-    OPTIONAL = 'OPT', 'دلخواه'
-
-
-class FileColorMode(models.TextChoices):
-    CMYK = 'CMYK', 'CMYK'
-    RGB = 'RGB', 'RGB'
-    BOTH = 'BOTH', 'هر دو'
-
-
-class FieldPriceType(models.TextChoices):
-    NONE = 'NON', 'ندارد'
-    FORMULA = 'FOR', 'فرمول'
-    MULTIPLY = 'MUL', 'ضریب'
-    ADD = 'ADD', 'اضافه'
-    MANUAL = 'MAN', 'دستی'
-
-
-class ProductField(models.Model):
-    title = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                             choices=FieldName.choices,
-                             blank=False, null=False)
-    filed_list = models.JSONField(default=dict,
-                                  blank=False, null=False)
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE,
-                                blank=False, null=False,
-                                related_name='product_field_list')
-    price_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                                  choices=FieldPriceType.choices, default=FieldPriceType.NONE,
-                                  blank=False, null=False, verbose_name="Price Type")
-
-    class Meta:
-        ordering = ['-sort_number', 'product']
-        verbose_name = 'Product Field'
-        verbose_name_plural = 'Product Fields'
-
-    def __str__(self):
-        return f'Filed: #{self.title}: {self.product}'
-
-    def face_method(self):
-        face = FaceType.ONE
-        self.detail = []
-
-    def size_method(self):
-        sizeable = True
-        method = SizeMethod.FIX
-        # counter = 0++
-        self.detail = []
-
-    def paper_method(self):
-        self.detail = []
-
-    def tirage_method(self):
-        method = TirageMethod.FIX
-        self.detail = []
-
-    def copies_method(self):
-        amount = 1
-        self.detail = []
-
-    def design_method(self):
-        self.detail = []
-
-    def upload_file_method(self):
-        # Gallery Choose of Upload File
-        file_validation = True
-        file_color_mode = FileColorMode.BOTH
-        file_resolution = 300
-        self.detail = []
-
-    def color_inventory_method(self):
-        self.detail = []
-
-    def duration_method(self):
-        self.detail = []
-
-
-class Size(models.Model):
-    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
-                            blank=False, null=False)
-    display_name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
-                            blank=False, null=False, verbose_name='Display Name')
-    description = models.TextField(max_length=78,
-                                   blank=True, null=True)
-    length = models.FloatField(default=0,
-                               blank=False, null=False)
-    width = models.FloatField(default=0,
-                              blank=False, null=False)
-    base_cutting_edge = models.FloatField(default=0,
-                                          blank=False, null=False, verbose_name='Base Cutting Edge')
-
-    class Meta:
-        ordering = ['display_name']
-        verbose_name = 'Size'
-        verbose_name_plural = 'Sizes'
-
-    def __str__(self):
-        return f'Size: {self.display_name}'
-
-
-class SheetPaper(models.Model):
-    material = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
-                                blank=False, null=False)
-    display_name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
-                                    blank=False, null=False, verbose_name='Display Name')
-    description = models.TextField(max_length=78, blank=True, null=True)
-    length = models.FloatField(default=0,
-                               blank=False, null=False)
-    width = models.FloatField(default=0,
-                              blank=False, null=False)
-    weight = models.FloatField(default=0,
-                                     blank=False, null=False)
-    sheet_paper_number = models.PositiveSmallIntegerField(default=0,
-                                                          blank=False, null=False, verbose_name='Sheet Paper Number')
-    purchase_price = models.PositiveIntegerField(default=0,
-                                            blank=False, null=False, verbose_name='Purchase Price')
-    cutting_price = models.PositiveIntegerField(default=0,
-                                                blank=False, null=False, verbose_name='Cutting Price')
-    inventory = models.PositiveIntegerField(default=0,
-                                            blank=False, null=False)
-
-    class Meta:
-        ordering = ['display_name']
-        verbose_name = 'Sheet Paper'
-        verbose_name_plural = 'Sheet Papers'
-
-    def __str__(self):
-        return f'Sheet Paper: {self.display_name}'
-
-
-class Paper(models.Model):
-    sheet_paper = models.ForeignKey(SheetPaper, on_delete=models.PROTECT,
-                                    blank=False, null=False,
-                                    related_name='paper_list')
-    size = models.ForeignKey(Size, on_delete=models.PROTECT,
-                             blank=False, null=False,
-                             related_name='paper_list')
-    per_paper_weight = models.FloatField(default=0,
-                                         blank=False, null=False, verbose_name='Per-Paper Weight')
-    inventory = models.PositiveIntegerField(default=0,
-                                            blank=False, null=False)
-    per_paper_price = models.PositiveIntegerField(default=0,
-                                                  blank=False, null=False, verbose_name='Per-Paper Price')
-    color_print_price = models.PositiveIntegerField(default=0,
-                                                    blank=False, null=False, verbose_name='Color Print Price')
-    baw_print_price = models.PositiveIntegerField(default=0,
-                                                  blank=False, null=False, verbose_name='Baw Print Price')
-
-    class Meta:
-        ordering = ['sheet_paper']
-        verbose_name = 'Paper'
-        verbose_name_plural = 'Papers'
-
-    def __str__(self):
-        return f'Paper: {self.sheet_paper.display_name} #{self.size.display_name}'
-
-
-class Tirage(models.Model):
-    amount = models.PositiveSmallIntegerField(unique=True, blank=False, null=False)
-
-    class Meta:
-        ordering = ['amount']
-        verbose_name = "Tirage"
-        verbose_name_plural = "Tirages"
-
-    def __str__(self):
-        return f'Tirage #{self.amount}'
-
-
-class Design(models.Model):
-    title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    description = models.TextField(max_length=236,
-                                   blank=True, null=True)
-    base_price = models.PositiveIntegerField(default=0,
-                                             blank=False, null=False, verbose_name='Base Price')
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-    avg_duration = models.PositiveSmallIntegerField(default=0,
-                                                    blank=False, null=False, verbose_name='Average Duration')
-    category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
-                                 blank=False, null=False,
-                                 related_name='design_list')
-    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
-    # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
-    total_order = models.PositiveSmallIntegerField(default=0,
-                                                   blank=False, null=False, verbose_name='Total Order')
-    last_order = models.DateField(blank=True, null=True, verbose_name='Last Order')
-    total_sale = models.PositiveIntegerField(default=0,
-                                             blank=False, null=False, verbose_name='Total Sale')
-
-    class Meta:
-        ordering = ['-sort_number', 'category']
-        verbose_name = "Design"
-        verbose_name_plural = "Designs"
-
-    def __str__(self):
-        return f'Design #{self.pk}: {self.title}'
-
-
-class Color(models.Model):
-    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
-                            blank=False, null=False)
-    code = models.CharField(max_length=6, default='000', unique=True, validators=[validators.MinLengthValidator(3)],
-                            blank=False, null=False)
-
-    class Meta:
-        ordering = ['name']
-        verbose_name = 'Color'
-        verbose_name_plural = 'Colors'
-
-    def __str__(self):
-        return f'#{self.code}: {self.name}'
-
-
-class Banner(models.Model):
-    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    width = models.PositiveSmallIntegerField(default=0,
-                                             blank=False, null=False)
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False, verbose_name='Is Active')
-    punch_price = models.PositiveIntegerField(default=0,
-                                              blank=False, null=False, verbose_name='Punch Price')
-    leaf_size = models.PositiveSmallIntegerField(default=0,
-                                                 blank=False, null=False, verbose_name='Leaf Size')
-    leaf_price = models.FloatField(default=0,
-                                   blank=False, null=False, verbose_name='Leaf Price')
-    white_price = models.FloatField(default=0,
-                                    blank=False, null=False, verbose_name='White Price')
-    # total_print = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Print")
-    # total_waste = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Gap")
-    # total_leaf = models.FloatField(default=0, blank=False, null=False, verbose_name="Total Leaf")
-    # total_white = models.FloatField(default=0, blank=False, null=False, verbose_name="Total White")
-
-    class Meta:
-        ordering = ['title']
-        verbose_name = "Banner"
-        verbose_name_plural = "Banners"
-
-    def __str__(self):
-        return f'{self.title}'
-
-
-class OptionInputType(models.TextChoices):
-    CHECKBOX = 'CHE', 'چک باکس'
-    RADIOBUTTON = 'RAD', 'رادیو'
-    WATERFALL = 'WAT', 'آبشاری'
-    NUMBER = 'NUM', 'عدد'
-    TEXTFIELD = 'TXF', 'متن'
-    TEXTBOX = 'TXB', 'ناحیه متنی'
-    DATE = 'DAT', 'تاریخ'
-    FILE = 'FIL', 'فایل'
-
-
-class OptionCategory(models.Model):
-    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    description = models.TextField(max_length=236,
-                                   blank=True, null=True)
-    input_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                                  choices=OptionInputType.choices,
-                                  blank=False, null=False, verbose_name='Input Type')
-    parent = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True,
-                                related_name='sub_categories')
-    # icon = models.ImageField(upload_to="services", blank=False, null=False)
-    mandatory = models.BooleanField(default=False,
-                                    blank=False, null=False)
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False, verbose_name='Is Active')
-    is_numberize = models.BooleanField(default=True,
-                                       blank=False, null=False, verbose_name='Is Numberize')
-    in_formula = models.BooleanField(default=False,
-                                     blank=False, null=False, verbose_name='In Formula')
-    after_print = models.BooleanField(default=False,
-                                      blank=False, null=False, verbose_name='After Print')
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-
-    class Meta:
-        ordering = ['-sort_number']
-        verbose_name = "Option Category"
-        verbose_name_plural = "Option Categories"
-
-    def __str__(self):
-        return f'Option Category: {self.title}'
-
-
-class Option(models.Model):
-    title = models.CharField(max_length=23, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    description = models.TextField(max_length=236,
-                                   blank=True, null=True)
-    category = models.ForeignKey(OptionCategory, on_delete=models.PROTECT,
-                                 blank=False, null=False,
-                                 related_name='option_list')
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False, verbose_name='Is Active')
-    base_price = models.PositiveIntegerField(default=0,
-                                             blank=False, null=False, verbose_name='Base Price')
-    keyword = models.CharField(max_length=10, unique=True, validators=[validators.MinLengthValidator(3)],
-                               blank=True, null=True)
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-
-    class Meta:
-        ordering = ['-sort_number', 'category']
-        verbose_name = 'Option'
-        verbose_name_plural = 'Options'
-
-    def __str__(self):
-        return f'Option: {self.title}'
-
-
-class ProductOption(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE,
-                                related_name='option_list')
-    option = models.ForeignKey(Option, on_delete=models.CASCADE,
-                               related_name='product_list')
-    price = models.PositiveIntegerField(blank=True, null=True)
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=True, null=True, verbose_name='Sort Number')
-    always_show = models.BooleanField(default=True,
-                                      blank=False, null=False, verbose_name='Always Show')
-    dependent_option = models.ManyToManyField('ProductOption')
-
-
-    class Meta:
-        ordering = ['product', 'option', '-sort_number']
-        verbose_name = 'Product Option'
-        verbose_name_plural = 'Product Options'
-
-    def __str__(self):
-        return f'{self.product}: {self.option}'
 
 
 class PriceListCategory(models.Model):
@@ -667,7 +837,7 @@ class PriceListCategory(models.Model):
     #                        blank=False, null=False)
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = ['sort_number']
         verbose_name = 'Price List Category'
         verbose_name_plural = 'Price List Categories'
 
@@ -768,7 +938,7 @@ class PriceListTableProductItem(models.Model):
                                      blank=False, null=False, verbose_name='Tirage Row')
 
     class Meta:
-        ordering = ['-sort_number']
+        ordering = ['sort_number']
         verbose_name = 'Price List Table Product Item'
         verbose_name_plural = 'Price List Table Product Items'
 

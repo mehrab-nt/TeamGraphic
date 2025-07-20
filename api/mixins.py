@@ -88,6 +88,15 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     def get_required_api_key(self): # MEH: Custom Pagination :) even LimitOffsetPagination
         return self.required_api_keys.get(self.action) or self.required_api_keys.get('__all__')
 
+    @staticmethod
+    def get_parent_id(request):
+        parent_id = request.query_params.get('parent_id')
+        if not parent_id: # MEH: it can be in body
+            parent_id = request.data.get('parent_id')
+        if parent_id in ['', 'None', None]:
+            return None
+        return parent_id
+
     def get_serializer_fields(self, serializer: Optional[serializers.BaseSerializer] = None,
                               parent_prefix: str = '') -> Dict[str, serializers.Field]:
         fields = {} # MEH: For get valid field from serializer (nested included)
@@ -235,6 +244,24 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         if total_delete == 0:
             return Response({"detail": TG_DATA_NOT_FOUND}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": TG_DATA_DELETED, "deleted_count": total_delete, "skipped_ids": skipped_ids,}, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def custom_list_update(queryset_list: list, update_fields: dict, update_sub=False): # MEH: Handle bulk update list of fields in list of object with 1 request
+        try:
+            with transaction.atomic():
+                for qs in queryset_list:
+                    if not qs.exists():
+                        continue
+                    for obj in qs:
+                        for field_name, field_value in update_fields.items():
+                            if hasattr(obj, field_name):
+                                setattr(obj, field_name, field_value)
+                        obj.save(update_fields=list(update_fields.keys()))
+                        if update_sub and hasattr(obj, 'update_all_subcategories_and_items'):
+                            obj.update_all_subcategories_and_items() # MEH: Nested update until the end!
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"detail": TG_DATA_UPDATED}, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
         with transaction.atomic(): # MEH: With transaction if anything wrong, Everything in DB roll back to first place

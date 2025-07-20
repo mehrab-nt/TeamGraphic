@@ -2,10 +2,12 @@ from rest_framework import serializers
 from django.core.validators import RegexValidator
 from file_manager.models import FileItem
 from landing.models import Landing
-from .models import Product, ProductType, ProductCategory, GalleryCategory, GalleryImage, ProductStatus, TemplateFile, \
-    CountingUnit, RoundPriceType
+from .models import Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, ProductCategory, \
+    ProductStatus, CountingUnit, RoundPriceType, GalleryCategory, GalleryImage, ProductFileField, Design, \
+    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, Page
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField
+import json
 
 
 class ProductCategoryBriefSerializer(CustomModelSerializer):
@@ -43,14 +45,15 @@ class ProductCategorySerializer(CustomModelSerializer):
     """
     title = serializers.CharField(required=True, min_length=3, max_length=78)
     description = serializers.CharField(default=None, allow_null=True, style={'base_template': 'textarea.html'})
+    product_description = serializers.CharField(default=None, allow_null=True, style={'base_template': 'textarea.html'})
     parent_category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=False, allow_null=True)
     parent_category_display = serializers.StringRelatedField(source='parent_category')
     image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
     image_url = serializers.SerializerMethodField()
     icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='svg'), required=False, allow_null=True)
-    icon_url = serializers.StringRelatedField(source='icon')
+    icon_url = serializers.SerializerMethodField()
     video = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='mkv'), required=False, allow_null=True)
-    video_url = serializers.StringRelatedField(source='video')
+    video_url = serializers.SerializerMethodField()
     gallery = serializers.PrimaryKeyRelatedField(queryset=GalleryCategory.objects.all(), required=False, allow_null=True)
     status = CustomChoiceField(choices=ProductStatus.choices, initial=ProductStatus.ACTIVE, default=ProductStatus.ACTIVE)
     accounting_id = serializers.IntegerField(default=None,
@@ -102,20 +105,351 @@ class ProductCategorySerializer(CustomModelSerializer):
             current = current.parent_category
         return value
 
+    def update(self, instance, validated_data):
+        if instance.status != validated_data['status']:
+            instance = super().update(instance, validated_data)
+            instance.update_all_subcategories_and_items() # MEH: Change all sub cat & pro Status
+            return instance
+        else:
+            return super().update(instance, validated_data)
 
-class ProductSerializer(CustomModelSerializer):
+class ProductInfoSerializer(CustomModelSerializer):
     """
-    MEH: Main Product full Information
+    MEH: Product base Information
+    Page 1 of Product Create & Edit (same for all)
     """
     title = serializers.CharField(required=True, min_length=3, max_length=78)
-    type = CustomChoiceField(choices=ProductType.choices, default=ProductType.OFFSET)
-    category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=False)
-    category_display = serializers.StringRelatedField(source='category')
-    template = serializers.PrimaryKeyRelatedField(queryset=TemplateFile.objects.all(), required=False)
+    parent_category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=False, allow_null=True)
+    parent_category_display = serializers.StringRelatedField(source='parent_category')
+    template = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.filter(type__in=['zip', 'rar', 'pdf', 'psd', 'cdr']), required=False, allow_null=True)
+    template_url = serializers.SerializerMethodField()
+    image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.filter(type='webp', seo_base=True), required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
+        fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display',
+                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'is_private', 'accounting_id']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and obj.image.file:
+            url = obj.image.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    def get_template_url(self, obj):
+        request = self.context.get('request')
+        if obj.template and obj.template.file:
+            url = obj.template.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    def get_fields(self): # MEH: for drop type in Update action (just in first Create)
+        fields = super().get_fields()
+        request = self.context.get('request')
+        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, type assign and don't allow to change!
+            fields.pop('type', None)
+        return fields
+
+    def create(self, validated_data):
+        product = super().create(validated_data)
+        if product.type == 'OFF': # MEH: Offset Product
+            OffsetProduct.objects.create(product_info=product)
+        elif product.type == 'LAR': # MEH: LargeFormat Product
+            LargeFormatProduct.objects.create(product_info=product)
+        elif product.type == 'SLD': # MEH: Solid Product
+            SolidProduct.objects.create(product_info=product)
+        elif product.type == 'DIG': # MEH: Digital Product
+            DigitalProduct.objects.create(product_info=product)
+        return product
+
+
+class OffsetProductSerializer(CustomModelSerializer):
+    """
+    MEH: Page 2 of Product Edit (if Offset)
+    """
+    size_method_display = serializers.SerializerMethodField()
+    size_list_display = serializers.StringRelatedField(source='size_list', many=True, read_only=True)
+    tirage_list_display = serializers.StringRelatedField(source='tirage_list', many=True, read_only=True)
+    page_list_display = serializers.StringRelatedField(source='page_list', many=True, read_only=True)
+    folding_list_display = serializers.StringRelatedField(source='folding_list', many=True, read_only=True)
+    duration_list_display = serializers.StringRelatedField(source='duration_list', many=True, read_only=True)
+
+    class Meta:
+        model = OffsetProduct
         fields = '__all__'
+        read_only_fields = ['product_info']
+
+    @staticmethod
+    def get_size_method_display(obj):
+        return obj.get_size_method_display()
+
+    @staticmethod
+    def validate_manual_price(value):
+        if len(json.dumps(value)) > 1999:
+            raise serializers.ValidationError("field_list JSON is too large.")
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("field_list must be a dictionary.")
+        # required_keys = {"item_list"}
+        # if not required_keys.issubset(value):
+        #     raise serializers.ValidationError("field_list must include 'item_list' keys.")
+        # items = value.get('item_list')
+        # if not isinstance(items, list) or not items:
+        #     raise serializers.ValidationError("item_list must be a non-empty list.")
+        # for item in items:
+        #     if not isinstance(item, dict):
+        #         raise serializers.ValidationError("Each item in item_list must be a dictionary.")
+        #     if 'key' not in item or 'value' not in item:
+        #         raise serializers.ValidationError("Each item must contain 'key' and 'value'")
+        #     if not isinstance(item['key'], str) or len(item['key']) > 10:
+        #         raise serializers.ValidationError("Each key must be a string with max 10 characters.")
+        #     if not isinstance(item['value'], (int, float)):
+        #         raise serializers.ValidationError("Each value must be a number.")
+        # return value
+
+
+class LargeFormatProductSerializer(CustomModelSerializer):
+    """
+    MEH: Page 2 of Product Edit (if LargeFormat)
+    """
+    banner_list_display = serializers.StringRelatedField(source='banner_list', many=True, read_only=True)
+
+    class Meta:
+        model = LargeFormatProduct
+        fields = '__all__'
+        read_only_fields = ['product_info']
+
+
+class SolidProductSerializer(CustomModelSerializer):
+    """
+    MEH: Page 2 of Product Edit (if Solid-Product)
+    """
+    color_inventory_list_display = serializers.StringRelatedField(source='color_inventory_list', many=True, read_only=True)
+
+    class Meta:
+        model = SolidProduct
+        fields = '__all__'
+        read_only_fields = ['product_info']
+
+
+class DigitalProductSerializer(CustomModelSerializer):
+    """
+    MEH: Page 2 of Product Edit (if Digital)
+    """
+    size_method_display = serializers.SerializerMethodField()
+    size_list_display = serializers.StringRelatedField(source='size_list', many=True, read_only=True)
+    paper_list_display = serializers.StringRelatedField(source='paper_list', many=True, read_only=True)
+    cover_paper_list_display = serializers.StringRelatedField(source='cover_paper_list', many=True, read_only=True)
+    folding_list_display = serializers.StringRelatedField(source='folding_list', many=True, read_only=True)
+
+    class Meta:
+        model = DigitalProduct
+        fields = '__all__'
+        read_only_fields = ['product_info']
+
+    @staticmethod
+    def get_size_method_display(obj):
+        return obj.get_size_method_display()
+
+
+class ProductGallerySerializer(CustomModelSerializer):
+    """
+    MEH: Page 3 of Product Edit (Gallery) same for all
+    """
+    gallery = serializers.PrimaryKeyRelatedField(queryset=GalleryCategory.objects.all(),
+                                                 required=False, allow_null=True)
+    gallery_title = serializers.StringRelatedField(read_only=True, source='gallery')
+    gallery_type_display = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'gallery', 'gallery_title', 'gallery_type', 'gallery_type_display']
+
+    @staticmethod
+    def get_gallery_type_display(obj):
+        return obj.get_gallery_type_display()
+
+
+class DesignSerializer(CustomModelSerializer):
+    """
+    MEH: Design full Information
+    """
+    category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=True)
+    category_display = serializers.StringRelatedField(source='category')
+    image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Design
+        fields = '__all__'
+        read_only_fields = ['id', 'total_order', 'last_order', 'total_sale', 'category_display', 'image_url']
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and obj.image.file:
+            url = obj.image.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+
+class ProductDesignSerializer(CustomModelSerializer):
+    """
+    MEH: Page 4 of Product Edit (Designs) same for all
+    """
+    designs = serializers.PrimaryKeyRelatedField(queryset=Design.objects.all(), many=True, write_only=True,
+                                                 required=False, allow_empty=True)
+    designs_info = DesignSerializer(many=True, source='designs', read_only=True)
+
+    class Meta:
+        model = Product
+        fields = ['id', 'designs', 'designs_info']
+
+
+class FileFieldSerializer(CustomModelSerializer):
+    """
+    MEH: File Field full Information
+    """
+    class Meta:
+        model = ProductFileField
+        fields = '__all__'
+
+
+class ProductFileSerializer(CustomModelSerializer):
+    """
+    MEH: Page 5 of Product Edit (Files)
+    """
+    files = serializers.PrimaryKeyRelatedField(queryset=ProductFileField.objects.all(), many=True, write_only=True,
+                                               required=False, allow_empty=True)
+    files_info = FileFieldSerializer(many=True, source='files', read_only=True)
+
+    class Meta:
+        model = Product
+        fields = ['id', 'check_file', 'files', 'files_info']
+
+
+class ProductOptionSerializer(serializers.ModelSerializer):
+    """
+    MEH: Page 6 of Product Edit (Options)
+    """
+    dependent_option = serializers.PrimaryKeyRelatedField(
+        queryset=Option.objects.all(),
+        many=True,
+        required=False
+    )
+
+    class Meta:
+        model = ProductOption
+        exclude = ['product']
+
+
+class ProductFormulaPriceSerializer(CustomModelSerializer):
+    """
+    MEH: Page 7 of Product Edit (Price)
+    Just for Digital Product (formula)
+    """
+    formula = serializers.CharField(style={'base_template': 'textarea.html'})
+    # keywords =
+
+    class Meta:
+        model = Product
+        fields = ['id',]
+
+
+class SizeSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Size) full Information
+    """
+    class Meta:
+        model = Size
+        fields = '__all__'
+
+
+class TirageSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Tirage) full Information
+    """
+    class Meta:
+        model = Tirage
+        fields = '__all__'
+
+
+class PageSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Page) full Information
+    """
+    class Meta:
+        model = Page
+        fields = '__all__'
+
+
+class DurationSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Duration) full Information
+    """
+    class Meta:
+        model = Duration
+        fields = '__all__'
+
+
+class BannerSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Banner) full Information
+    """
+    class Meta:
+        model = Banner
+        fields = '__all__'
+
+
+class ColorSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Color) full Information
+    """
+    class Meta:
+        model = Color
+        fields = '__all__'
+
+
+class SheetPaperSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Sheet-Paper) full Information
+    """
+    class Meta:
+        model = SheetPaper
+        fields = '__all__'
+
+
+class PaperSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Field (Paper) full Information
+    """
+    size = serializers.PrimaryKeyRelatedField(queryset=Size.objects.all())
+    size_display = serializers.StringRelatedField(source='size', read_only=True)
+    sheet_paper = serializers.PrimaryKeyRelatedField(queryset=SheetPaper.objects.all())
+    sheet_paper_display = serializers.StringRelatedField(source='sheet_paper', read_only=True)
+
+    class Meta:
+        model = Paper
+        fields = '__all__'
+
+
+class FoldingSerializer(CustomModelSerializer):
+    """
+    MEH: Main Product Folding (Paper) full Information
+    """
+    icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='svg'), required=False, allow_null=True)
+    icon_url = serializers.StringRelatedField(source='icon')
+
+    class Meta:
+        model = Folding
+        fields = '__all__'
+
+    def get_icon_url(self, obj):
+        request = self.context.get('request')
+        if obj.icon and obj.icon.file:
+            url = obj.icon.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
 
 
 class GalleryCategorySerializer(CustomModelSerializer):
@@ -124,10 +458,11 @@ class GalleryCategorySerializer(CustomModelSerializer):
     """
     type = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
+    parent_category = serializers.PrimaryKeyRelatedField(queryset=GalleryCategory.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = GalleryCategory
-        fields = ['id', 'name', 'preview', 'sort_number', 'type']
+        fields = '__all__'
 
     @staticmethod
     def get_type(obj):
@@ -137,9 +472,29 @@ class GalleryCategorySerializer(CustomModelSerializer):
     def get_preview(obj):
         return None
 
-    def create(self, validated_data, **kwargs):
-        category = GalleryCategory.objects.create(**validated_data, **kwargs) # MEH: for parse parent_category in **kwargs
-        return category
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = self.instance
+        if instance and isinstance(instance, GalleryCategory):
+            self.fields['parent_category'].queryset = GalleryCategory.objects.exclude(pk=instance.pk)
+
+    def get_fields(self): # MEH: for drop parent_category in Update action (just in first Create)
+        fields = super().get_fields()
+        request = self.context.get('request')
+        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, parent_category assign and don't allow to change!
+            fields.pop('parent_category', None)
+        return fields
+
+    def validate_parent_category(self, value): # MEH: Prevent from loop Category A->B->C->A
+        instance = self.instance
+        if not instance or not value:
+            return value
+        current = value
+        while current:
+            if current == instance:
+                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_category
+        return value
 
 
 class GalleryImageSerializer(CustomModelSerializer):
@@ -156,12 +511,7 @@ class GalleryImageSerializer(CustomModelSerializer):
 
     class Meta:
         model = GalleryImage
-        fields = ['id', 'name', 'preview', 'image_file', 'alt', 'type', 'sort_number', 'img_width', 'img_height', 'parent_category']
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance is not None: # MEH: On update (partial or full), don't require `image_file`
-            self.fields['image_file'].required = False
+        fields = '__all__'
 
     def validate(self, data): # MEH: Check uploaded Image size and Image -> Always SEO Base request (Optimize in filemanager.images.py)
         file = data.get('image_file')
@@ -174,6 +524,58 @@ class GalleryImageSerializer(CustomModelSerializer):
             data['image_file'] = self.validate_upload_image(file, max_image_size=10, max_width=None, max_height=None, size=(width, height)) # MEH: Change image to SEO base friendly format
         return data
 
-    def create(self, validated_data, **kwargs):
-        image_file = GalleryImage.objects.create(**validated_data, **kwargs) # MEH: for parse parent_directory in **kwargs
-        return image_file
+    def get_fields(self): # MEH: for drop image in Update action (just in first Create)
+        fields = super().get_fields()
+        request = self.context.get('request')
+        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, image assign and don't allow to change!
+            fields.pop('image_file', None)
+        return fields
+
+
+class OptionCategorySerializer(CustomModelSerializer):
+    """
+    MEH: Option Category Full Information
+    """
+    parent_category = serializers.PrimaryKeyRelatedField(queryset=OptionCategory.objects.all(), required=False, allow_null=True)
+    icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='svg'), required=False, allow_null=True)
+    icon_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OptionCategory
+        fields = '__all__'
+
+    def get_icon_url(self, obj):
+        request = self.context.get('request')
+        if obj.icon and obj.icon.file:
+            url = obj.icon.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = self.instance
+        if instance and isinstance(instance, OptionCategory):
+            self.fields['parent_category'].queryset = OptionCategory.objects.exclude(pk=instance.pk)
+
+    def update(self, instance, validated_data):
+        if instance.is_active != validated_data['is_active']:
+            instance = super().update(instance, validated_data)
+            instance.update_all_subcategories_and_items() # MEH: Change all sub cat & opt is_active
+            return instance
+        else:
+            return super().update(instance, validated_data)
+
+
+class OptionSerializer(CustomModelSerializer):
+    """
+    MEH: Option Full Information
+    """
+    icon = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Option
+        fields = '__all__'
+
+    @staticmethod
+    def get_icon(obj):
+        return None
