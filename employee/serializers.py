@@ -21,6 +21,32 @@ class UserEmployeeSerializer(UserSerializer):
         read_only_fields = ['id', 'date_joined', 'is_active']
 
 
+class EmployeeBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Brief Employee information for list
+    """
+    phone_number = serializers.SerializerMethodField()
+    email = serializers.SerializerMethodField()
+    is_active = serializers.SerializerMethodField()
+    level_display = serializers.StringRelatedField(source='level')
+
+    class Meta:
+        model = Employee
+        fields = ['id', 'full_name', 'phone_number', 'email', 'level_display', 'is_active']
+
+    @staticmethod
+    def get_phone_number(obj):
+        return obj.user.phone_number
+
+    @staticmethod
+    def get_email(obj):
+        return obj.user.email
+
+    @staticmethod
+    def get_is_active(obj):
+        return obj.user.is_active
+
+
 class EmployeeSerializer(CustomModelSerializer):
     """
     MEH: Main Employee full information
@@ -38,7 +64,7 @@ class EmployeeSerializer(CustomModelSerializer):
         if user_data:
             user_serializer = UserEmployeeSerializer(data=user_data)
             user_serializer.is_valid(raise_exception=True)
-            user = user_serializer.save()
+            user = user_serializer.save() # MEH: Inner Nested create user with profile data
             employee = Employee.objects.create(**validated_data, user=user, full_name=user.get_full_name())
             return employee
         else:
@@ -63,12 +89,25 @@ class EmployeeLevelSerializer(CustomModelSerializer):
     """
     manager = serializers.StringRelatedField()
     api_items = serializers.PrimaryKeyRelatedField(many=True, queryset=ApiItem.objects.filter(category__role_base=False))
+    all_api_items = serializers.SerializerMethodField()
 
     class Meta:
         model = EmployeeLevel
-        fields = ['id', 'title', 'description', 'is_active', 'manager', 'api_items']
+        fields = ['id', 'title', 'description', 'is_active', 'manager', 'api_items', 'all_api_items']
 
-    def create(self, validated_data, **kwargs):
-        employee_level = EmployeeLevel(**validated_data, **kwargs) # MEH: for parse manager in **kwargs
-        employee_level.save()
-        return employee_level
+    def get_all_api_items(self, obj): # MEH: Provide all api-item list for UI form generate
+        if self.context.get('view').action == 'retrieve': # MEH: Only for get single obj
+            items = ApiItem.objects.select_related('category').filter(category__role_base=False)
+            return [
+                {"id": item.id, "title": item.title, "category": item.category.title}
+                for item in items
+            ]
+        return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action != 'retrieve': # MEH: Drop all-api-item list if request action not retrieve
+            data.pop('all_api_items', None)
+        if self.context.get('view').action == 'list': # MEH: api-item in list view
+            data.pop('api_items', None)
+        return data

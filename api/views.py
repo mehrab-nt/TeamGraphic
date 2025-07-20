@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from .mixins import CustomMixinModelViewSet
 from .models import ApiItem, ApiCategory
 from .permissions import ApiAccess
-from .serializers import AdminApiCategorySerializer, AdminApiCategoryItemSerializer, AdminApiItemSerializer
+from .serializers import AdminApiCategorySerializer, AdminApiItemSerializer
 from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from .responses import *
@@ -34,16 +34,16 @@ class ApiCategoryViewSet(CustomMixinModelViewSet):
         return qs
 
     @action(detail=True, methods=['get'],
-            url_path='item-list', serializer_class=AdminApiCategoryItemSerializer)
+            url_path='item-list', serializer_class=AdminApiItemSerializer)
     def api_item_list(self, request, pk=None):
         """
         MEH: Get Api-Category (with pk) Api-Item List (GET/POST ACTION)
         """
         api_category = self.get_object(pk=pk)
-        api_item_list = api_category.api_items.all()
-        if not api_item_list.exists():
-            raise NotFound(TG_DATA_EMPTY)
-        return self.custom_get(api_item_list)
+        if getattr(api_category, 'api_items', None):
+            return self.custom_get(api_category.api_items)
+        else:
+            raise NotFound
 
 
 @extend_schema(tags=['Api-Access'])

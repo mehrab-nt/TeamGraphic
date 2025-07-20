@@ -80,23 +80,6 @@ class AdminApiCategorySerializer(CustomModelSerializer):
         fields = ['id', 'title', 'sort_number']
 
 
-class AdminApiCategoryItemSerializer(CustomModelSerializer):
-    """
-    MEH: Api Item list full information in Api Category
-    for Admin work
-    """
-    category_display = serializers.StringRelatedField(source='category')
-
-    class Meta:
-        model = ApiItem
-        fields = ['id', 'category_display', 'title', 'sort_number', 'key']
-
-    def create(self, validated_data, **kwargs):
-        api_item = ApiItem(**validated_data, **kwargs)
-        api_item.save()
-        return api_item
-
-
 class AdminApiItemSerializer(CustomModelSerializer):
     """
     MEH: Api Item detail full information (with changing category)
@@ -107,3 +90,9 @@ class AdminApiItemSerializer(CustomModelSerializer):
     class Meta:
         model = ApiItem
         fields = ['id', 'category', 'category_display', 'title', 'sort_number', 'key']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'api_item_list': # MEH: Drop Category
+            data.pop('category', None)
+        return data

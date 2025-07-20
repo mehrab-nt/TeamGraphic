@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
 from api.models import ApiCategory
-from .serializers import EmployeeSerializer, EmployeeLevelSerializer
+from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
 from django.core.exceptions import PermissionDenied
@@ -33,11 +33,17 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['user__first_name', 'user__last_name']
     ordering_fields = ['rate']
+    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['get_employee'],
         'create': ['create_employee'],
     }
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return EmployeeBriefSerializer
+        return super().get_serializer_class()
 
     @extend_schema(summary="Change Password request")
     @action(detail=True, methods=['put'],
@@ -68,6 +74,7 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['title']
     ordering_fields = ['title']
+    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['get_employee_level_access'],

@@ -555,7 +555,25 @@ class RoleSerializer(CustomModelSerializer):
     """
     description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
     api_items = serializers.PrimaryKeyRelatedField(many=True, queryset=ApiItem.objects.filter(category__role_base=True))
+    all_api_items = serializers.SerializerMethodField()
 
     class Meta:
         model = Role
         fields = '__all__'
+
+    def get_all_api_items(self, obj): # MEH: Provide all api-item list for UI form generate
+        if self.context.get('view').action == 'retrieve': # MEH: Only for get single obj
+            items = ApiItem.objects.select_related('category').filter(category__role_base=True)
+            return [
+                {"id": item.id, "title": item.title, "category": item.category.title}
+                for item in items
+            ]
+        return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action != 'retrieve': # MEH: Drop all-api-item list if request action not retrieve
+            data.pop('all_api_items', None)
+        if self.context.get('view').action == 'list': # MEH: api-item in list view
+            data.pop('api_items', None)
+        return data
