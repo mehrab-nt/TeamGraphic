@@ -46,7 +46,7 @@ class CustomTokenVerifyView(TokenVerifyView):
     pass
 
 
-@extend_schema(tags=['Users'])
+@extend_schema(tags=['User'])
 class UserViewSet(CustomMixinModelViewSet):
     """
     MEH: User Model viewset
@@ -69,14 +69,13 @@ class UserViewSet(CustomMixinModelViewSet):
         **dict.fromkeys(['update', 'partial_update', 'accounting'], ['update_user']),
         'profile': ['update_user', 'customer_dashboard'],
         **dict.fromkeys(['get_address_list', 'address_detail'], ['get_address', 'customer_dashboard']),
-        'sign_up_manual': ['create_user'],
+        **dict.fromkeys(['sign_up_manual', 'create'], ['create_user']),
         'destroy': ['delete_user'],
         'activation': ['active_user'],
         **dict.fromkeys(['import_user_list', 'import_user_list_valid_field'], ['import_user_list']),
         'download_user_list': ['download_user_list'],
         'create_address': ['create_address', 'customer_address'],
         'manually_verify_phone': ['verify_phone'],
-        'create': []
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -266,7 +265,7 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(user, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(user)
 
-    @extend_schema(tags=['Users-Addresses'], summary="Get User Address list")
+    @extend_schema(tags=['User-Address'], summary="Get User Address list")
     @action(detail=True, methods=['get'],
             url_path='address-list', serializer_class=AddressSerializer, filter_backends=[None])
     def get_address_list(self, request, pk=None):
@@ -280,7 +279,7 @@ class UserViewSet(CustomMixinModelViewSet):
         self.check_object_permissions(request, address_list.first())
         return self.custom_get(address_list)
 
-    @extend_schema(tags=['Users-Addresses'], summary="User Address details")
+    @extend_schema(tags=['User-Address'], summary="User Address details")
     @action(detail=True, methods=['get', 'put', 'patch', 'delete'],
             url_path='address/(?P<address_id>\d+)', serializer_class=AddressSerializer, filter_backends=[None])
     def address_detail(self, request, pk=None, address_id=None):
@@ -301,7 +300,7 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(address, request.data, partial=(request.method == 'PATCH'))
         return self.custom_get(address)
 
-    @extend_schema(tags=['Users-Addresses'], summary="Add Address for User")
+    @extend_schema(tags=['User-Address'], summary="Add Address for User")
     @action(detail=True, methods=['post'],
             url_path='address-add', serializer_class=AddressSerializer, filter_backends=[None])
     def create_address(self, request, pk=None):
@@ -415,7 +414,7 @@ class UserViewSet(CustomMixinModelViewSet):
         return self.custom_get(user)
 
 
-@extend_schema(tags=["Users-Introduction"])
+@extend_schema(tags=["User-Introduction"])
 class IntroductionViewSet(CustomMixinModelViewSet):
     """
     MEH: Introduction Model viewset
@@ -434,7 +433,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     }
 
 
-@extend_schema(tags=["Roles"])
+@extend_schema(tags=["Role"])
 class RoleViewSet(CustomMixinModelViewSet):
     """
     MEH: Role Model viewset
