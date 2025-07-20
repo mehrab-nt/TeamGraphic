@@ -78,6 +78,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Product-Fields', 'description': 'Operations Related to Product Fields Config'},
         {'name': 'Gallery', 'description': 'Operations Related to Galleries'},
         {'name': 'Option', 'description': 'Operations Related to Product Options'},
+        {'name': 'Report', 'description': 'Operations Related to Reports'},
         {'name': 'Api-Access', 'description': 'Operations Related to Api Access Categories & Items (Only Admin)'},
     ],
     'SAVE_INCLUDE_SCHEMA': False,

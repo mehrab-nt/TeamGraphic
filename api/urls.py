@@ -5,7 +5,10 @@ from .views import ApiCategoryViewSet, ApiItemViewSet
 from user.views import UserViewSet, RoleViewSet, IntroductionViewSet
 from employee.views import EmployeeViewSet, EmployeeLevelViewSet
 from file_manager.views import FileDirectoryViewSet, FileItemViewSet
-from product.views import ProductViewSet, ProductCategoryViewSet, GalleryCategoryViewSet, GalleryImageViewSet
+from product.views import ProductViewSet, ProductCategoryViewSet, GalleryCategoryViewSet, GalleryImageViewSet, \
+    DesignViewSet, FileFieldViewSet, SizeViewSet, TirageViewSet, DurationViewSet, SheetPaperViewSet, PaperViewSet, \
+    OptionCategoryViewSet, OptionViewSet, BannerViewSet, ColorViewSet, FoldingViewSet
+from report.views import ProductReportViewSet
 
 
 router = DefaultRouter()
@@ -34,6 +37,7 @@ router.register(r'product/color', ColorViewSet, basename='product-color')
 router.register(r'product/sheet-paper', SheetPaperViewSet, basename='product-sheet-paper')
 router.register(r'product/paper', PaperViewSet, basename='product-paper')
 router.register(r'product/folding', FoldingViewSet, basename='product-folding')
+router.register(r'report/product', ProductReportViewSet, basename='product-report')
 
 
 urlpatterns = [
