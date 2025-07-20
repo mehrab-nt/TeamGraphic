@@ -105,6 +105,9 @@ class UserSignUpVerifySerializer(UserSignUpRequestSerializer):
         introduce_code = validated_data.pop('introduce_code', None)
         if introduce_code:
             validated_data['introducer'] = User.objects.filter(public_key=introduce_code).first()
+            if validated_data['introducer']:
+                validated_data['introducer'].invite_user_count += 1
+                validated_data['introducer'].save(update_fields=['invite_user_count'])
         user = User.objects.create_user(**validated_data, username=phone_number, phone_number_verified=True)
         user.save()
         refresh = RefreshToken.for_user(user) # MEH: Auto signed in
@@ -279,7 +282,35 @@ class UserProfileSerializer(CustomModelSerializer):
         return None
 
 
-class UserSerializer(CustomModelSerializer):
+class UserBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Brief User information for list
+    """
+    company = serializers.SerializerMethodField()
+    credit = serializers.SerializerMethodField()
+    role_display = serializers.StringRelatedField(source='role')
+
+    class Meta:
+        model = User
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
+        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
+
+    @staticmethod
+    def get_company(obj):
+        company = getattr(obj, 'company', None)
+        if company:
+            return company.name
+        return None
+
+    @staticmethod
+    def get_credit(obj):
+        credit = getattr(obj, 'credit', None)
+        if credit:
+            return credit.total_amount
+        return 0
+
+
+class UserSerializer(UserBriefSerializer):
     """
     MEH: Main User full information
     """
@@ -290,25 +321,16 @@ class UserSerializer(CustomModelSerializer):
     national_id = serializers.CharField(required=False, allow_null=True,
                                         validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
-    role_display = serializers.StringRelatedField(source='role')
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
-    invite_user_count = serializers.SerializerMethodField()
     introducer = serializers.StringRelatedField()
     province = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile']
-        read_only_fields = ['date_joined', 'is_active']
+                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile', 'company', 'credit']
+        read_only_fields = ['date_joined', 'is_active', 'invite_user_count', 'company', 'credit']
         list_serializer_class = CustomBulkListSerializer
-
-    @staticmethod
-    def get_invite_user_count(obj): # MEH: get Count of invite_user_list (in user list QS)
-        try:
-            return obj.invite_user_count
-        except AttributeError:
-            return 0
 
     @staticmethod
     def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list QS)
@@ -497,6 +519,10 @@ class AddressSerializer(CustomModelSerializer):
     postal_code = serializers.CharField(default=None)
     location = GeometryField()
     user = serializers.SerializerMethodField()
+    receiver_phone_number = serializers.CharField(required=True,
+                                                  validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+    sender_phone_number = serializers.CharField(required=False,
+                                                validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
 
     class Meta:
         model = Address
@@ -512,10 +538,6 @@ class AddressSerializer(CustomModelSerializer):
         data['province_display'] = instance.province.__str__()
         data['city_display'] = instance.city.__str__()
         return data
-
-    def create(self, validated_data, **kwargs):
-        address = Address.objects.create(**validated_data, **kwargs) # MEH: for parse User in **kwargs
-        return address
 
 
 class IntroductionSerializer(CustomModelSerializer):

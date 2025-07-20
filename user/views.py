@@ -10,7 +10,8 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count
-from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, UserSerializer, \
+from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, \
+    UserSerializer, UserBriefSerializer, \
     UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
     UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
     UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, UserAccountingSerializer, \
@@ -87,20 +88,19 @@ class UserViewSet(CustomMixinModelViewSet):
         is_employee = getattr(user, 'is_employee', False)
         if user.is_superuser or is_employee:
             qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
+            if self.action == 'list':
+                return qs.select_related('role').prefetch_related('credit', 'company')
             if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
                 return qs
             if self.action == 'accounting':
                 return qs.select_related('role')
             if self.action == 'profile':
                 return qs.select_related('user_profile')
-            if self.action == 'get_address_list':
-                return qs.prefetch_related('user_addresses')
             return (
                 qs.select_related('role', 'user_profile', 'introduce_from', 'introducer')
                 .annotate(default_province=Subquery(Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province__name')[:1]))
-                .annotate(invite_user_count=Count('invite_user_list'))
             )
-        return User.objects.filter(id=user.id)
+        return User.objects.filter(id=user.id) # MEH: Just return own obj for regular user
 
     def get_object(self, *args, **kwargs):
         """
@@ -115,9 +115,10 @@ class UserViewSet(CustomMixinModelViewSet):
                 raise NotFound(TG_USER_NOT_FOUND_BY_PHONE)
         return super().get_object(*args, **kwargs) # MEH: Super default behavior with pk
 
-    @extend_schema(exclude=True)  # MEH: Hidden POST from Api Documentation (only Admin work!)
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return UserBriefSerializer
+        return super().get_serializer_class()
 
     @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
@@ -238,8 +239,8 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Get User Key information with `pk` (GET ACTION)
         Update block (auto generated and never change)
         """
-        user_key = self.get_object(pk=pk)
-        return self.custom_get(user_key)
+        user = self.get_object(pk=pk)
+        return self.custom_get(user)
 
     @extend_schema(summary="Get User Accounting information")
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -248,10 +249,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Accounting information and Update it with `pk` (GET/PUT ACTION)
         """
-        user_accounting = self.get_object(pk=pk)
+        user = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(user_accounting, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(user_accounting)
+            return self.custom_update(user, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user)
 
     @extend_schema(summary="Get User Activation information")
     @action(detail=True, methods=['get', 'put', 'patch'],
@@ -260,10 +261,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Activation information with `pk` to Update `is_active` (GET/PUT ACTION)
         """
-        user_activation = self.get_object(pk=pk)
+        user = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(user_activation, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(user_activation)
+            return self.custom_update(user, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user)
 
     @extend_schema(tags=['Users-Addresses'], summary="Get User Address list")
     @action(detail=True, methods=['get'],
@@ -408,10 +409,10 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Get User Verify phone information with `pk` to Update `verified_phone` manually (GET/PUT ACTION)
         """
-        user_verified_phone = self.get_object(pk=pk)
+        user = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(user_verified_phone, request.data, partial=(request.method == 'PATCH'))
-        return self.custom_get(user_verified_phone)
+            return self.custom_update(user, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(user)
 
 
 @extend_schema(tags=["Users-Introduction"])

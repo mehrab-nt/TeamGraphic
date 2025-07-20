@@ -21,6 +21,8 @@ class User(AbstractUser):
                                   blank=True, null=False, verbose_name='Public Key')
     private_key = models.CharField(max_length=16, unique=True, validators=[validators.MinLengthValidator(8)],
                                    blank=True, null=False, verbose_name='Private Key')
+    invite_user_count = models.PositiveSmallIntegerField(default=0,
+                                                         blank=False, null=False, verbose_name='Invite User Count')
     accounting_id = models.PositiveBigIntegerField(unique=True,
                                                    blank=True, null=True, verbose_name='Accounting ID')
     accounting_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Accounting Name')
@@ -35,7 +37,8 @@ class User(AbstractUser):
                                         related_name='user')
     last_order_date = models.DateTimeField(default=None,
                                            blank=True, null=True, verbose_name='Last Order Date')
-    order_count = models.PositiveSmallIntegerField(default=0, blank=False, null=False, verbose_name='Order Count')
+    order_count = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Order Count')
     is_employee = models.BooleanField(default=False, db_index=True,
                                       blank=False, null=False, verbose_name='Is Employee')
 
@@ -188,8 +191,11 @@ class Address(models.Model):
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],
                                    blank=True, null=True, verbose_name='Postal Code')
     receiver_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Receiver Name')
-    phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
-                                    blank=False, null=False, verbose_name='Phone Number')
+    receiver_phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
+                                             blank=False, null=False, verbose_name='Receiver Phone Number')
+    sender_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Sender Name')
+    sender_phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
+                                           blank=True, null=True, verbose_name='Sender Phone Number')
     plate_number = models.CharField(max_length=10,
                                     blank=False, null=False, verbose_name='Plate Number')
     unit_number = models.CharField(max_length=10,

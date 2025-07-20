@@ -30,7 +30,7 @@ class CustomUserAdmin(UserAdmin):
 
     fieldsets = UserAdmin.fieldsets + (
         ('TeamGraphic', {'fields': ('phone_number', 'phone_number_verified', 'national_id', 'user_profile', 'public_key', 'private_key',
-                                    'last_order_date', 'order_count',
+                                    'invite_user_count', 'last_order_date', 'order_count',
                                     'introducer', 'introduce_from', 'accounting_id', 'accounting_name', 'role', 'is_employee')}),
     )
 
