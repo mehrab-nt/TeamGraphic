@@ -5,6 +5,7 @@ from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from django.utils import timezone
 from datetime import timedelta
+from financial.models import Company
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer

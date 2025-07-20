@@ -3,6 +3,7 @@ from django.dispatch import receiver
 from django.db.models import F
 from django.core.cache import cache
 from .models import Role, User, UserProfile
+from financial.models import Credit
 
 
 # @receiver(post_delete, sender=Role)
@@ -27,6 +28,8 @@ def user_post_save(sender, instance, created, **kwargs):
             profile = UserProfile.objects.create()
             instance.user_profile = profile
             flag = True
+        if not hasattr(instance, 'credit') and not instance.is_employee and not instance.is_staff :
+            Credit.objects.create(owner=instance)
         if not instance.role and not instance.is_employee and not instance.is_staff:
             instance.role = Role.objects.filter(is_default=True).first()
             flag = True

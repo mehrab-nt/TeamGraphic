@@ -39,8 +39,10 @@ class Company(models.Model):
 
 
 class Credit(models.Model):
-    total_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Total Amount')
-    total_coin = models.PositiveIntegerField(blank=False, null=False, verbose_name='Total Coin')
+    total_amount = models.BigIntegerField(default=0,
+                                          blank=False, null=False, verbose_name='Total Amount')
+    total_coin = models.PositiveIntegerField(default=0,
+                                             blank=False, null=False, verbose_name='Total Coin')
     owner = models.OneToOneField(User, on_delete=models.CASCADE,
                                  blank=False, null=False,
                                  related_name='credit')
