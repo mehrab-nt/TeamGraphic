@@ -13,10 +13,11 @@ class FileDirectorySerializer(CustomModelSerializer):
     type = serializers.SerializerMethodField()
     preview = serializers.SerializerMethodField()
     create_date = serializers.DateField(default=timezone.now(), read_only=True)
+    parent_directory = serializers.PrimaryKeyRelatedField(queryset=FileDirectory.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FileDirectory
-        fields = ['id', 'name', 'preview', 'create_date', 'type']
+        fields = ['id', 'name', 'preview', 'create_date', 'type', 'parent_directory']
 
     @staticmethod
     def get_type(obj):
@@ -26,9 +27,29 @@ class FileDirectorySerializer(CustomModelSerializer):
     def get_preview(obj):
         return None
 
-    def create(self, validated_data, **kwargs):
-        directory = FileDirectory.objects.create(**validated_data, **kwargs) # MEH: for parse parent_directory in **kwargs
-        return directory
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = self.instance
+        if instance and isinstance(instance, FileDirectory):
+            self.fields['parent_category'].queryset = FileDirectory.objects.exclude(pk=instance.pk)
+
+    def get_fields(self): # MEH: for drop parent_directory in Update action (just in first Create)
+        fields = super().get_fields()
+        request = self.context.get('request')
+        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, parent_directory assign and don't allow to change!
+            fields.pop('parent_directory', None)
+        return fields
+
+    def validate_parent_directory(self, value): # MEH: Prevent from loop Directory A->B->C->A
+        instance = self.instance
+        if not instance or not value:
+            return value
+        current = value
+        while current:
+            if current == instance:
+                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.parent_directory
+        return value
 
 
 class FileItemSerializer(CustomModelSerializer):
@@ -36,17 +57,24 @@ class FileItemSerializer(CustomModelSerializer):
     MEH: File Item Full Information for file_explorer
     (img width & height can set manually for final optimized image size if `seo_base = True`)
     """
-    name = serializers.CharField(read_only=True)
     preview = serializers.ImageField(read_only=True)
     create_date = serializers.DateField(default=timezone.now(), read_only=True)
     type = serializers.CharField(read_only=True)
     volume = serializers.FloatField(read_only=True)
     img_width = serializers.IntegerField(default=0, write_only=True)
     img_height = serializers.IntegerField(default=0, write_only=True)
+    parent_directory = serializers.PrimaryKeyRelatedField(queryset=FileDirectory.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FileItem
-        fields = ['id', 'name', 'preview', 'file', 'create_date', 'type', 'volume', 'seo_base', 'img_width', 'img_height']
+        fields = ['id', 'name', 'preview', 'file', 'create_date', 'type', 'parent_directory', 'volume', 'seo_base', 'img_width', 'img_height']
+
+    def get_fields(self): # MEH: for drop parent_directory in Update action (just in first Create)
+        fields = super().get_fields()
+        request = self.context.get('request')
+        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, parent_directory assign and don't allow to change!
+            fields.pop('parent_directory', None)
+        return fields
 
     def validate(self, data): # MEH: Check uploaded Image size and Image -> SEO Base request (Optimize in filemanager.images.py)
         file = data.get('file')
@@ -60,10 +88,6 @@ class FileItemSerializer(CustomModelSerializer):
             if seo_base: # MEH: Change image to SEO base friendly format
                 data['file'] = self.validate_upload_image(file, max_image_size=23, max_width=None, max_height=None, size=(width, height))
         return data
-
-    def create(self, validated_data, **kwargs):
-        file = FileItem.objects.create(**validated_data, **kwargs) # MEH: for parse parent_directory in **kwargs
-        return file
 
 
 class ClearFileSerializer(CustomModelSerializer):

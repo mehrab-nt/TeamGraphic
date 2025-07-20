@@ -53,14 +53,21 @@ def upload_path(instance): # MEH: Tree based Directory handle (and safe slug for
     path = '/'.join(path_parts)
     return path
 
+def get_random_basename(instance): # MEH: With this image and thumbnail get equal name
+    if not hasattr(instance, "_random_basename"):
+        instance._random_basename = uuid.uuid4().hex[:8]
+    return instance._random_basename
+
 def preview_image_path(instance, filename): # MEH: Create a dir for thumbnail in each folder
     path = upload_path(instance)
-    filename = f"thumb-{safe_slug(instance.name)}.webp"
+    base_name = get_random_basename(instance)
+    filename = f"thumb-{base_name}.webp"
     return f'file_manager/{path}/thumbnails/{filename}'
 
 def upload_file_path(instance, filename): # MEH: Upload File here (with safe slug name)
     path = upload_path(instance)
-    filename = f"{safe_slug(instance.name)}.{instance.type}"
+    base_name = get_random_basename(instance)
+    filename = f"{base_name}.{instance.type}"
     return f'file_manager/{path}/{filename}'
 
 
@@ -92,7 +99,9 @@ class FileItem(models.Model):
     def save(self, *args, **kwargs):
         if self.file: # MEH: Set attr first time File save in system
             filename = self.file.name.split('/')[-1]
-            self.name, ext = os.path.splitext(filename)
+            name, ext = os.path.splitext(filename)
+            if not self.name:
+                self.name = name
             self.type = ext.lstrip('.')
             self.volume = self.file.size / 1024 # MEH: KB
         if self.file and not self.preview and self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']:

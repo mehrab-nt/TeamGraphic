@@ -10,6 +10,7 @@ from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import CombineBulkDeleteSerializer
 from django.core.cache import cache
+from rest_framework.exceptions import MethodNotAllowed
 
 
 @extend_schema(tags=['File-Manager'])
@@ -39,36 +40,11 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
 
     @extend_schema(exclude=True)  # MEH: Hidden PUT from Api Documentation (only Admin work!)
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        raise MethodNotAllowed('PUT')
 
     @extend_schema(exclude=True)  # MEH: Hidden PATCH from Api Documentation (only Admin work!)
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
-
-    @extend_schema(
-        description="MEH: Use `parent_id` in query or body to assign a parent_directory. If omitted, Directory will be created at root level.",
-        parameters=[
-            OpenApiParameter(
-                name='parent_id',
-                description='ID of the parent_directory. If omitted, creates root Directory.',
-                type=int,
-                required=False,
-                location='query'
-            ),
-        ],
-    )
-    def create(self, request, *args, **kwargs):
-        parent_id = request.query_params.get('parent_id')
-        if not parent_id: # MEH: it can be in body
-            parent_id = request.data.get('parent_id')
-        if parent_id in ['', 'None', None]:
-            parent_directory = None
-        else:
-            try:
-                parent_directory = FileDirectory.objects.get(pk=parent_id)
-            except FileDirectory.DoesNotExist:
-                return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        return self.custom_create(request.data, parent_directory=parent_directory)
+        raise MethodNotAllowed('PATCH')
 
     @extend_schema(
         summary='Tree list of Both Directories & Files',
@@ -115,10 +91,9 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Directory & File Item Objects (use POST ACTION for sending ids list in request body)
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        file_ids = serializer.validated_data.get('item_ids', [])
-        dir_ids = serializer.validated_data.get('layer_ids', [])
+        validated_data = self.get_validated_ids_list(request.data)
+        file_ids = validated_data.get('item_ids', [])
+        dir_ids = validated_data.get('layer_ids', [])
         file_qs = FileItem.objects.filter(id__in=file_ids)
         dir_qs = FileDirectory.objects.filter(id__in=dir_ids)
         self.serializer_class = FileDirectorySerializer # MEH: Just for drf view
@@ -153,11 +128,11 @@ class FileItemViewSet(CustomMixinModelViewSet):
 
     @extend_schema(exclude=True) # MEH: Hidden PUT from Api Documentation (only Admin work!)
     def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
+        raise MethodNotAllowed('PUT')
 
     @extend_schema(exclude=True) # MEH: Hidden PATCH from Api Documentation (only Admin work!)
     def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)
+        raise MethodNotAllowed('PATCH')
 
     @extend_schema(
         description="MEH: Use `parent_id` in query or body to assign a parent_directory. If omitted, File will be uploaded at root level.",

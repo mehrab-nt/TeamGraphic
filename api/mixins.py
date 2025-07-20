@@ -203,6 +203,11 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count,}, status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
+    def get_validated_ids_list(self, data):
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
+
     @staticmethod
     def custom_list_destroy(queryset_list: list): # MEH: Handle bulk delete list of object with 1 request
         total_delete = 0
