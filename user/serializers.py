@@ -511,6 +511,21 @@ class UserManualVerifyPhoneSerializer(CustomModelSerializer):
         return str(obj)
 
 
+class AddressBriefSerializer(CustomModelSerializer):
+    """
+    MEH: User Address brief information
+    """
+    class Meta:
+        model = Address
+        fields = ['id', 'receiver_name', 'province', 'city', 'content', 'plate_number', 'unit_number']
+
+    def to_representation(self, instance): # MEH: for display Farsi name in Api alongside id
+        data = super().to_representation(instance)
+        data['province_display'] = instance.province.__str__()
+        data['city_display'] = instance.city.__str__()
+        return data
+
+
 class AddressSerializer(CustomModelSerializer):
     """
     MEH: User Address full information

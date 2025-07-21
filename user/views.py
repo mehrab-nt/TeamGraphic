@@ -11,11 +11,11 @@ from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Count
 from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, \
-    UserSerializer, UserBriefSerializer, \
+    UserSerializer, UserBriefSerializer, UserChangePasswordSerializer, UserResendCodeSerializer, \
     UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
     UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
-    UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, UserAccountingSerializer, \
-    AddressSerializer, IntroductionSerializer, RoleSerializer, UserChangePasswordSerializer, UserResendCodeSerializer
+    UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, \
+    UserAccountingSerializer, AddressSerializer, AddressBriefSerializer, IntroductionSerializer, RoleSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -267,7 +267,7 @@ class UserViewSet(CustomMixinModelViewSet):
 
     @extend_schema(tags=['User-Address'], summary="Get User Address list")
     @action(detail=True, methods=['get'],
-            url_path='address-list', serializer_class=AddressSerializer, filter_backends=[None])
+            url_path='address-list', serializer_class=AddressBriefSerializer, filter_backends=[None])
     def get_address_list(self, request, pk=None):
         """
         MEH: Get User full Address list with `pk` (GET ACTION)
