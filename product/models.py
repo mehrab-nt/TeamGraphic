@@ -107,6 +107,11 @@ class ProductCategory(models.Model):
             current.product_list.update(status=new_status)
             stack.extend(current.sub_categories.all())
 
+    def get_slug_path(self):
+        if self.parent_category:
+            return f"{self.parent_category.get_slug_path()}/{self.title}"
+        return self.title
+
 
 class ProductType(models.TextChoices):
     OFFSET = 'OFF', 'افست'
@@ -191,6 +196,9 @@ class Product(models.Model):
         if self.image and not self.alt:
             self.alt = f'{self.title}عکس محصول '
         super().save(*args, **kwargs)
+
+    def get_category_path(self):
+        return self.parent_category.get_slug_path()
 
 
 class SizeMethod(models.TextChoices):
@@ -535,7 +543,7 @@ class ProductFileField(models.Model):
                                    blank=True, null=True)
     depend_on = models.ForeignKey('self', on_delete=models.PROTECT,
                                   blank=True, null=True,
-                                  related_name='parent_file')
+                                  related_name='child_file_list')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
     Color_mode = models.CharField(max_length=4, validators=[validators.MinLengthValidator(3)],
@@ -555,6 +563,13 @@ class ProductFileField(models.Model):
 
     def __str__(self):
         return f'File #{self.title}'
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        current = self.depend_on
+        while current:
+            if current == self:
+                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.depend_on
 
 
 class DesignVariantType(models.TextChoices):
@@ -579,9 +594,8 @@ class Design(models.Model):
                                            blank=False, null=False, verbose_name='Sort Number')
     avg_duration = models.PositiveSmallIntegerField(default=0,
                                                     blank=False, null=False, verbose_name='Average Duration')
-    category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
-                                 blank=False, null=False,
-                                 related_name='design_list')
+    category = models.ManyToManyField(ProductCategory, blank=False,
+                                      related_name='design_list')
     image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                               blank=True, null=True,
                               related_name='image_for_designs')
@@ -594,7 +608,7 @@ class Design(models.Model):
                                              blank=False, null=False, verbose_name='Total Sale')
 
     class Meta:
-        ordering = ['sort_number', 'category']
+        ordering = ['sort_number']
         verbose_name = "Design"
         verbose_name_plural = "Designs"
 
@@ -715,7 +729,8 @@ class ProductOption(models.Model):
                                       blank=True, null=True, verbose_name='Tirage Discount')
     always_show = models.BooleanField(default=True,
                                       blank=False, null=False, verbose_name='Always Show')
-    dependent_option = models.ManyToManyField('Option')
+    dependent_option = models.ManyToManyField('Option', blank=True,
+                                              related_name='child_option_list')
 
     class Meta:
         ordering = ['product', 'option']
@@ -725,6 +740,52 @@ class ProductOption(models.Model):
 
     def __str__(self):
         return f'{self.product}: {self.option}'
+
+    def clean(self): # MEH: just for make sure valid data from django Admin panel
+        super().clean()
+        if not self.option_id:
+            return  # MEH: Skip if not fully initialized
+
+        def has_cycle(current_id, visited):
+            if current_id in visited:
+                return True
+            visited.add(current_id)
+            deps = ProductOption.objects.filter(product=self.product, option_id=current_id).values_list('dependent_option__id', flat=True)
+            for dep_id in deps:
+                if dep_id == self.option_id:  # MEH: direct cycle
+                    return True
+                if has_cycle(dep_id, visited.copy()):
+                    return True
+            return False
+
+        for dep in self.dependent_option.all():
+            if dep.id == self.option_id:
+                raise ValidationError("Option cannot depend on itself.")
+            if has_cycle(dep.id, {self.option_id}):
+                raise ValidationError(f"Circular dependency detected via Option {dep.id}.")
+
+    @staticmethod
+    def detect_cycle(dependency_map): # MEH: Detects cycles in a dependency graph represented as a dict: { option_id: [dependent_option_ids] }
+        visited = set()
+        stack = set()
+
+        def dfs(option_id):
+            if option_id in stack:
+                return True  # MEH: Cycle detected
+            if option_id in visited:
+                return False
+            visited.add(option_id)
+            stack.add(option_id)
+            for dep in dependency_map.get(option_id, []):
+                if dfs(dep):
+                    return True
+            stack.remove(option_id)
+            return False
+
+        for opt_id in dependency_map:
+            if dfs(opt_id):
+                return True
+        return False # MEH: It's ok
 
 
 class GalleryCategory(models.Model):

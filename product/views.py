@@ -11,14 +11,15 @@ from .models import ProductCategory, Product, GalleryCategory, GalleryImage, Pro
     Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, \
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, Folding, \
     ProductOption, Page
-from .serializers import ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
-    GalleryCategorySerializer, GalleryImageSerializer, \
-    ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, \
-    DigitalProductSerializer, \
+from .serializers import (ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
+    GalleryCategorySerializer, GalleryImageSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
+    ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, DigitalProductSerializer, \
     SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
-    FileFieldSerializer, ProductFileSerializer, ProductGallerySerializer, DesignSerializer, ProductDesignSerializer, \
-    OptionCategorySerializer, OptionSerializer, BannerSerializer, ColorSerializer, FoldingSerializer, \
-    ProductOptionSerializer, PageSerializer
+    BannerSerializer, ColorSerializer, FoldingSerializer, PageSerializer, \
+    FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer, FileFieldDropDownSerializer, \
+    DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
+    OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionSelectListSerializer, OptionProductListSerializer, \
+    ProductManualPriceSerializer, ProductFormulaPriceSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -28,6 +29,7 @@ from rest_framework.exceptions import NotFound
 from copy import deepcopy
 from django.db.models import ManyToManyField
 from django.utils import timezone
+from django.db import transaction
 
 
 @extend_schema(tags=['Product-Category'])
@@ -135,6 +137,24 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         pro_qs = Product.objects.filter(id__in=pro_ids)
         cat_qs = ProductCategory.objects.filter(id__in=cat_ids)
         return self.custom_list_update([pro_qs, cat_qs], update_fields, update_sub=True)
+
+    @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
+            url_path='copy', filter_backends=[None])
+    def copy_category(self, request):
+        """
+        MEH: Copy a Product Category & Create all detail except M2M child cat & product! (use POST ACTION for sending id in request body)
+        """
+        validated_data = self.get_validated_ids_list(request.data)
+        category_id = validated_data.get('id', None)
+        try:
+            original_category = ProductCategory.objects.get(pk=category_id)
+        except ObjectDoesNotExist:
+            raise NotFound(TG_DATA_NOT_FOUND)
+        category_copy = deepcopy(original_category)
+        category_copy.pk = None
+        category_copy.title = f"{original_category.title} (copy)"
+        category_copy.save()
+        return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
 
 
 @extend_schema(tags=['Product-Item'])
@@ -284,30 +304,76 @@ class ProductViewSet(CustomMixinModelViewSet):
     @extend_schema(summary="Page 6 of Product Edit")
     @action(detail=True, methods=['get', 'post'], serializer_class=ProductOptionSerializer,
             url_path='options', filter_backends=[None])
-    def options(self, request, pk=None):
+    def option_list(self, request, pk=None):
+        """
+        MEH: Product Option List
+        Page 6 of Product Edit
+        """
         product = self.get_object(pk=pk)
         if request.method == 'POST':
-            if not isinstance(request.data, list):
-                return Response({'detail': 'Expected a list of options.'}, status=status.HTTP_400_BAD_REQUEST)
-            serializer = self.get_serializer(data=request.data, many=True)
-            serializer.is_valid(raise_exception=True)
-            incoming_options = serializer.validated_data
-            incoming_option_ids = [opt['option'].id for opt in incoming_options]
-            product.option_list.exclude(option_id__in=incoming_option_ids).delete() # MEH: Delete old options not in list
-            for option_data in incoming_options: # MEH: Upsert
-                deps = option_data.pop('dependent_option', [])
-                option = option_data['option']
-                product_option, _ = ProductOption.objects.update_or_create( # MEH: Update if exists, else create
-                    product=product,
-                    option=option,
-                    defaults=option_data
-                )
-                valid_option_ids = set(product.option_list.values_list("option__id", flat=True))
-                valid_option_ids.discard(int(option.id))
-                valid_dependent_ids = [oid.id for oid in deps if oid.id in valid_option_ids]
-                product_option.dependent_option.set(valid_dependent_ids)
-            return Response({'detail': 'Options synced successfully.'}, status=status.HTTP_200_OK)
-        return self.custom_get(product.option_list)
+            with transaction.atomic():
+                if not isinstance(request.data, list):
+                    return Response({'detail': TG_DATA_MOST_LIST}, status=status.HTTP_400_BAD_REQUEST)
+                serializer = self.get_serializer(data=request.data, many=True)
+                serializer.is_valid(raise_exception=True)
+                incoming_options = serializer.validated_data
+                dependency_map = {}
+                for opt_data in incoming_options:
+                    opt_id = opt_data['option'].id
+                    deps = [dep.id for dep in opt_data.get('dependent_option', [])]
+                    dependency_map[opt_id] = deps
+                if ProductOption.detect_cycle(dependency_map): # MEH: Detect cycles
+                    return Response({'detail': TG_PREVENT_CIRCULAR_CATEGORY}, status=status.HTTP_400_BAD_REQUEST)
+                incoming_option_ids = [opt['option'].id for opt in incoming_options] # MEH: Now work on DB with clean data
+                existing_options = product.option_list.select_related('option').prefetch_related('dependent_option')
+                existing_options.exclude(option_id__in=incoming_option_ids).delete() # MEH: Delete old options not in list
+                valid_option_ids = set(existing_options.values_list("option__id", flat=True))  # MEH: for Ignore unrelated option_id in sending list
+                for option_data in incoming_options: # MEH: Upsert
+                    deps = option_data.pop('dependent_option', [])
+                    option = option_data['option']
+                    product_option, _ = ProductOption.objects.update_or_create( # MEH: Update if exists, else create
+                        product=product,
+                        option=option,
+                        defaults=option_data
+                    )
+                    option_specific_valid_ids = valid_option_ids - {option.id} # MEH: Drop option id itself
+                    valid_dependent_ids = [oid.id for oid in deps if oid.id in option_specific_valid_ids]
+                    product_option.dependent_option.set(valid_dependent_ids) # MEH: Set M2M dependent_option field
+                return Response({'detail': TG_DATA_UPDATED}, status=status.HTTP_200_OK)
+        option_list = product.option_list.select_related('option').prefetch_related('dependent_option')
+        return self.custom_get(option_list)
+
+    @extend_schema(summary="Page 7 of Product Edit (Offset)")
+    @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=ProductManualPriceSerializer,
+            url_path='manual_price', filter_backends=[None])
+    def manual_price(self, request, pk=None):
+        """
+        MEH: Product Manual Price List (Offset)
+        Page 7 of Product Edit
+        """
+        try:
+            offset_product = OffsetProduct.objects.get(product_info__pk=pk)
+        except ObjectDoesNotExist:
+            raise NotFound(TG_DATA_NOT_FOUND)
+        if request.method in ['PUT', 'PATCH']:
+            return self.custom_update(offset_product, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(offset_product)
+
+    @extend_schema(summary="Page 7 of Product Edit (Digital)")
+    @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=ProductFormulaPriceSerializer,
+            url_path='formula_price', filter_backends=[None])
+    def formula_price(self, request, pk=None):
+        """
+        MEH: Product Manual Price List (Digital)
+        Page 7 of Product Edit
+        """
+        try:
+            digital_product = DigitalProduct.objects.get(product_info__pk=pk)
+        except ObjectDoesNotExist:
+            raise NotFound(TG_DATA_NOT_FOUND)
+        if request.method in ['PUT', 'PATCH']:
+            return self.custom_update(digital_product, request.data, partial=(request.method == 'PATCH'))
+        return self.custom_get(digital_product)
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
             url_path='copy', filter_backends=[None])
@@ -427,6 +493,18 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         self.serializer_class = GalleryCategorySerializer # MEH: Just for drf view
         return self.custom_list_destroy([img_qs, cat_qs])
 
+    @extend_schema(summary='for DropDown List')
+    @action(detail=False, methods=['get'], serializer_class=GalleryDropDownSerializer,
+            url_path='list', filter_backends=[None])
+    def drop_down_list(self, request):
+        """
+        MEH: List of Gallery Category (id & name)
+        """
+        category_list = self.get_queryset()
+        if not category_list:
+            raise NotFound(TG_DATA_EMPTY)
+        return self.custom_get(category_list)
+
 
 @extend_schema(tags=['Gallery'])
 class GalleryImageViewSet(CustomMixinModelViewSet):
@@ -468,26 +546,76 @@ class FileFieldViewSet(CustomMixinModelViewSet):
         '__all__': ['field_manager'],
     }
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return FileFieldBriefSerializer
+        return super().get_serializer_class()
+
+    @extend_schema(summary='for DropDown List')
+    @action(detail=False, methods=['get'], serializer_class=FileFieldDropDownSerializer,
+            url_path='list', filter_backends=[None])
+    def drop_down_list(self, request):
+        """
+        MEH: List of File Field (id & title)
+        """
+        file_field_list = self.get_queryset()
+        if not file_field_list:
+            raise NotFound(TG_DATA_EMPTY)
+        return self.custom_get(file_field_list)
+
 
 @extend_schema(tags=['Design'])
 class DesignViewSet(CustomMixinModelViewSet):
     """
     MEH: Design Model viewset
     """
-    queryset = Design.objects.select_related('image', 'category')
+    queryset = Design.objects.select_related('image').prefetch_related('category')
     serializer_class = DesignSerializer
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
         filters.OrderingFilter,
     ]
-    search_fields = ['title']
-    ordering_fields = ['sort_number', 'category']
+    search_fields = ['title', 'category__title']
+    ordering_fields = ['sort_number', 'title']
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['design_manager'],
     }
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return DesignBriefSerializer
+        return super().get_serializer_class()
+
+    @extend_schema(
+        summary='for DropDown List',
+        parameters=[
+            OpenApiParameter(
+                name='category_id',
+                description='Used for filter related Design to product category',
+                required=False,
+                type=int,
+                location='query',
+            )
+        ]
+    )
+    @action(detail=False, methods=['get'], serializer_class=DesignDropDownSerializer,
+            url_path='list', filter_backends=[None])
+    def drop_down_list(self, request):
+        """
+        MEH: List of Design (id & title)
+        """
+        category_id = request.query_params.get('category_id')
+        if category_id:
+            try:
+                category_filter = ProductCategory.objects.get(id=category_id)
+            except ObjectDoesNotExist:
+                raise NotFound(TG_DATA_EMPTY)
+            return self.custom_get(category_filter.design_list)
+        design_list = self.get_queryset()
+        return self.custom_get(design_list)
 
 
 @extend_schema(tags=['Product-Fields'])
@@ -526,7 +654,7 @@ class TirageViewSet(CustomMixinModelViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class TirageViewSet(CustomMixinModelViewSet):
+class PageViewSet(CustomMixinModelViewSet):
     """
     MEH: Page Model viewset
     """
@@ -635,6 +763,7 @@ class FoldingViewSet(CustomMixinModelViewSet):
     required_api_keys = {
         '__all__': ['field_manager'],
     }
+
 
 @extend_schema(tags=['Option'])
 class OptionCategoryViewSet(CustomMixinModelViewSet):
@@ -776,3 +905,25 @@ class OptionViewSet(CustomMixinModelViewSet):
         option_copy.title += ' (Copy)'
         option_copy.save()
         return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=['get'], serializer_class=OptionSelectListSerializer,
+            url_path='select-list', filter_backends=[None])
+    def product_option_select(self, request):
+        """
+        MEH: Full list of active Option for select
+        in Page 6 of Product Edit
+        """
+        option_list = self.get_queryset().filter(is_active=True)
+        return self.custom_get(option_list)
+
+    @action(detail=True, methods=['get'], serializer_class=OptionProductListSerializer,
+            url_path='related-product', filter_backends=[None])
+    def option_related_product(self, request, pk=None):
+        """
+        MEH: Full list of related Product to Option
+        """
+        option = self.get_object(pk=pk)
+        if getattr(option, 'product_list', None):
+            return self.custom_get(option.product_list)
+        else:
+            raise NotFound(TG_DATA_EMPTY)

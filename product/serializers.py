@@ -178,35 +178,12 @@ class OffsetProductSerializer(CustomModelSerializer):
 
     class Meta:
         model = OffsetProduct
-        fields = '__all__'
+        exclude = ['manual_price']
         read_only_fields = ['product_info']
 
     @staticmethod
     def get_size_method_display(obj):
         return obj.get_size_method_display()
-
-    @staticmethod
-    def validate_manual_price(value):
-        if len(json.dumps(value)) > 1999:
-            raise serializers.ValidationError("field_list JSON is too large.")
-        if not isinstance(value, dict):
-            raise serializers.ValidationError("field_list must be a dictionary.")
-        # required_keys = {"item_list"}
-        # if not required_keys.issubset(value):
-        #     raise serializers.ValidationError("field_list must include 'item_list' keys.")
-        # items = value.get('item_list')
-        # if not isinstance(items, list) or not items:
-        #     raise serializers.ValidationError("item_list must be a non-empty list.")
-        # for item in items:
-        #     if not isinstance(item, dict):
-        #         raise serializers.ValidationError("Each item in item_list must be a dictionary.")
-        #     if 'key' not in item or 'value' not in item:
-        #         raise serializers.ValidationError("Each item must contain 'key' and 'value'")
-        #     if not isinstance(item['key'], str) or len(item['key']) > 10:
-        #         raise serializers.ValidationError("Each key must be a string with max 10 characters.")
-        #     if not isinstance(item['value'], (int, float)):
-        #         raise serializers.ValidationError("Each value must be a number.")
-        # return value
 
 
 class LargeFormatProductSerializer(CustomModelSerializer):
@@ -245,7 +222,7 @@ class DigitalProductSerializer(CustomModelSerializer):
 
     class Meta:
         model = DigitalProduct
-        fields = '__all__'
+        exclude = ['formula']
         read_only_fields = ['product_info']
 
     @staticmethod
@@ -271,12 +248,30 @@ class ProductGallerySerializer(CustomModelSerializer):
         return obj.get_gallery_type_display()
 
 
+class DesignDropDownSerializer(CustomModelSerializer):
+    """
+    MEH: Design id & title for drop-down list
+    """
+    class Meta:
+        model = Design
+        fields = ['id', 'title']
+
+
+class DesignBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Design brief Information
+    """
+    class Meta:
+        model = Design
+        fields = ['id', 'title', 'base_price', 'variant_type', 'sort_number']
+
+
 class DesignSerializer(CustomModelSerializer):
     """
     MEH: Design full Information
     """
-    category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=True)
-    category_display = serializers.StringRelatedField(source='category')
+    category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=True, many=True)
+    category_display = serializers.StringRelatedField(source='category', many=True, read_only=True)
     image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
     image_url = serializers.SerializerMethodField()
 
@@ -306,13 +301,51 @@ class ProductDesignSerializer(CustomModelSerializer):
         fields = ['id', 'designs', 'designs_info']
 
 
+class FileFieldDropDownSerializer(CustomModelSerializer):
+    """
+    MEH: Design id & title for drop-down list
+    """
+    class Meta:
+        model = ProductFileField
+        fields = ['id', 'title']
+
+
+class FileFieldBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Design brief Information
+    """
+    class Meta:
+        model = ProductFileField
+        fields = ['id', 'title', 'sort_number']
+
+
 class FileFieldSerializer(CustomModelSerializer):
     """
     MEH: File Field full Information
     """
+    depend_on = serializers.PrimaryKeyRelatedField(queryset=ProductFileField.objects.all(), required=False, allow_null=True)
+    depend_on_display = serializers.StringRelatedField(source='depend_on', read_only=True)
+
     class Meta:
         model = ProductFileField
         fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = self.instance
+        if instance and isinstance(instance, ProductFileField):
+            self.fields['depend_on'].queryset = ProductFileField.objects.exclude(pk=instance.pk)
+
+    def validate_depend_on(self, value):  # MEH: Prevent from loop A->B->C->A
+        instance = self.instance
+        if not instance or not value:
+            return value
+        current = value
+        while current:
+            if current == instance:
+                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
+            current = current.depend_on
+        return value
 
 
 class ProductFileSerializer(CustomModelSerializer):
@@ -328,7 +361,7 @@ class ProductFileSerializer(CustomModelSerializer):
         fields = ['id', 'check_file', 'files', 'files_info']
 
 
-class ProductOptionSerializer(serializers.ModelSerializer):
+class ProductOptionSerializer(CustomModelSerializer):
     """
     MEH: Page 6 of Product Edit (Options)
     """
@@ -340,21 +373,62 @@ class ProductOptionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = ProductOption
-        exclude = ['product']
+        exclude = ['id', 'product']
 
 
-class ProductFormulaPriceSerializer(CustomModelSerializer):
+class ProductManualPriceSerializer(OffsetProductSerializer):
     """
-    MEH: Page 7 of Product Edit (Price)
-    Just for Digital Product (formula)
+    MEH: Page 7 of Product Edit (manual Price) if Offset
     """
-    formula = serializers.CharField(style={'base_template': 'textarea.html'})
-    # keywords =
+    manual_price = serializers.JSONField(required=True)
 
     class Meta:
-        model = Product
-        fields = ['id',]
+        model = OffsetProduct
+        fields = '__all__'
+        extra_kwargs = {
+            field.name: {'read_only': True}
+            for field in model._meta.get_fields()
+            if field.name != 'manual_price'
+        }
 
+    @staticmethod
+    def validate_manual_price(value):
+        if len(json.dumps(value)) > 1999:
+            raise serializers.ValidationError("field_list JSON is too large.")
+        if not isinstance(value, dict):
+            raise serializers.ValidationError("field_list must be a dictionary.")
+        # required_keys = {"item_list"}
+        # if not required_keys.issubset(value):
+        #     raise serializers.ValidationError("field_list must include 'item_list' keys.")
+        # items = value.get('item_list')
+        # if not isinstance(items, list) or not items:
+        #     raise serializers.ValidationError("item_list must be a non-empty list.")
+        # for item in items:
+        #     if not isinstance(item, dict):
+        #         raise serializers.ValidationError("Each item in item_list must be a dictionary.")
+        #     if 'key' not in item or 'value' not in item:
+        #         raise serializers.ValidationError("Each item must contain 'key' and 'value'")
+        #     if not isinstance(item['key'], str) or len(item['key']) > 10:
+        #         raise serializers.ValidationError("Each key must be a string with max 10 characters.")
+        #     if not isinstance(item['value'], (int, float)):
+        #         raise serializers.ValidationError("Each value must be a number.")
+        # return value
+
+
+class ProductFormulaPriceSerializer(DigitalProductSerializer):
+    """
+    MEH: Page 7 of Product Edit (formula Price) if Digital
+    """
+    formula = serializers.CharField(style={'base_template': 'textarea.html'}, required=True)
+
+    class Meta:
+        model = DigitalProduct
+        fields = '__all__'
+        extra_kwargs = {
+            field.name: {'read_only': True}
+            for field in model._meta.get_fields()
+            if field.name != 'formula'
+        }
 
 class SizeSerializer(CustomModelSerializer):
     """
@@ -398,7 +472,7 @@ class BannerSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Banner
-        fields = '__all__'
+        exclude = ['total_print', 'total_gap', 'total_leaf', 'total_waste']
 
 
 class ColorSerializer(CustomModelSerializer):
@@ -450,6 +524,15 @@ class FoldingSerializer(CustomModelSerializer):
             url = obj.icon.file.url
             return request.build_absolute_uri(url) if request else url
         return None
+
+
+class GalleryDropDownSerializer(CustomModelSerializer):
+    """
+    MEH: Gallery Category id & name for drop-down list
+    """
+    class Meta:
+        model = GalleryCategory
+        fields = ['id', 'name']
 
 
 class GalleryCategorySerializer(CustomModelSerializer):
@@ -579,3 +662,29 @@ class OptionSerializer(CustomModelSerializer):
     @staticmethod
     def get_icon(obj):
         return None
+
+
+class OptionSelectListSerializer(CustomModelSerializer):
+    """
+    MEH: Option Full list for select
+    for Page 6 of Product Edit (Options)
+    """
+    class Meta:
+        model = Option
+        fields = ['id', 'parent_category', 'title', 'is_numberize', 'base_amount', 'price_type']
+
+
+class OptionProductListSerializer(CustomModelSerializer):
+    """
+    MEH: Option Full list of related Product
+    """
+    product_display = serializers.StringRelatedField(source='product')
+    product_category = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductOption
+        fields = ['product', 'product_display', 'product_category']
+
+    @staticmethod
+    def get_product_category(obj):
+        return str(obj.product.get_category_path())
