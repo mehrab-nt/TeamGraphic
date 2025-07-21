@@ -8,9 +8,8 @@ from .filters import ProductReportFilter
 from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActivateSerializer, \
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
-    Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, \
-    Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, Folding, \
-    ProductOption, Page
+    Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Page, Folding, \
+    Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption
 from .serializers import (ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
     GalleryCategorySerializer, GalleryImageSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
     ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, DigitalProductSerializer, \
