@@ -430,6 +430,7 @@ class ProductFormulaPriceSerializer(DigitalProductSerializer):
             if field.name != 'formula'
         }
 
+
 class SizeSerializer(CustomModelSerializer):
     """
     MEH: Main Product Field (Size) full Information
@@ -437,6 +438,13 @@ class SizeSerializer(CustomModelSerializer):
     class Meta:
         model = Size
         fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'list': # MEH: brief view for list
+            for field in ['name', 'description']:
+                data.pop(field, None)
+        return data
 
 
 class TirageSerializer(CustomModelSerializer):
@@ -492,6 +500,13 @@ class SheetPaperSerializer(CustomModelSerializer):
         model = SheetPaper
         fields = '__all__'
 
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'list':  # MEH: brief view for list
+            for field in ['material', 'description', 'weight', 'cutting_price']:
+                data.pop(field, None)
+        return data
+
 
 class PaperSerializer(CustomModelSerializer):
     """
@@ -505,6 +520,13 @@ class PaperSerializer(CustomModelSerializer):
     class Meta:
         model = Paper
         fields = '__all__'
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'list': # MEH: brief view for list
+            for field in ['size', 'sheet_paper', 'color_print_price', 'baw_print_price', 'cutting_price', 'folding_price']:
+                data.pop(field, None)
+        return data
 
 
 class FoldingSerializer(CustomModelSerializer):
@@ -524,6 +546,12 @@ class FoldingSerializer(CustomModelSerializer):
             url = obj.icon.file.url
             return request.build_absolute_uri(url) if request else url
         return None
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'list':  # MEH: brief view for list
+            data.pop('description', None)
+        return data
 
 
 class GalleryDropDownSerializer(CustomModelSerializer):
