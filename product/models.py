@@ -901,10 +901,11 @@ class PriceListCategory(models.Model):
                                     blank=False, null=False, verbose_name='Is Active')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
-    # icon = models.ImageField(upload_to="ProductCategory/", blank=True, null=True)
-    # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
-    #                        blank=False, null=False)
+    image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='image_for_price_list_categories')
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=True, null=False)
 
     class Meta:
         ordering = ['sort_number']
@@ -927,35 +928,23 @@ class PriceListTable(models.Model):
                                    blank=True, null=True)
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name='Is Active')
-    # image = models.ImageField(upload_to="ProductCategory/", blank=False, null=False)
-    price_list_categories = models.ManyToManyField(
-        PriceListCategory,
-        through='PriceListTableCategory',
-        through_fields=('table', 'category'),
-        verbose_name='Price List Categories'
-    )
-    product_categories = models.ManyToManyField(
-        ProductCategory,
-        through='PriceListTableProductCategory',
-        through_fields=('table', 'product_category'),
-        verbose_name='Product Categories'
-    )
-
-    class Meta:
-        verbose_name = 'Price List Table'
-        verbose_name_plural = 'Price List Tables'
-
-    def __str__(self):
-        return f'Price List Table: {self.title}'
-
-
-class PriceListTableCategory(models.Model):
-    table = models.ForeignKey(PriceListTable, on_delete=models.CASCADE,
-                             related_name='category_list')
-    category = models.ForeignKey(PriceListCategory, on_delete=models.CASCADE,
-                                 related_name='table_list')
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
+    image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
+                              blank=True, null=True,
+                              related_name='image_for_price_list')
+    alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
+                           blank=True, null=False)
+    price_list_categories = models.ManyToManyField(PriceListCategory,
+                                                   blank=True, verbose_name='Price List Categories',
+                                                   related_name='sub_price_list_tables')
+    product_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE,
+                                         blank=False, null=False, verbose_name='Product Category',
+                                         related_name='for_price_list_tables')
+    table = models.JSONField(default=dict,
+                             blank=True, null=True)
+    sort_number = models.PositiveSmallIntegerField(default=0,
+                                                   blank=False, null=False, verbose_name='Sort Number')
+    show_category = models.BooleanField(default=False,
+                                        blank=False, null=False, verbose_name='Show Category')
     size_column = models.BooleanField(default=False,
                                       blank=False, null=False, verbose_name='Size Column')
     size_unit = models.CharField(max_length=2, validators=[validators.MinLengthValidator(1)],
@@ -967,50 +956,8 @@ class PriceListTableCategory(models.Model):
                                          blank=False, null=False, verbose_name='Gallery Column')
 
     class Meta:
-        ordering = ['category', 'table']
-        verbose_name = "Price List Table Category"
-        verbose_name_plural = "Price List Table Categories"
+        verbose_name = 'Price List Table'
+        verbose_name_plural = 'Price List Tables'
 
     def __str__(self):
-        return f'{self.table} -in- {self.category}'
-
-
-class PriceListTableProductCategory(models.Model):
-    table = models.ForeignKey(PriceListTable, on_delete=models.CASCADE,
-                              related_name='product_category_list')
-    product_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE,
-                                         related_name='price_table_list')
-    items = models.ManyToManyField(
-        Product,
-        through='PriceListTableProductItem',
-        through_fields=('price_list', 'product'),
-    )
-
-    class Meta:
-        ordering = ['product_category', 'table']
-        verbose_name = 'Price List Table Product Category'
-        verbose_name_plural = 'Price List Table Product Categories'
-
-    def __str__(self):
-        return f'{self.product_category} -in- {self.table}'
-
-
-class PriceListTableProductItem(models.Model):
-    price_list = models.ForeignKey(PriceListTableProductCategory, on_delete=models.CASCADE,
-                                   related_name='product_list')
-    product = models.ForeignKey(Product, on_delete=models.CASCADE,
-                                related_name='price_table_list')
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False, verbose_name='Is Active')
-    sort_number = models.SmallIntegerField(default=0,
-                                           blank=False, null=False, verbose_name='Sort Number')
-    tirage_row = models.BooleanField(default=False,
-                                     blank=False, null=False, verbose_name='Tirage Row')
-
-    class Meta:
-        ordering = ['sort_number']
-        verbose_name = 'Price List Table Product Item'
-        verbose_name_plural = 'Price List Table Product Items'
-
-    def __str__(self):
-        return f'{self.product} -in- {self.price_list}'
+        return f'Price List Table: {self.title}'

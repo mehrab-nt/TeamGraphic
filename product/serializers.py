@@ -716,3 +716,19 @@ class OptionProductListSerializer(CustomModelSerializer):
     @staticmethod
     def get_product_category(obj):
         return str(obj.product.get_category_path())
+
+
+class ProductInCategorySerializer(CustomModelSerializer):
+    """
+    MEH: for Table of product in category (with fields)
+    """
+    parent_path = serializers.SerializerMethodField()
+    parent_category = serializers.StringRelatedField()
+
+    class Meta:
+        model = Product
+        fields = ['id', 'title', 'parent_path', 'parent_category']
+
+    @staticmethod
+    def get_parent_path(obj):
+        return str(obj.parent_category.get_slug_path())

@@ -18,7 +18,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
     FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer, FileFieldDropDownSerializer, \
     DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
     OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionSelectListSerializer, OptionProductListSerializer, \
-    ProductManualPriceSerializer, ProductFormulaPriceSerializer)
+    ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
