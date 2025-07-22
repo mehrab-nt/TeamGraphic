@@ -10,7 +10,8 @@ class ApiAccess(permissions.BasePermission):
     def has_permission(self, request, view): # MEH: Check permission before get_queryset and get_object
         if view.action is None:
             return True
-        required_keys = view.required_api_keys.get(view.action, [])
+        required_keys = getattr(view, 'required_api_keys', {}).get(view.action) or \
+                        getattr(view, 'required_api_keys', {}).get('__all__', [])
         if not isinstance(required_keys, list):
             required_keys = [required_keys]
         if 'allow_any' in required_keys: # MEH: Set action key (allow_any) -> Show to any User even not authenticated
