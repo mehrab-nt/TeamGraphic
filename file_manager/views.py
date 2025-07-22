@@ -73,8 +73,8 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
                 return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
         directories = FileDirectory.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
         files = FileItem.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
-        dir_data = FileDirectorySerializer(directories, many=True).data
-        file_data = FileItemSerializer(files, many=True).data
+        dir_data = FileDirectorySerializer(directories, many=True, context={'request': request}).data
+        file_data = FileItemSerializer(files, many=True, context={'request': request}).data
         return Response(dir_data + file_data, status=status.HTTP_200_OK)
 
     @extend_schema(
