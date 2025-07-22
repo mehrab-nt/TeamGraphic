@@ -731,4 +731,4 @@ class ProductInCategorySerializer(CustomModelSerializer):
 
     @staticmethod
     def get_parent_path(obj):
-        return str(obj.parent_category.get_slug_path())
+        return obj.get_category_path()

@@ -6,7 +6,7 @@ from mptt.admin import DraggableMPTTAdmin
 
 class ProductCategoryAdmin(DraggableMPTTAdmin):
     mptt_level_indent = 20
-    list_display = ['tree_actions', 'indented_title', 'sort_number', 'status']
+    list_display = ['tree_actions', 'id', 'indented_title', 'sort_number', 'status']
     list_display_links = ['indented_title']
     search_fields = ['title']
     list_filter = ['is_landing', 'status']
@@ -50,8 +50,10 @@ class GalleryImageAdmin(admin.ModelAdmin):
     list_filter = ['parent_category']
 
 
-class OptionCategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'parent_category', 'sort_number', 'is_active']
+class OptionCategoryAdmin(DraggableMPTTAdmin):
+    mptt_level_indent = 20
+    list_display = ['tree_actions', 'id', 'indented_title', 'sort_number', 'is_active']
+    list_display_links = ['indented_title']
     search_fields = ['title']
 
 
