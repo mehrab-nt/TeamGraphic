@@ -113,6 +113,7 @@ class ProductCategorySerializer(CustomModelSerializer):
         else:
             return super().update(instance, validated_data)
 
+
 class ProductInfoSerializer(CustomModelSerializer):
     """
     MEH: Product base Information
@@ -727,7 +728,7 @@ class ProductInCategorySerializer(CustomModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'title', 'parent_path', 'parent_category']
+        fields = ['id', 'title', 'parent_path', 'parent_category', 'type']
 
     @staticmethod
     def get_parent_path(obj):

@@ -166,7 +166,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         category = self.get_object(pk=pk)
         all_category_ids = category.get_descendants(include_self=True).values_list('id', flat=True)
-        products = Product.objects.filter(parent_category_id__in=all_category_ids).select_related('parent_category')
+        products = Product.objects.filter(parent_category_id__in=all_category_ids).select_related('parent_category').order_by('type')
         return self.custom_get(products)
 
 

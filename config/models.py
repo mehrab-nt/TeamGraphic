@@ -1,5 +1,7 @@
 from django.db import models
+from django.core import validators
 from landing.models import Landing, Metadata
+from user.models import Role
 
 
 class GoogleCodeType(models.TextChoices):
@@ -7,7 +9,7 @@ class GoogleCodeType(models.TextChoices):
     GA4 = 'GA$'
 
 
-class MainPage(models.Model):
+class MainPageConfig(models.Model):
     company_name = models.CharField(max_length=78,
                                     blank=False, null=False, verbose_name='Company Name')
     phone_number = models.CharField(max_length=23, blank=True, null=True,
@@ -51,3 +53,20 @@ class MainPage(models.Model):
 
     def __str__(self):
         return f'Main Page: {self.company_name}'
+
+
+class ViewType(models.TextChoices):
+    BLOCK = 'BLK'
+    LIST = 'LIS'
+
+
+class PriceListConfig(models.Model):
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name='Is Active')
+    view_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                 choices=ViewType.choices, default=ViewType.BLOCK,
+                                 blank=False, null=False, verbose_name='View Type')
+    auth_need = models.BooleanField(default=False,
+                                    blank=False, null=False, verbose_name='Auth Need')
+    block_role = models.ManyToManyField(Role, blank=True,
+                                        verbose_name='Block Role')

@@ -947,19 +947,18 @@ class PriceListTable(models.Model):
     product_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE,
                                          blank=False, null=False, verbose_name='Product Category',
                                          related_name='for_price_list_tables')
+    type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                            choices=ProductType.choices,
+                            blank=False, null=False)
     table = models.JSONField(default=dict,
                              blank=True, null=True)
     sort_number = models.PositiveSmallIntegerField(default=0,
                                                    blank=False, null=False, verbose_name='Sort Number')
     show_category = models.BooleanField(default=False,
                                         blank=False, null=False, verbose_name='Show Category')
-    size_column = models.BooleanField(default=False,
-                                      blank=False, null=False, verbose_name='Size Column')
     size_unit = models.CharField(max_length=2, validators=[validators.MinLengthValidator(1)],
                                  choices=SizeUnit.choices, default=SizeUnit.CM,
                                  blank=False, null=False, verbose_name='Size Unit')
-    duration_column = models.BooleanField(default=False,
-                                          blank=False, null=False, verbose_name='Duration Column')
     gallery_column = models.BooleanField(default=False,
                                          blank=False, null=False, verbose_name='Gallery Column')
 
