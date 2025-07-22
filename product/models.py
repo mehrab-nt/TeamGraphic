@@ -1,5 +1,6 @@
 from django.db import models
 from django.core import validators
+from mptt.models import MPTTModel, TreeForeignKey
 from landing.models import Landing
 from file_manager.models import FileItem
 from file_manager.images import *
@@ -27,16 +28,16 @@ class RoundPriceType(models.IntegerChoices):
     DEF = -1
 
 
-class ProductCategory(models.Model):
+class ProductCategory(MPTTModel):
     title = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
     product_description = models.TextField(max_length=236,
                                            blank=True, null=True, verbose_name='Product Description')
-    parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
-                                        blank=True, null=True, verbose_name='Parent Category',
-                                        related_name='sub_categories')
+    parent_category = TreeForeignKey('self', on_delete=models.PROTECT,
+                                     blank=True, null=True, verbose_name='Parent Category',
+                                     related_name='sub_categories')
     image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                               blank=True, null=True,
                               related_name='image_for_product_categories')
@@ -79,6 +80,10 @@ class ProductCategory(models.Model):
         verbose_name_plural = "Categories"
         ordering = ['sort_number', 'title']
 
+    class MPTTMeta:
+        order_insertion_by = ['sort_number', 'title']
+        parent_attr = 'parent_category'
+
     def __str__(self):
         return f'TGC-{self.pk}: {self.title}'
 
@@ -92,25 +97,22 @@ class ProductCategory(models.Model):
         super().save(*args, **kwargs)
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
-        current = self.parent_category
-        while current:
-            if current == self:
-                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_category
+        if self.parent_category:
+            if self == self.parent_category:
+                raise ValidationError("A category cannot be its own parent.")
+            if self.pk and self.parent_category.is_descendant_of(self):
+                raise ValidationError("You cannot assign a descendant as the parent category.")
 
     def update_all_subcategories_and_items(self): # MEH: Call when update status of a category
-        stack = [self]
         new_status = self.status
-        while stack:
-            current = stack.pop()
-            current.sub_categories.update(status=new_status)
-            current.product_list.update(status=new_status)
-            stack.extend(current.sub_categories.all())
+        descendants = self.get_descendants()
+        descendants.update(status=new_status)
+        Product.objects.filter(category__in=[self] + list(descendants)).update(status=new_status)
 
     def get_slug_path(self):
-        if self.parent_category:
-            return f"{self.parent_category.get_slug_path()}/{self.title}"
-        return self.title
+        return ' - '.join(
+            [cat.title for cat in self.get_ancestors(include_self=True)]
+        )
 
 
 class ProductType(models.TextChoices):
@@ -632,7 +634,7 @@ class OptionInputType(models.TextChoices):
     FILE = 'FIL', 'فایل'
 
 
-class OptionCategory(models.Model):
+class OptionCategory(MPTTModel):
     title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
     description = models.TextField(max_length=236,
@@ -643,8 +645,9 @@ class OptionCategory(models.Model):
     input_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                   choices=OptionInputType.choices,
                                   blank=False, null=False, verbose_name='Input Type')
-    parent_category = models.ForeignKey('self', on_delete=models.PROTECT, blank=True, null=True,
-                                        related_name='sub_categories')
+    parent_category = TreeForeignKey('self', on_delete=models.PROTECT,
+                                     blank=True, null=True, verbose_name='Parent Category',
+                                     related_name='sub_categories')
     icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                              blank=True, null=True,
                              related_name='icon_for_options')
@@ -666,24 +669,30 @@ class OptionCategory(models.Model):
         verbose_name = "Option Category"
         verbose_name_plural = "Option Categories"
 
+    class MPTTMeta:
+        order_insertion_by = ['sort_number', 'title']
+        parent_attr = 'parent_category'
+
     def __str__(self):
         return f'Option Category: {self.title}'
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
-        current = self.parent_category
-        while current:
-            if current == self:
-                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_category
+        if self.parent_category:
+            if self == self.parent_category:
+                raise ValidationError("A category cannot be its own parent.")
+            if self.pk and self.parent_category.is_descendant_of(self):
+                raise ValidationError("You cannot assign a descendant as the parent category.")
 
     def update_all_subcategories_and_items(self): # MEH: Call when update is_active of a category
-        stack = [self]
         new_is_active = self.is_active
-        while stack:
-            current = stack.pop()
-            current.sub_categories.update(is_active=new_is_active)
-            current.option_list.update(is_active=new_is_active)
-            stack.extend(current.sub_categories.all())
+        descendants = self.get_descendants()
+        descendants.update(is_active=new_is_active)
+        Product.objects.filter(category__in=[self] + list(descendants)).update(is_active=new_is_active)
+
+    def get_slug_path(self):
+        return ' - '.join(
+            [cat.title for cat in self.get_ancestors(include_self=True)]
+        )
 
 
 class PriceAmountType(models.TextChoices):

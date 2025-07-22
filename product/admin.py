@@ -1,13 +1,15 @@
 from django.contrib import admin
 from .models import ProductCategory, Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, \
     GalleryCategory, GalleryImage, OptionCategory, Option, ProductOption, SheetPaper, Size, Paper, Banner
+from mptt.admin import DraggableMPTTAdmin
 
 
-class ProductCategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'sort_number', 'status']
+class ProductCategoryAdmin(DraggableMPTTAdmin):
+    mptt_level_indent = 20
+    list_display = ['tree_actions', 'indented_title', 'sort_number', 'status']
+    list_display_links = ['indented_title']
     search_fields = ['title']
     list_filter = ['is_landing', 'status']
-    ordering = ['sort_number']
 
 
 class ProductAdmin(admin.ModelAdmin):

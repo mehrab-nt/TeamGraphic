@@ -98,6 +98,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'silk',
+    'mptt',
     'django_filters',
     'api.apps.ApiConfig',
     'drf_material',

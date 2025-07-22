@@ -51,6 +51,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     }
 
     def get_queryset(self, *args, **kwargs):
+        if self.action == 'product_list':
+            return super().get_queryset()
         return super().get_queryset().select_related('gallery', 'image', 'landing')
 
     @extend_schema(exclude=True) # MEH: Hidden list from Api Documentation (only Admin work)
@@ -154,6 +156,18 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         category_copy.title = f"{original_category.title} (copy)"
         category_copy.save()
         return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
+
+    @extend_schema(summary="Get list of Product in Category")
+    @action(detail=True, methods=['get'], serializer_class=ProductInCategorySerializer,
+            url_path='product-list', filter_backends=[None])
+    def product_list(self, request, pk=None):
+        """
+        MEH: Product List in category (for price table)
+        """
+        category = self.get_object(pk=pk)
+        all_category_ids = category.get_descendants(include_self=True).values_list('id', flat=True)
+        products = Product.objects.filter(parent_category_id__in=all_category_ids).select_related('parent_category')
+        return self.custom_get(products)
 
 
 @extend_schema(tags=['Product-Item'])
