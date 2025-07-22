@@ -121,8 +121,7 @@ class UserViewSet(CustomMixinModelViewSet):
 
     @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
-            url_path='sign-up', serializer_class=UserSignUpManualSerializer,
-            permission_classes=[ApiAccess])
+            url_path='sign-up', serializer_class=UserSignUpManualSerializer)
     def sign_up_manual(self, request):
         """
         MEH: User Sign Up (POST ACTION) Only Employee with access have permission
@@ -443,8 +442,8 @@ class RoleViewSet(CustomMixinModelViewSet):
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete', 'role_api_item_list'], 'get_user_role_access'),
-        'create': 'create_user_role_access',
+        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete', 'role_api_item_list'], ['get_user_role_access']),
+        'create': ['create_user_role_access'],
     }
 
     @extend_schema(summary='Api Item list for each Role for User')

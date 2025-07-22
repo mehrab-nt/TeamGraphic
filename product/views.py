@@ -781,7 +781,7 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['option_manager'],
-        'create': 'create_option',
+        'create': ['create_option'],
         **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option']),
     }
 
@@ -882,9 +882,9 @@ class OptionViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['option_manager'],
-        'create': 'create_option',
-        'destroy': 'delete_option',
-        'copy_option': 'copy_option'
+        'create': ['create_option'],
+        'destroy': ['delete_option'],
+        'copy_option': ['copy_option']
     }
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
