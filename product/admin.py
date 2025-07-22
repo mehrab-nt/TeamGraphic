@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import ProductCategory, Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, \
-    GalleryCategory, GalleryImage, OptionCategory, Option, ProductOption, SheetPaper, Size, Paper, Banner
+    GalleryCategory, GalleryImage, OptionCategory, Option, ProductOption, SheetPaper, Size, Paper, Banner, \
+    PriceListCategory, PriceListTable
 from mptt.admin import DraggableMPTTAdmin
 
 
@@ -39,8 +40,10 @@ class DigitalProductAdmin(admin.ModelAdmin):
     ordering = ['product_info']
 
 
-class GalleryCategoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'parent_category', 'sort_number']
+class GalleryCategoryAdmin(DraggableMPTTAdmin):
+    mptt_level_indent = 20
+    list_display = ['tree_actions', 'id', 'indented_title', 'name', 'parent_category', 'sort_number']
+    list_display_links = ['indented_title']
     search_fields = ['name']
 
 
@@ -82,6 +85,18 @@ class BannerAdmin(admin.ModelAdmin):
     list_display = ['id', 'title', 'width']
 
 
+class PriceListCategoryAdmin(DraggableMPTTAdmin):
+    mptt_level_indent = 20
+    list_display = ['tree_actions', 'id', 'indented_title', 'sort_number', 'is_active']
+    list_display_links = ['indented_title']
+    search_fields = ['title']
+
+
+class PriceListTableAdmin(admin.ModelAdmin):
+    list_display = ['id', 'title', 'sort_number', 'is_active']
+    search_fields = ['title']
+
+
 admin.site.register(ProductCategory, ProductCategoryAdmin)
 admin.site.register(Product, ProductAdmin)
 admin.site.register(OffsetProduct, OffsetProductAdmin)
@@ -97,3 +112,5 @@ admin.site.register(SheetPaper, SheetPaperAdmin)
 admin.site.register(Size, SizeAdmin)
 admin.site.register(Paper, PaperAdmin)
 admin.site.register(Banner, BannerAdmin)
+admin.site.register(PriceListCategory, PriceListCategoryAdmin)
+admin.site.register(PriceListTable, PriceListTableAdmin)

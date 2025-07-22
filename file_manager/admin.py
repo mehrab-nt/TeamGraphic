@@ -1,11 +1,13 @@
 from django.contrib import admin
 from .models import FileDirectory, FileItem, ClearFileHistory
+from mptt.admin import DraggableMPTTAdmin
 
 
-class FileDirectoryAdmin(admin.ModelAdmin):
-    list_display = ['id', 'name', 'create_date']
+class FileDirectoryAdmin(DraggableMPTTAdmin):
+    mptt_level_indent = 20
+    list_display = ['tree_actions', 'id', 'indented_title', 'name', 'create_date']
+    list_display_links = ['indented_title']
     search_fields = ['name']
-    ordering = ['-create_date']
 
 
 class FileItemAdmin(admin.ModelAdmin):

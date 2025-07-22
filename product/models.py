@@ -6,7 +6,6 @@ from file_manager.models import FileItem
 from file_manager.images import *
 from django.core.exceptions import ValidationError
 from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
-import math
 
 
 class ProductStatus(models.TextChoices):
@@ -35,7 +34,7 @@ class ProductCategory(MPTTModel):
                                    blank=True, null=True)
     product_description = models.TextField(max_length=236,
                                            blank=True, null=True, verbose_name='Product Description')
-    parent_category = TreeForeignKey('self', on_delete=models.PROTECT,
+    parent_category = TreeForeignKey('self', on_delete=models.CASCADE,
                                      blank=True, null=True, verbose_name='Parent Category',
                                      related_name='sub_categories')
     image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
@@ -51,7 +50,7 @@ class ProductCategory(MPTTModel):
                               related_name='video_for_product_categories')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    gallery = models.ForeignKey('GalleryCategory', on_delete=models.PROTECT,
+    gallery = models.ForeignKey('GalleryCategory', on_delete=models.SET_NULL,
                                 blank=True, null=True,
                                 related_name='linked_product_category_list')
     status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
@@ -137,7 +136,7 @@ class Product(models.Model):
                                    blank=True, null=True)
     category_description = models.BooleanField(default=True,
                                                blank=False, null=False, verbose_name='Category Description')
-    parent_category = models.ForeignKey(ProductCategory, on_delete=models.PROTECT,
+    parent_category = models.ForeignKey(ProductCategory, on_delete=models.CASCADE,
                                         blank=True, null=True,
                                         related_name='product_list')
     image = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
@@ -150,7 +149,7 @@ class Product(models.Model):
     template = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                                  blank=True, null=True,
                                  related_name='template_for_products')
-    gallery = models.ForeignKey('GalleryCategory', on_delete=models.PROTECT,
+    gallery = models.ForeignKey('GalleryCategory', on_delete=models.SET_NULL,
                                 blank=True, null=True,
                                 related_name='gallery_for_products')
     gallery_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
@@ -645,7 +644,7 @@ class OptionCategory(MPTTModel):
     input_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                   choices=OptionInputType.choices,
                                   blank=False, null=False, verbose_name='Input Type')
-    parent_category = TreeForeignKey('self', on_delete=models.PROTECT,
+    parent_category = TreeForeignKey('self', on_delete=models.CASCADE,
                                      blank=True, null=True, verbose_name='Parent Category',
                                      related_name='sub_categories')
     icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
@@ -705,7 +704,7 @@ class Option(models.Model):
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
-    parent_category = models.ForeignKey(OptionCategory, on_delete=models.PROTECT,
+    parent_category = models.ForeignKey(OptionCategory, on_delete=models.CASCADE,
                                         blank=False, null=False,
                                         related_name='option_list')
     is_active = models.BooleanField(default=True,
@@ -797,19 +796,23 @@ class ProductOption(models.Model):
         return False # MEH: It's ok
 
 
-class GalleryCategory(models.Model):
+class GalleryCategory(MPTTModel):
     name = models.CharField(max_length=78, unique=True, validators=[validators.MinLengthValidator(3)],
                             blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    parent_category = models.ForeignKey('self', on_delete=models.PROTECT,
-                                        blank=True, null=True,
-                                        related_name='sub_galleries')
+    parent_category = TreeForeignKey('self', on_delete=models.CASCADE,
+                                     blank=True, null=True,
+                                     related_name='sub_galleries')
 
     class Meta:
         ordering = ['sort_number', 'name']
         verbose_name = 'Gallery Category'
         verbose_name_plural = 'Gallery Categories'
+
+    class MPTTMeta:
+        order_insertion_by = ['sort_number', 'name']
+        parent_attr = 'parent_category'
 
     def __str__(self):
         if self.parent_category:
@@ -818,20 +821,11 @@ class GalleryCategory(models.Model):
             return f"{self.name}"
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
-        current = self.parent_category
-        while current:
-            if current == self:
-                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_category
-
-    def delete_recursive(self):
-        deleted_count = 0
-        for sub_galleries in self.sub_galleries.all(): # MEH: First delete subgalleries recursively
-            deleted_count += sub_galleries.delete_recursive()
-        image_deleted, _ = self.sub_images.all().delete() # MEH: Delete images in this gallery
-        deleted_count += image_deleted
-        self.delete() # MEH: Then delete the gallery itself
-        return deleted_count
+        if self.parent_category:
+            if self == self.parent_category:
+                raise ValidationError("A category cannot be its own parent.")
+            if self.pk and self.parent_category.is_descendant_of(self):
+                raise ValidationError("You cannot assign a descendant as the parent category.")
 
 
 def get_random_basename(instance): # MEH: With this image and thumbnail get equal name
@@ -861,7 +855,7 @@ class GalleryImage(models.Model):
                            blank=False, null=False)
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    parent_category = models.ForeignKey(GalleryCategory, on_delete=models.PROTECT,
+    parent_category = models.ForeignKey(GalleryCategory, on_delete=models.CASCADE,
                                         blank=True, null=True,
                                         related_name='sub_images')
 
@@ -892,11 +886,14 @@ class GalleryImage(models.Model):
         return self.image_file.url
 
 
-class PriceListCategory(models.Model):
+class PriceListCategory(MPTTModel):
     title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
+    parent_category = TreeForeignKey('self', on_delete=models.CASCADE,
+                                     blank=True, null=True, verbose_name="Parent Category",
+                                     related_name='sub_categories')
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name='Is Active')
     sort_number = models.SmallIntegerField(default=0,
@@ -912,8 +909,19 @@ class PriceListCategory(models.Model):
         verbose_name = 'Price List Category'
         verbose_name_plural = 'Price List Categories'
 
+    class MPTTMeta:
+        order_insertion_by = ['sort_number', 'title']
+        parent_attr = 'parent_category'
+
     def __str__(self):
         return f'Price List Category: {self.title}'
+
+    def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
+        if self.parent_category:
+            if self == self.parent_category:
+                raise ValidationError("A category cannot be its own parent.")
+            if self.pk and self.parent_category.is_descendant_of(self):
+                raise ValidationError("You cannot assign a descendant as the parent category.")
 
 
 class SizeUnit(models.TextChoices):

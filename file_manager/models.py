@@ -1,48 +1,39 @@
 from django.db import models
 from django.core import validators
+from mptt.models import MPTTModel, TreeForeignKey
 from django.utils import timezone
 from employee.models import Employee
 from .images import *
 from django.core.exceptions import ValidationError
-from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
 
 
-class FileDirectory(models.Model):
+class FileDirectory(MPTTModel):
     name = models.CharField(max_length=78, validators=[validators.MinLengthValidator(1)],
                             blank=False, null=False)
     create_date = models.DateField(default=timezone.now,
                                    blank=True, null=True, verbose_name='Create Date')
-    parent_directory = models.ForeignKey('self', on_delete=models.PROTECT,
-                               blank=True, null=True, verbose_name='Parent Directory',
-                               related_name='sub_dirs')
+    parent_directory = TreeForeignKey('self', on_delete=models.CASCADE,
+                                      blank=True, null=True, verbose_name='Parent Directory',
+                                      related_name='sub_dirs')
 
     class Meta:
         ordering = ['-create_date']
         verbose_name = "File Directory"
         verbose_name_plural = "File Directories"
 
+    class MPTTMeta:
+        order_insertion_by = ['create_date', 'name']
+        parent_attr = 'parent_directory'
+
     def __str__(self):
-        if self.parent_directory:
-            return f"{self.parent_directory}/{self.name}/"
-        else:
-            return f"{self.name}"
+        return '/'.join([ancestor.name for ancestor in self.get_ancestors(include_self=True)]) + '/'
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
-        current = self.parent_directory
-        while current:
-            if current == self:
-                raise ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_directory
-
-    def delete_recursive(self):
-        deleted_count = 0
-        for sub_dir in self.sub_dirs.all(): # MEH: First delete subdirectories recursively
-            deleted_count += sub_dir.delete_recursive()
-        files_deleted, _ = self.sub_files.all().delete() # MEH: Delete files in this directory
-        deleted_count += files_deleted
-        self.delete() # MEH: Then delete the directory itself
-        return deleted_count
-
+        if self.parent_directory:
+            if self == self.parent_directory:
+                raise ValidationError("A directory cannot be its own parent.")
+            if self.pk and self.parent_directory.is_descendant_of(self):
+                raise ValidationError("You cannot assign a descendant as the parent directory.")
 
 def upload_path(instance): # MEH: Tree based Directory handle (and safe slug for names)
     directory = instance.parent_directory
@@ -82,7 +73,7 @@ class FileItem(models.Model):
                                    blank=True, null=True, verbose_name='Create Date')
     volume = models.FloatField(default=0,
                                blank=False, null=False)
-    parent_directory = models.ForeignKey(FileDirectory, on_delete=models.PROTECT,
+    parent_directory = models.ForeignKey(FileDirectory, on_delete=models.CASCADE,
                                          blank=True, null=True, verbose_name='Parent Directory',
                                          related_name='sub_files')
     seo_base = models.BooleanField(default=False,

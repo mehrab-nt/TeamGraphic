@@ -143,9 +143,12 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         return self.custom_destroy(instance)
 
-    def custom_get(self, data): # Mix retrieve & list method In 1
+    def custom_get(self, data, request=None): # Mix retrieve & list method In 1
         is_many = not isinstance(data, models.Model)
-        serializer = self.get_serializer(data, many=is_many)
+        if request:
+            serializer = self.get_serializer(data, many=is_many, context={'request': request})
+        else:
+            serializer = self.get_serializer(data, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def custom_create(self, data, many=False, customize_response=None, **kwargs):
@@ -233,12 +236,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                             qs = qs.exclude(id__in=ids)
                     if not qs.exists():
                         continue
-                    if hasattr(model, 'delete_recursive'):
-                        for obj in qs:  # MEH: Recursively delete obj
-                            total_delete += obj.delete_recursive()
-                    else:
-                        deleted_count, _ = qs.delete()
-                        total_delete += deleted_count
+                    deleted_count, _ = qs.delete()
+                    total_delete += deleted_count
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if total_delete == 0:
