@@ -126,28 +126,13 @@ class FileItemViewSet(CustomMixinModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-    @extend_schema(exclude=True) # MEH: Hidden PUT from Api Documentation (only Admin work!)
+    @extend_schema(exclude=True) # MEH: Hidden PUT from Api Documentation (MethodNotAllowed)
     def update(self, request, *args, **kwargs):
         raise MethodNotAllowed('PUT')
 
-    @extend_schema(exclude=True) # MEH: Hidden PATCH from Api Documentation (only Admin work!)
+    @extend_schema(exclude=True) # MEH: Hidden PATCH from Api Documentation (MethodNotAllowed)
     def partial_update(self, request, *args, **kwargs):
         raise MethodNotAllowed('PATCH')
-
-    @extend_schema(
-        description="MEH: Use `parent_id` in query or body to assign a parent_directory. If omitted, File will be uploaded at root level.",
-        parameters=[
-            OpenApiParameter(
-                name='parent_id',
-                description='ID of the parent_directory. If omitted, uploaded File at root level.',
-                type=int,
-                required=False,
-                location='query'
-            ),
-        ]
-    )
-    def create(self, request, *args, **kwargs):
-        return FileDirectoryViewSet.create(self, request, *args, **kwargs)
 
     @extend_schema(summary = "Related to Clear old file from Orders")
     @action(detail=False, methods=['get', 'post'],
