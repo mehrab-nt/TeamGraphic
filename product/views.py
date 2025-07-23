@@ -50,7 +50,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['product_manager'],
+        '__all__': ['product_manager', 'create_product'],
+        'product_list': ['product_manager', 'price_list_manager', 'create_product']
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -165,7 +166,7 @@ class ProductViewSet(CustomMixinModelViewSet):
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['product_manager'],
+        '__all__': ['product_manager', 'create_product'],
         **dict.fromkeys(['create', 'copy_product'], ['create_product']),
     }
 
@@ -427,7 +428,8 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['gallery_manager'],
-        **dict.fromkeys(['gallery_explore_view', 'list', 'retrieve'], ['gallery_list', 'gallery_manager'])
+        **dict.fromkeys(['gallery_explore_view', 'list', 'retrieve'], ['gallery_list', 'gallery_manager']),
+        'drop_down_list': ['product_manager', 'create_product', 'gallery_list', 'gallery_manager']
     }
 
     @extend_schema(
@@ -520,6 +522,7 @@ class FileFieldViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'drop_down_list': ['product_manager', 'create_product', 'field_manager']
     }
 
     def get_serializer_class(self):
@@ -558,6 +561,7 @@ class DesignViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['design_manager'],
+        'drop_down_list': ['product_manager', 'create_product', 'design_manager']
     }
 
     def get_serializer_class(self):
@@ -612,6 +616,7 @@ class SizeViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -626,6 +631,7 @@ class TirageViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -640,6 +646,7 @@ class PageViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -654,6 +661,7 @@ class DurationViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -668,6 +676,7 @@ class BannerViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -682,6 +691,7 @@ class ColorViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -724,6 +734,7 @@ class PaperViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -738,6 +749,7 @@ class FoldingViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
+        'list': ['product_manager', 'create_product', 'field_manager']
     }
 
 
@@ -836,7 +848,8 @@ class OptionViewSet(CustomMixinModelViewSet):
         '__all__': ['option_manager'],
         'create': ['create_option'],
         'destroy': ['delete_option'],
-        'copy_option': ['copy_option']
+        'copy_option': ['copy_option'],
+        'product_option_select': ['product_manager', 'create_product', 'option_manager']
     }
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
@@ -896,9 +909,7 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['option_manager'],
-        'create': ['create_option'],
-        **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option']),
+        '__all__': ['price_list_manager']
     }
 
     @extend_schema(
@@ -973,8 +984,5 @@ class PriceListTableViewSet(CustomMixinModelViewSet):
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['option_manager'],
-        'create': ['create_option'],
-        'destroy': ['delete_option'],
-        'copy_option': ['copy_option']
+        '__all__': ['price_list_manager']
     }
