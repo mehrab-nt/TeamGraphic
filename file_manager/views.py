@@ -82,10 +82,8 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Directory & File Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        qs_list = self.explorer_bulk_queryset(validated_data, FileDirectory, FileItem)
-        self.serializer_class = FileDirectorySerializer  # MEH: Just for drf view
-        return self.custom_list_destroy(qs_list)
+        itm_qs, dir_qs, _ = self.explorer_bulk_queryset(request.data, FileDirectory, FileItem)
+        return self.custom_list_destroy([itm_qs, dir_qs])
 
 @extend_schema(tags=['File-Manager'])
 class FileItemViewSet(CustomMixinModelViewSet):

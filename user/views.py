@@ -346,7 +346,7 @@ class UserViewSet(CustomMixinModelViewSet):
             extra_fields=extra_fields,
         )
         self.serializer_class = UserImportDataSerializer # MEH: Change Serializer class to Validate Posted Data with Excel
-        res = self.custom_create(user_data_list, many=True) # MEH: Check, Validate (Raise Exception if any) & Save Data in DB 1 by 1
+        res = self.custom_create(user_data_list, many=True) # MEH: Check, Validate (Raise Exception if any) & Save Data in DB 1 by 1 (CustomBulkListSerializer)
         self.serializer_class = UserImportFieldDataSerializer # MEH: Change back for View purpose in DRF UI
         return res
 
@@ -474,5 +474,4 @@ class RoleViewSet(CustomMixinModelViewSet):
         validated_data = self.get_validate_data(request.data)
         ids = validated_data['ids']
         roles = self.get_queryset().filter(id__in=ids)
-        self.serializer_class = RoleSerializer # MEH: Just for drf view
         return self.custom_list_destroy([roles])

@@ -330,7 +330,6 @@ class UserSerializer(UserBriefSerializer):
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile', 'company', 'credit']
         read_only_fields = ['date_joined', 'is_active', 'invite_user_count', 'company', 'credit']
-        list_serializer_class = CustomBulkListSerializer
 
     @staticmethod
     def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list QS)

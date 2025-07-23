@@ -98,9 +98,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, ProductCategory, Product)
-        self.serializer_class = ProductCategorySerializer  # MEH: Just for drf view
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, ProductCategory, Product)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -117,10 +115,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change status field in List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        qs_list, update_field = self.explorer_bulk_queryset(validated_data, OptionCategory, Option, field='status')
-        self.serializer_class = ProductCategorySerializer  # MEH: Just for drf view
-        return self.custom_list_update(qs_list, update_field, update_sub=True)
+        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, OptionCategory, Option, field='status')
+        return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
             url_path='copy', filter_backends=[None])
@@ -470,9 +466,7 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Image Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, GalleryCategory, GalleryImage)
-        self.serializer_class = GalleryCategorySerializer  # MEH: Just for drf view
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, GalleryCategory, GalleryImage)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(summary='for DropDown List')
@@ -803,9 +797,7 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, OptionCategory, Option)
-        self.serializer_class = OptionCategorySerializer  # MEH: Just for drf view
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, OptionCategory, Option)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -822,10 +814,8 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change is_active field in List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        qs_list, update_field = self.explorer_bulk_queryset(validated_data, OptionCategory, Option, field='is_active')
-        self.serializer_class = OptionCategorySerializer  # MEH: Just for drf view
-        return self.custom_list_update(qs_list, update_field, update_sub=True)
+        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, OptionCategory, Option, field='is_active')
+        return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
 
 @extend_schema(tags=['Option'])
@@ -947,9 +937,7 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, PriceListCategory, PriceListTable)
-        self.serializer_class = PriceListCategorySerializer  # MEH: Just for drf view
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, PriceListCategory, PriceListTable)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -966,10 +954,8 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change is_active field in List of Category & Table Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validate_data(request.data)
-        qs_list, update_field = self.explorer_bulk_queryset(validated_data, PriceListCategory, PriceListTable, field='is_active')
-        self.serializer_class = PriceListCategorySerializer  # MEH: Just for drf view
-        return self.custom_list_update(qs_list, update_field, update_sub=True)
+        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, PriceListCategory, PriceListTable, field='is_active')
+        return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
 
 @extend_schema(tags=['Price-List'])

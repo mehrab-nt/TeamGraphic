@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import DailySaleReport
 from product.models import Product
-from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListSerializer
+from api.mixins import CustomModelSerializer
 from django.core.cache import cache
 
 
