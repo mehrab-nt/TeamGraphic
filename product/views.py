@@ -9,7 +9,8 @@ from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActiva
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
     Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Page, Folding, \
-    Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption
+    Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
+    PriceListCategory, PriceListTable
 from .serializers import (ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
     GalleryCategorySerializer, GalleryImageSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
     ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, DigitalProductSerializer, \
@@ -19,6 +20,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
     DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
     OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionSelectListSerializer, OptionProductListSerializer, \
     ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer)
+    PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer, PriceListTableBriefSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -887,3 +889,107 @@ class OptionViewSet(CustomMixinModelViewSet):
             return self.custom_get(option.product_list)
         else:
             raise NotFound(TG_DATA_EMPTY)
+
+
+@extend_schema(tags=['Price-List'])
+class PriceListCategoryViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Price List Category Model viewset
+    """
+    queryset = PriceListCategory.objects.all().order_by('sort_number')
+    serializer_class = PriceListCategorySerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+        filters.OrderingFilter,
+    ]
+    search_fields = ['title']
+    pagination_class = None
+    permission_classes = [ApiAccess]
+    required_api_keys = {
+        '__all__': ['option_manager'],
+        'create': ['create_option'],
+        **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option']),
+    }
+
+    @extend_schema(
+        summary='Tree list of Both Categories & Tables',
+        parameters=[
+            OpenApiParameter(
+                name='parent_id',
+                type=int,
+                required=False,
+                description='ID of the parent Category'
+            ),
+        ],
+    )
+    @action(detail=False, methods=['get'],
+            url_path='explorer', filter_backends=[None])
+    def table_explore_view(self, request):
+        """
+        MEH: Return mixed list of Price List Category `type='dir'` and Option Item `type='OFF/LAR/...'`
+        for parent_id = x or root level parent_id = None
+        """
+        return self.get_explorer_list(request=request, category_model=PriceListCategory, item_model=PriceListTable,
+                                      category_serializer=PriceListCategoryBriefSerializer, item_serializer=PriceListTableBriefSerializer,
+                                      item_filter_field='price_list_categories')
+
+    @extend_schema(
+        summary='Delete list of Categories & Tables',
+        request=CombineBulkDeleteSerializer,
+        responses={
+            200: OpenApiResponse(description="Successfully deleted Categories & Tables."),
+            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
+        },
+    )
+    @action(detail=False, methods=['post'], serializer_class=CombineBulkDeleteSerializer,
+            url_path='bulk-delete', filter_backends=[None])
+    def bulk_delete(self, request):
+        """
+        MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
+        """
+        validated_data = self.get_validate_data(request.data)
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, PriceListCategory, PriceListTable)
+        self.serializer_class = PriceListCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_destroy([itm_qs, cat_qs])
+
+    @extend_schema(
+        summary='Change Activation list of Categories & Options',
+        request=CombineBulkUpdateActivateSerializer,
+        responses={
+            200: OpenApiResponse(description="Successfully Change is_active in Categories & Options."),
+            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
+        },
+    )
+    @action(detail=False, methods=['post'], serializer_class=CombineBulkUpdateActivateSerializer,
+            url_path='bulk-update-activation', filter_backends=[None])
+    def bulk_update_is_active(self, request):
+        """
+        MEH: Change is_active field in List of Category & Table Objects (use POST ACTION for sending ids list in request body)
+        """
+        validated_data = self.get_validate_data(request.data)
+        qs_list, update_field = self.explorer_bulk_queryset(validated_data, PriceListCategory, PriceListTable, field='is_active')
+        self.serializer_class = PriceListCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_update(qs_list, update_field, update_sub=True)
+
+
+@extend_schema(tags=['Price-List'])
+class PriceListTableViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Price List Table Model viewset
+    """
+    queryset = PriceListTable.objects.select_related('product_category').prefetch_related('price_list_categories').order_by('sort_number')
+    serializer_class = PriceListTableSerializer
+    filter_backends = [
+        DjangoFilterBackend,
+        filters.SearchFilter,
+    ]
+    search_fields = ['title']
+    pagination_class = None
+    permission_classes = [ApiAccess]
+    required_api_keys = {
+        '__all__': ['option_manager'],
+        'create': ['create_option'],
+        'destroy': ['delete_option'],
+        'copy_option': ['copy_option']
+    }

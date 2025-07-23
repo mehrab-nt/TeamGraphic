@@ -923,10 +923,47 @@ class PriceListCategory(MPTTModel):
             if self.pk and self.parent_category.is_descendant_of(self):
                 raise ValidationError("You cannot assign a descendant as the parent category.")
 
+    def update_all_subcategories_and_items(self): # MEH: Call when update is_active of a category
+        new_is_active = self.is_active
+        descendants = self.get_descendants()
+        descendants.update(is_active=new_is_active)
+        PriceListTable.objects.filter(price_list_categories__in=[self] + list(descendants)).update(is_active=new_is_active)
+
+    def get_slug_path(self):
+        return ' - '.join(
+            [cat.title for cat in self.get_ancestors(include_self=True)]
+        )
+
+    def delete(self, *args, **kwargs):
+        table_deleted_count = self.delete_recursive()
+        deleted_count, _ = super().delete(*args, **kwargs)
+        return table_deleted_count + deleted_count, _
+
+    def delete_recursive(self):
+        deleted_count = 0
+        related_items = list(self.sub_price_list_tables.all())
+        for item in related_items:
+            item.delete()
+            deleted_count += 1
+        return deleted_count
+
 
 class SizeUnit(models.TextChoices):
     CM = 'CM', 'سانتی متر'
     M = 'M', 'متر'
+
+class Label(models.TextChoices):
+    DURATION = 'DUR', 'تحویل کاری'
+    MANUAL = 'MAN', 'دستی'
+
+class Column(models.TextChoices):
+    SIZE = 'SIZ', 'ابعاد'
+    PAPER = 'PAP', 'جنس کاغذ'
+    PRODUCT = 'PRO', 'محصول'
+    CATEGORY = 'CAT', 'دسته بندی'
+    FACE = 'FAC', 'وجه'
+    TIRAGE = 'TIR', 'تیراژ'
+    DURATION = 'DUR', 'تحویل کاری'
 
 
 class PriceListTable(models.Model):
@@ -950,17 +987,34 @@ class PriceListTable(models.Model):
     type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                             choices=ProductType.choices,
                             blank=False, null=False)
-    table = models.JSONField(default=dict,
-                             blank=True, null=True)
+    product_list = models.ManyToManyField('Product',
+                                          blank=True, verbose_name='Product List',
+                                          related_name='in_price_table')
     sort_number = models.PositiveSmallIntegerField(default=0,
                                                    blank=False, null=False, verbose_name='Sort Number')
-    show_category = models.BooleanField(default=False,
-                                        blank=False, null=False, verbose_name='Show Category')
     size_unit = models.CharField(max_length=2, validators=[validators.MinLengthValidator(1)],
                                  choices=SizeUnit.choices, default=SizeUnit.CM,
                                  blank=False, null=False, verbose_name='Size Unit')
     gallery_column = models.BooleanField(default=False,
                                          blank=False, null=False, verbose_name='Gallery Column')
+    label = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                blank=True, null=True,
+                                choices=Label.choices)
+    side_bar = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                blank=True, null=True, verbose_name='Side Bar',
+                                choices=Column.choices)
+    label_text = models.CharField(max_length=23,
+                                  blank=True, null=True, verbose_name='Label Text')
+    col_1 = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                             blank=True, null=True,
+                             choices=Column.choices)
+    col_2 = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                             blank=True, null=True,
+                             choices=Column.choices)
+    col_3 = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                             blank=True, null=True,
+                             choices=Column.choices)
+    show_category = models.BooleanField(default=True)
 
     class Meta:
         verbose_name = 'Price List Table'
@@ -968,3 +1022,18 @@ class PriceListTable(models.Model):
 
     def __str__(self):
         return f'Price List Table: {self.title}'
+
+    def save(self, *args, **kwargs):
+        if self.image and not self.alt:
+            self.alt = f'{self.title}عکس لیست قیمت '
+        values = [
+            self.side_bar,
+            self.label,
+            self.col_1,
+            self.col_2,
+            self.col_3,
+        ]
+        filtered_values = [v for v in values if v]
+        if len(filtered_values) != len(set(filtered_values)):
+            raise ValidationError("Duplicate values found in side_bar, label, or columns fields")
+        super().save(*args, **kwargs)

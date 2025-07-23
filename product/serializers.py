@@ -733,3 +733,85 @@ class ProductInCategorySerializer(CustomModelSerializer):
     @staticmethod
     def get_parent_path(obj):
         return obj.get_category_path()
+
+
+class PriceListCategoryBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Price List Category Brief Information for price_list_explorer
+    """
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PriceListCategory
+        fields = ['id', 'title', 'is_active', 'sort_number', 'type']
+
+    @staticmethod
+    def get_type(obj):
+        return 'dir'
+
+
+class PriceListTableBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Price List Table Brief Information for price_list_explorer
+    """
+    class Meta:
+        model = PriceListTable
+        fields = ['id', 'title', 'is_active', 'sort_number', 'type']
+
+
+class PriceListCategorySerializer(CustomModelSerializer):
+    """
+    MEH: Price List Category Full Information
+    """
+    parent_category = serializers.PrimaryKeyRelatedField(queryset=PriceListCategory.objects.all(), required=False, allow_null=True)
+    image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
+
+    class Meta:
+        model = PriceListCategory
+        fields = '__all__'
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and obj.image.file:
+            url = obj.image.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        instance = self.instance
+        if instance and isinstance(instance, PriceListCategory):
+            self.fields['parent_category'].queryset = PriceListCategory.objects.exclude(pk=instance.pk)
+
+    def update(self, instance, validated_data):
+        if instance.is_active != validated_data['is_active']:
+            instance = super().update(instance, validated_data)
+            instance.update_all_subcategories_and_items() # MEH: Change all sub cat & table is_active
+            return instance
+        else:
+            return super().update(instance, validated_data)
+
+
+class PriceListTableSerializer(CustomModelSerializer):
+    """
+    MEH: Price List Table Full Information
+    """
+    image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
+    image_url = serializers.SerializerMethodField()
+    price_list_categories = serializers.PrimaryKeyRelatedField(queryset=PriceListCategory.objects.all(), required=False, allow_null=True, many=True)
+    price_list_categories_display = serializers.StringRelatedField(source='price_list_categories', many=True, read_only=True)
+    product_category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=True, allow_null=False)
+    product_category_display = serializers.StringRelatedField(source='product_category', read_only=True)
+    product_list = serializers.StringRelatedField(read_only=True, many=True)
+
+    class Meta:
+        model = PriceListTable
+        fields = '__all__'
+
+    def get_image_url(self, obj):
+        request = self.context.get('request')
+        if obj.image and obj.image.file:
+            url = obj.image.file.url
+            return request.build_absolute_uri(url) if request else url
+        return None

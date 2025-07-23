@@ -7,7 +7,8 @@ from employee.views import EmployeeViewSet, EmployeeLevelViewSet
 from file_manager.views import FileDirectoryViewSet, FileItemViewSet
 from product.views import ProductViewSet, ProductCategoryViewSet, GalleryCategoryViewSet, GalleryImageViewSet, \
     DesignViewSet, FileFieldViewSet, SizeViewSet, TirageViewSet, DurationViewSet, SheetPaperViewSet, PaperViewSet, \
-    OptionCategoryViewSet, OptionViewSet, BannerViewSet, ColorViewSet, FoldingViewSet, PageViewSet
+    OptionCategoryViewSet, OptionViewSet, BannerViewSet, ColorViewSet, FoldingViewSet, PageViewSet, \
+    PriceListCategoryViewSet, PriceListTableViewSet
 from report.views import ProductReportViewSet
 
 
@@ -38,6 +39,8 @@ router.register(r'product/sheet-paper', SheetPaperViewSet, basename='product-she
 router.register(r'product/paper', PaperViewSet, basename='product-paper')
 router.register(r'product/folding', FoldingViewSet, basename='product-folding')
 router.register(r'product/page', PageViewSet, basename='product-page')
+router.register(r'price-list/category', PriceListCategoryViewSet, basename='price-list-category')
+router.register(r'price-list/table', PriceListTableViewSet, basename='price-list-table')
 router.register(r'report/product', ProductReportViewSet, basename='product-report')
 
 
