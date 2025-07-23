@@ -9,6 +9,7 @@ from product.views import ProductViewSet, ProductCategoryViewSet, GalleryCategor
     DesignViewSet, FileFieldViewSet, SizeViewSet, TirageViewSet, DurationViewSet, SheetPaperViewSet, PaperViewSet, \
     OptionCategoryViewSet, OptionViewSet, BannerViewSet, ColorViewSet, FoldingViewSet, PageViewSet, \
     PriceListCategoryViewSet, PriceListTableViewSet
+from config.views import PriceListConfigViewSet
 from report.views import ProductReportViewSet
 
 
@@ -41,6 +42,7 @@ router.register(r'product/folding', FoldingViewSet, basename='product-folding')
 router.register(r'product/page', PageViewSet, basename='product-page')
 router.register(r'price-list/category', PriceListCategoryViewSet, basename='price-list-category')
 router.register(r'price-list/table', PriceListTableViewSet, basename='price-list-table')
+router.register('price-list/config', PriceListConfigViewSet, basename='price-list-config')
 router.register(r'report/product', ProductReportViewSet, basename='product-report')
 
 

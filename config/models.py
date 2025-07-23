@@ -2,6 +2,7 @@ from django.db import models
 from django.core import validators
 from landing.models import Landing, Metadata
 from user.models import Role
+from django.utils import timezone
 
 
 class GoogleCodeType(models.TextChoices):
@@ -59,6 +60,10 @@ class ViewType(models.TextChoices):
     BLOCK = 'BLK'
     LIST = 'LIS'
 
+def price_list_upload_path(instance, filename): # MEH: Upload File here (with safe slug name)
+    timestamp = timezone.now().strftime('%Y%m%d%H%M%S')
+    return f'price-list/TG-{timestamp}.pdf'
+
 
 class PriceListConfig(models.Model):
     is_active = models.BooleanField(default=True,
@@ -70,3 +75,7 @@ class PriceListConfig(models.Model):
                                     blank=False, null=False, verbose_name='Auth Need')
     block_role = models.ManyToManyField(Role, blank=True,
                                         verbose_name='Block Role')
+    last_update = models.DateTimeField(auto_now=True, verbose_name='Last Update')
+    last_pdf_update = models.DateTimeField(blank=True, null=True, verbose_name='Last Pdf Update')
+    pdf_file = models.FileField(upload_to=price_list_upload_path,
+                                blank=True, null=True, verbose_name='PDF File')
