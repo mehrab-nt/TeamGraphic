@@ -106,7 +106,7 @@ class ProductCategory(MPTTModel):
         new_status = self.status
         descendants = self.get_descendants()
         descendants.update(status=new_status)
-        Product.objects.filter(category__in=[self] + list(descendants)).update(status=new_status)
+        Product.objects.filter(parent_category__in=[self] + list(descendants)).update(status=new_status)
 
     def get_slug_path(self):
         return ' - '.join(
@@ -686,7 +686,7 @@ class OptionCategory(MPTTModel):
         new_is_active = self.is_active
         descendants = self.get_descendants()
         descendants.update(is_active=new_is_active)
-        Product.objects.filter(category__in=[self] + list(descendants)).update(is_active=new_is_active)
+        Option.objects.filter(parent_category__in=[self] + list(descendants)).update(is_active=new_is_active)
 
     def get_slug_path(self):
         return ' - '.join(

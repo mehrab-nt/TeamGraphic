@@ -11,17 +11,12 @@ class FileDirectorySerializer(CustomModelSerializer):
     MEH: File Directory Full Information for file_explorer
     """
     type = serializers.SerializerMethodField()
-    preview = serializers.SerializerMethodField()
     create_date = serializers.DateField(default=timezone.now(), read_only=True)
     parent_directory = serializers.PrimaryKeyRelatedField(queryset=FileDirectory.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FileDirectory
-        fields = ['id', 'name', 'preview', 'create_date', 'type', 'parent_directory']
-
-    @staticmethod
-    def get_type(obj):
-        return 'dir'
+        fields = ['id', 'name', 'create_date', 'type', 'parent_directory']
 
     @staticmethod
     def get_preview(obj):
