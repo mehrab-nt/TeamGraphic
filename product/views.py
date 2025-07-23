@@ -136,7 +136,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
             raise NotFound(TG_DATA_NOT_FOUND)
         category_copy = deepcopy(original_category)
         category_copy.pk = None
-        category_copy.title = f"{original_category.title} (copy)"
+        category_copy.title += " (copy)"
         category_copy.save()
         return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
 
