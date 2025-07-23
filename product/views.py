@@ -310,9 +310,7 @@ class ProductViewSet(CustomMixinModelViewSet):
             with transaction.atomic():
                 if not isinstance(request.data, list):
                     return Response({'detail': TG_DATA_MOST_LIST}, status=status.HTTP_400_BAD_REQUEST)
-                serializer = self.get_serializer(data=request.data, many=True)
-                serializer.is_valid(raise_exception=True)
-                incoming_options = serializer.validated_data
+                incoming_options = self.get_validate_data(request.data, many=True)
                 dependency_map = {}
                 for opt_data in incoming_options:
                     opt_id = opt_data['option'].id

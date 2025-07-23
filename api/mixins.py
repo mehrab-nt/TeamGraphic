@@ -215,8 +215,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count,}, status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
-    def get_validate_data(self, data):
-        serializer = self.get_serializer(data=data)
+    def get_validate_data(self, data, many=False):
+        serializer = self.get_serializer(data=data, many=many)
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 

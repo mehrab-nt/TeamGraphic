@@ -330,16 +330,15 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Create User list from Excel File (up to 1000) (POST ACTION)
         give any Excel file with any col and row (Handle valid col header and row data)
         """
-        check_serializer = self.get_serializer(data=request.data)
-        check_serializer.is_valid(raise_exception=True)
-        excel_file = check_serializer.validated_data['excel_file']
+        check_serializer = self.get_validate_data(request.data)
+        excel_file = check_serializer['excel_file']
         required_fields = ['phone_number', 'first_name'] # MEH: Required field check in Excel col
         profile_fields = [ # MEH: Nested User Profile data Handle
             name for name, field in UserProfileSerializer().get_fields().items()
             if not getattr(field, 'read_only', False)
         ]
         allowed_fields = set(UserSerializer().get_fields().keys()) # MEH: Allowed field that serializer accept
-        extra_fields = {'role':check_serializer.validated_data['role'].pk} # MEH: Selected Role in form for all User in Excel
+        extra_fields = {'role':check_serializer['role'].pk} # MEH: Selected Role in form for all User in Excel
         user_data_list = ExcelHandler.import_excel(
             excel_file, allowed_fields, required_fields,
             nested_fields=profile_fields,
@@ -472,9 +471,8 @@ class RoleViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Role Objects (use POST ACTION for sending list of id `ids` in request body)
         """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        ids = serializer.validated_data['ids']
+        validated_data = self.get_validate_data(request.data)
+        ids = validated_data['ids']
         roles = self.get_queryset().filter(id__in=ids)
         self.serializer_class = RoleSerializer # MEH: Just for drf view
         return self.custom_list_destroy([roles])
