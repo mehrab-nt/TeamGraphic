@@ -13,6 +13,7 @@ from .responses import *
 from file_manager.images import *
 from typing import Optional, Dict
 from django.db import transaction
+from drf_spectacular.utils import extend_schema
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -416,3 +417,29 @@ class CustomBulkListSerializer(serializers.ListSerializer):
         for data in validated_data: # MEH: Now Create 1 by 1 (nested create, most handle in serializer create method)
             data_list.append(self.child.create(data))
         return data_list
+
+
+class CustomMixinHideModelViewSet(CustomMixinModelViewSet):
+    @extend_schema(exclude=True)  # MEH: Hidden GET list from Api Documentation
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)  # MEH: Hidden GET retrieve from Api Documentation
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)  # MEH: Hidden POST from Api Documentation
+    def create(self, request, *args, **kwargs):
+        return super().create(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)  # MEH: Hidden DELETE from Api Documentation
+    def destroy(self, request, *args, **kwargs):
+        return super().destroy(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)  # MEH: Hidden PUT from Api Documentation
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+
+    @extend_schema(exclude=True)  # MEH: Hidden PATCH from Api Documentation
+    def partial_update(self, request, *args, **kwargs):
+        return super().partial_update(request, *args, **kwargs)
