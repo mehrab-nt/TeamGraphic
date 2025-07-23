@@ -4,7 +4,8 @@ from file_manager.models import FileItem
 from landing.models import Landing
 from .models import Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, ProductCategory, \
     ProductStatus, CountingUnit, RoundPriceType, GalleryCategory, GalleryImage, ProductFileField, Design, \
-    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, Page
+    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, Page, \
+    PriceListCategory, PriceListTable
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField
 import json
@@ -23,7 +24,7 @@ class ProductCategoryBriefSerializer(CustomModelSerializer):
 
     @staticmethod
     def get_type(obj):
-        return 'CAT'
+        return 'dir'
 
     @staticmethod
     def get_has_children(obj):
@@ -564,12 +565,41 @@ class GalleryDropDownSerializer(CustomModelSerializer):
         fields = ['id', 'name']
 
 
+class GalleryCategoryBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Gallery Category Brief Information for gallery_explorer
+    """
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GalleryCategory
+        fields = ['id', 'name', 'sort_number', 'type']
+
+    @staticmethod
+    def get_type(obj):
+        return 'dir'
+
+
+class GalleryImageBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Gallery Image Brief Information for gallery_explorer
+    """
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GalleryImage
+        fields = ['id', 'name', 'sort_number', 'type', 'preview']
+
+    @staticmethod
+    def get_type(obj):
+        return 'img'
+
+
 class GalleryCategorySerializer(CustomModelSerializer):
     """
     MEH: Gallery Category Full Information for gallery_explorer
     """
     type = serializers.SerializerMethodField()
-    preview = serializers.SerializerMethodField()
     parent_category = serializers.PrimaryKeyRelatedField(queryset=GalleryCategory.objects.all(), required=False, allow_null=True)
 
     class Meta:
@@ -579,10 +609,6 @@ class GalleryCategorySerializer(CustomModelSerializer):
     @staticmethod
     def get_type(obj):
         return 'dir'
-
-    @staticmethod
-    def get_preview(obj):
-        return None
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -644,6 +670,36 @@ class GalleryImageSerializer(CustomModelSerializer):
         return fields
 
 
+class OptionCategoryBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Option Category Brief Information for option_explorer
+    """
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OptionCategory
+        fields = ['id', 'title', 'is_active', 'sort_number', 'type', 'icon']
+
+    @staticmethod
+    def get_type(obj):
+        return 'dir'
+
+
+class OptionBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Option Brief Information for option_explorer
+    """
+    type = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Option
+        fields = ['id', 'title', 'is_active', 'sort_number', 'type']
+
+    @staticmethod
+    def get_type(obj):
+        return 'opt'
+
+
 class OptionCategorySerializer(CustomModelSerializer):
     """
     MEH: Option Category Full Information
@@ -682,15 +738,9 @@ class OptionSerializer(CustomModelSerializer):
     """
     MEH: Option Full Information
     """
-    icon = serializers.SerializerMethodField()
-
     class Meta:
         model = Option
         fields = '__all__'
-
-    @staticmethod
-    def get_icon(obj):
-        return None
 
 
 class OptionSelectListSerializer(CustomModelSerializer):

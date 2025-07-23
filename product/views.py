@@ -12,14 +12,15 @@ from .models import ProductCategory, Product, GalleryCategory, GalleryImage, Pro
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
     PriceListCategory, PriceListTable
 from .serializers import (ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
-    GalleryCategorySerializer, GalleryImageSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
+    GalleryCategorySerializer, GalleryImageSerializer, GalleryCategoryBriefSerializer, GalleryImageBriefSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
     ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, DigitalProductSerializer, \
     SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
     BannerSerializer, ColorSerializer, FoldingSerializer, PageSerializer, \
     FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer, FileFieldDropDownSerializer, \
     DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
-    OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionSelectListSerializer, OptionProductListSerializer, \
-    ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer)
+    OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionCategoryBriefSerializer, OptionBriefSerializer, \
+    OptionSelectListSerializer, OptionProductListSerializer, \
+    ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
     PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer, PriceListTableBriefSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
