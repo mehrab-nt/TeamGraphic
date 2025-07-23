@@ -77,18 +77,9 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         MEH: Return mixed list of Category `type='CAT'` & Product `type in ['OFF','LAR',...]`
         for parent_id = x or root level parent_id = None
         """
-        parent_id = request.query_params.get('parent_id')
-        parent = None
-        if parent_id:
-            try:
-                parent = ProductCategory.objects.get(pk=parent_id)
-            except ProductCategory.DoesNotExist:
-                return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        categories = ProductCategory.objects.filter(parent_category=parent).order_by('sort_number', 'title').prefetch_related('sub_categories')
-        products = Product.objects.filter(parent_category=parent).order_by('sort_number', 'title')
-        category_data = ProductCategoryBriefSerializer(categories, many=True).data
-        product_data = ProductBriefSerializer(products, many=True).data
-        return Response(category_data + product_data, status=status.HTTP_200_OK)
+        return self.get_explorer_list(request=request, category_model=ProductCategory, item_model=Product,
+                                      category_serializer=ProductCategoryBriefSerializer,
+                                      item_serializer=ProductBriefSerializer)
 
     @extend_schema(
         summary='Delete list of Categories & Products',
@@ -104,13 +95,10 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        pro_ids = validated_data.get('item_ids', [])
-        cat_ids = validated_data.get('layer_ids', [])
-        pro_qs = Option.objects.filter(id__in=pro_ids)
-        cat_qs = OptionCategory.objects.filter(id__in=cat_ids)
-        self.serializer_class = ProductCategorySerializer # MEH: Just for drf view
-        return self.custom_list_destroy([pro_qs, cat_qs])
+        validated_data = self.get_validate_data(request.data)
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, ProductCategory, Product)
+        self.serializer_class = ProductCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
         summary='Change Status list of Categories & Products',
@@ -126,18 +114,10 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change status field in List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        status_value = validated_data.get('status', None)
-        if status_value is None:
-            raise NotFound(TG_DATA_EMPTY)
-        update_fields = {
-            'status': status_value,
-        }
-        pro_ids = validated_data.get('item_ids', [])
-        cat_ids = validated_data.get('layer_ids', [])
-        pro_qs = Product.objects.filter(id__in=pro_ids)
-        cat_qs = ProductCategory.objects.filter(id__in=cat_ids)
-        return self.custom_list_update([pro_qs, cat_qs], update_fields, update_sub=True)
+        validated_data = self.get_validate_data(request.data)
+        qs_list, update_field = self.explorer_bulk_queryset(validated_data, OptionCategory, Option, field='status')
+        self.serializer_class = ProductCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_update(qs_list, update_field, update_sub=True)
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
             url_path='copy', filter_backends=[None])
@@ -145,7 +125,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Copy a Product Category & Create all detail except M2M child cat & product! (use POST ACTION for sending id in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
+        validated_data = self.get_validate_data(request.data)
         category_id = validated_data.get('id', None)
         try:
             original_category = ProductCategory.objects.get(pk=category_id)
@@ -394,7 +374,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         """
         MEH: Copy a Product Object & Create all detail (use POST ACTION for sending id in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
+        validated_data = self.get_validate_data(request.data)
         product_id = validated_data.get('id', None)
         try:
             original_product = Product.objects.get(pk=product_id)
@@ -471,18 +451,9 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         MEH: Return mixed list of Category `type='dir'` and Image Item `type='webp'`
         for parent_id = x or root level parent_id = None
         """
-        parent_id = request.query_params.get('parent_id')
-        parent = None
-        if parent_id:
-            try:
-                parent = GalleryCategory.objects.get(pk=parent_id)
-            except GalleryCategory.DoesNotExist:
-                return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        categories = GalleryCategory.objects.filter(parent_category=parent).order_by('sort_number', 'name')
-        images = GalleryImage.objects.filter(parent_category=parent).order_by('sort_number', 'name')
-        cat_data = GalleryCategorySerializer(categories, many=True).data
-        img_data = GalleryImageSerializer(images, many=True).data
-        return Response(cat_data + img_data, status=status.HTTP_200_OK)
+        return self.get_explorer_list(request=request, category_model=GalleryCategory, item_model=GalleryImage,
+                                      category_serializer=GalleryCategoryBriefSerializer,
+                                      item_serializer=GalleryImageBriefSerializer)
 
     @extend_schema(
         summary='Delete list of Categories & Images',
@@ -498,13 +469,10 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Image Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        img_ids = validated_data.get('item_ids', [])
-        cat_ids = validated_data.get('layer_ids', [])
-        img_qs = GalleryImage.objects.filter(id__in=img_ids)
-        cat_qs = GalleryCategory.objects.filter(id__in=cat_ids)
-        self.serializer_class = GalleryCategorySerializer # MEH: Just for drf view
-        return self.custom_list_destroy([img_qs, cat_qs])
+        validated_data = self.get_validate_data(request.data)
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, GalleryCategory, GalleryImage)
+        self.serializer_class = GalleryCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(summary='for DropDown List')
     @action(detail=False, methods=['get'], serializer_class=GalleryDropDownSerializer,
@@ -817,18 +785,8 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         MEH: Return mixed list of Option Category `type='dir'` and Option Item `type='opt'`
         for parent_id = x or root level parent_id = None
         """
-        parent_id = request.query_params.get('parent_id')
-        parent = None
-        if parent_id:
-            try:
-                parent = OptionCategory.objects.get(pk=parent_id)
-            except OptionCategory.DoesNotExist:
-                return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        categories = OptionCategory.objects.filter(parent_category=parent).order_by('sort_number')
-        options = Option.objects.filter(parent_category=parent).order_by('sort_number')
-        cat_data = OptionCategorySerializer(categories, many=True).data
-        opt_data = OptionSerializer(options, many=True).data
-        return Response(cat_data + opt_data, status=status.HTTP_200_OK)
+        return self.get_explorer_list(request=request, category_model=OptionCategory, item_model=Option,
+                                      category_serializer=OptionCategoryBriefSerializer, item_serializer=OptionBriefSerializer)
 
     @extend_schema(
         summary='Delete list of Categories & Options',
@@ -844,13 +802,10 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        opt_ids = validated_data.get('item_ids', [])
-        cat_ids = validated_data.get('layer_ids', [])
-        opt_qs = Option.objects.filter(id__in=opt_ids)
-        cat_qs = OptionCategory.objects.filter(id__in=cat_ids)
-        self.serializer_class = OptionCategorySerializer # MEH: Just for drf view
-        return self.custom_list_destroy([opt_qs, cat_qs])
+        validated_data = self.get_validate_data(request.data)
+        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(validated_data, OptionCategory, Option)
+        self.serializer_class = OptionCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
         summary='Change Activation list of Categories & Options',
@@ -866,18 +821,10 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change is_active field in List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        is_active = validated_data.get('is_active', None)
-        if is_active is None:
-            raise NotFound(TG_DATA_EMPTY)
-        update_fields = {
-            'is_active': is_active,
-        }
-        opt_ids = validated_data.get('item_ids', [])
-        cat_ids = validated_data.get('layer_ids', [])
-        opt_qs = Option.objects.filter(id__in=opt_ids)
-        cat_qs = OptionCategory.objects.filter(id__in=cat_ids)
-        return self.custom_list_update([opt_qs, cat_qs], update_fields, update_sub=True)
+        validated_data = self.get_validate_data(request.data)
+        qs_list, update_field = self.explorer_bulk_queryset(validated_data, OptionCategory, Option, field='is_active')
+        self.serializer_class = OptionCategorySerializer  # MEH: Just for drf view
+        return self.custom_list_update(qs_list, update_field, update_sub=True)
 
 
 @extend_schema(tags=['Option'])
@@ -907,7 +854,7 @@ class OptionViewSet(CustomMixinModelViewSet):
         """
         MEH: Copy an Option Object & Create (use POST ACTION for sending id in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
+        validated_data = self.get_validate_data(request.data)
         option_id = validated_data.get('id', None)
         try:
             original_option = Option.objects.get(pk=option_id)

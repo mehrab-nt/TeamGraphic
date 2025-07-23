@@ -64,18 +64,9 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         MEH: Return mixed list of Directory `type='dir'` and File Item `type='else'`
         for parent_id = x or root level parent_id = None
         """
-        parent_id = request.query_params.get('parent_id')
-        parent = None
-        if parent_id:
-            try:
-                parent = FileDirectory.objects.get(pk=parent_id)
-            except FileDirectory.DoesNotExist:
-                return Response(TG_DATA_NOT_FOUND, status=status.HTTP_404_NOT_FOUND)
-        directories = FileDirectory.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
-        files = FileItem.objects.filter(parent_directory=parent).order_by('-create_date', 'name')
-        dir_data = FileDirectorySerializer(directories, many=True, context={'request': request}).data
-        file_data = FileItemSerializer(files, many=True, context={'request': request}).data
-        return Response(dir_data + file_data, status=status.HTTP_200_OK)
+        return self.get_explorer_list(request=request, category_model=FileDirectory, item_model=FileItem,
+                                      category_serializer=FileDirectorySerializer, item_serializer=FileItemSerializer,
+                                      parent_field='parent_directory', item_filter_field='parent_directory')
 
     @extend_schema(
         summary='Delete list of Directories & Files',
@@ -91,14 +82,10 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Directory & File Item Objects (use POST ACTION for sending ids list in request body)
         """
-        validated_data = self.get_validated_ids_list(request.data)
-        file_ids = validated_data.get('item_ids', [])
-        dir_ids = validated_data.get('layer_ids', [])
-        file_qs = FileItem.objects.filter(id__in=file_ids)
-        dir_qs = FileDirectory.objects.filter(id__in=dir_ids)
-        self.serializer_class = FileDirectorySerializer # MEH: Just for drf view
-        return self.custom_list_destroy([file_qs, dir_qs])
-
+        validated_data = self.get_validate_data(request.data)
+        qs_list = self.explorer_bulk_queryset(validated_data, FileDirectory, FileItem)
+        self.serializer_class = FileDirectorySerializer  # MEH: Just for drf view
+        return self.custom_list_destroy(qs_list)
 
 @extend_schema(tags=['File-Manager'])
 class FileItemViewSet(CustomMixinModelViewSet):

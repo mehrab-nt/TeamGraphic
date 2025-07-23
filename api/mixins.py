@@ -215,10 +215,26 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_count,}, status=status.HTTP_204_NO_CONTENT)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
 
-    def get_validated_ids_list(self, data):
+    def get_validate_data(self, data):
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
+
+    @staticmethod
+    def explorer_bulk_queryset(validated_data, category_model, item_model, field=None):
+        cat_ids = validated_data.get('layer_ids', [])
+        itm_ids = validated_data.get('item_ids', [])
+        cat_qs = category_model.objects.filter(id__in=cat_ids)
+        itm_qs = item_model.objects.filter(id__in=itm_ids)
+        field_value = validated_data.get(field, None)
+        update_fields = None
+        if field_value:
+            update_fields = {
+                field: field_value,
+            }
+        elif field_value is None and field:
+            raise NotFound(TG_DATA_EMPTY)
+        return itm_qs, cat_qs, update_fields
 
     @staticmethod
     def custom_list_destroy(queryset_list: list): # MEH: Handle bulk delete list of object with 1 request
@@ -236,8 +252,13 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                             qs = qs.exclude(id__in=ids)
                     if not qs.exists():
                         continue
-                    deleted_count, _ = qs.delete()
-                    total_delete += deleted_count
+                    if model.delete is models.Model.delete: # MEH: Safe to do bulk delete
+                        deleted_count, _ = qs.delete()
+                        total_delete += deleted_count
+                    else: # MEH: Delete obj 1 by 1 (for M2M sub child)
+                        for obj in qs:
+                            sub_delete, _ = obj.delete()
+                            total_delete += sub_delete
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if total_delete == 0:
@@ -261,6 +282,29 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         return Response({"detail": TG_DATA_UPDATED}, status=status.HTTP_200_OK)
+
+    @staticmethod
+    def get_explorer_list(request, category_model, item_model, category_serializer, item_serializer, # MEH: Handle mixed list of category and item for explorer view
+                              parent_field='parent_category', category_filter_extra=None, item_filter_field='parent_category'):
+        parent_id = request.query_params.get('parent_id')
+        parent = None
+        if parent_id:
+            try:
+                parent = category_model.objects.get(pk=parent_id)
+            except category_model.DoesNotExist:
+                return Response({'detail': TG_DATA_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
+        category_filter = {parent_field: parent}
+        if category_filter_extra:
+            category_filter.update(category_filter_extra)
+        categories = category_model.objects.filter(**category_filter)
+        if hasattr(category_model, 'sort_number'):
+            categories = categories.order_by('sort_number')
+        items = item_model.objects.filter(**{item_filter_field: parent})
+        if hasattr(item_model, 'sort_number'):
+            items = items.order_by('sort_number')
+        cat_data = category_serializer(categories, many=True, context={'request': request}).data
+        item_data = item_serializer(items, many=True, context={'request': request}).data
+        return Response(cat_data + item_data, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs): # MEH: override for parse **kwargs if any data there
         with transaction.atomic(): # MEH: With transaction if anything wrong, Everything in DB roll back to first place
