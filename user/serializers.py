@@ -276,9 +276,10 @@ class UserProfileSerializer(CustomModelSerializer):
         return obj.get_gender_display()
 
     def validate_profile_image(self, image): # MEH: Check uploaded Image for profile (Optimize in filemanager.images.py)
-        validate_image = self.validate_upload_image(image, max_image_size=2, max_width=1024, max_height=1024)
-        if validate_image:
-            return optimize_image(validate_image)
+        if image:
+            validate_image = self.validate_upload_image(image, max_image_size=2, max_width=1024, max_height=1024)
+            if validate_image:
+                return optimize_image(validate_image)
         return None
 
 
