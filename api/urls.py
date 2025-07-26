@@ -1,56 +1,15 @@
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
-from rest_framework.routers import DefaultRouter
-from .views import ApiCategoryViewSet, ApiItemViewSet
-from user.views import UserViewSet, RoleViewSet, IntroductionViewSet
-from employee.views import EmployeeViewSet, EmployeeLevelViewSet
-from file_manager.views import FileDirectoryViewSet, FileItemViewSet
-from product.views import ProductViewSet, ProductCategoryViewSet, GalleryCategoryViewSet, GalleryImageViewSet, \
-    DesignViewSet, FileFieldViewSet, SizeViewSet, TirageViewSet, DurationViewSet, SheetPaperViewSet, PaperViewSet, \
-    OptionCategoryViewSet, OptionViewSet, BannerViewSet, ColorViewSet, FoldingViewSet, PageViewSet, \
-    PriceListCategoryViewSet, PriceListTableViewSet
-from config.views import PriceListConfigViewSet
-from report.views import ProductReportViewSet
+from api.routers import get_combined_router
 
 
-router = DefaultRouter()
-router.register(r'access-category', ApiCategoryViewSet, basename='api-access')
-router.register(r'access-item', ApiItemViewSet, basename='api-access-item')
-router.register(r'employee', EmployeeViewSet, basename='employee')
-router.register(r'employee-level', EmployeeLevelViewSet, basename='employee-level')
-router.register(r'user', UserViewSet, basename='user')
-router.register(r'role', RoleViewSet, basename='role')
-router.register(r'introduction', IntroductionViewSet, basename='introduction')
-router.register(r'file-manager/directory', FileDirectoryViewSet, basename='file-directory')
-router.register(r'file-manager/item', FileItemViewSet, basename='file-item')
-router.register(r'gallery/category', GalleryCategoryViewSet, basename='gallery-category')
-router.register(r'gallery/image', GalleryImageViewSet, basename='gallery-image')
-router.register(r'design', DesignViewSet, basename='design')
-router.register(r'product/category', ProductCategoryViewSet, basename='product-category')
-router.register(r'product/item', ProductViewSet, basename='product-item')
-router.register(r'option/category', OptionCategoryViewSet, basename='option-category')
-router.register(r'option/item', OptionViewSet, basename='option-item')
-router.register(r'product/file-field', FileFieldViewSet, basename='product-file-field')
-router.register(r'product/size', SizeViewSet, basename='product-size')
-router.register(r'product/tirage', TirageViewSet, basename='product-tirage')
-router.register(r'product/duration', DurationViewSet, basename='product-duration')
-router.register(r'product/banner', BannerViewSet, basename='product-banner')
-router.register(r'product/color', ColorViewSet, basename='product-color')
-router.register(r'product/sheet-paper', SheetPaperViewSet, basename='product-sheet-paper')
-router.register(r'product/paper', PaperViewSet, basename='product-paper')
-router.register(r'product/folding', FoldingViewSet, basename='product-folding')
-router.register(r'product/page', PageViewSet, basename='product-page')
-router.register(r'price-list/category', PriceListCategoryViewSet, basename='price-list-category')
-router.register(r'price-list/table', PriceListTableViewSet, basename='price-list-table')
-router.register('price-list/config', PriceListConfigViewSet, basename='price-list-config')
-router.register(r'report/product', ProductReportViewSet, basename='product-report')
-
+router = get_combined_router() # MEH: Combined all routers.py in apps
 
 urlpatterns = [
-    path('schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
-    path('auth/', include('rest_framework.urls', namespace='rest_framework')),
-    path('', include(router.urls)),
-    path('', include('user.urls')),
+    path('schema/', SpectacularAPIView.as_view(), name='schema'), # MEH: xml schema file
+    path('schema/swagger-ui/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'), # MEH: Swagger-ui api document
+    path('schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'), # MEH: Redoc api document
+    path('auth/', include('rest_framework.urls', namespace='rest_framework')), # MEH: DRF login form
+    path('', include(router.urls)), # MEH: All app ViewSet
+    path('', include('user.urls')), # MEH: JWT Token urls
 ]

@@ -20,9 +20,9 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('silk/', include('silk.urls', namespace='silk')),
-    path('api/', include('api.urls')),
+    path('admin/', admin.site.urls), # MEH: Django Amin panel (Can be a comment in publish)
+    path('silk/', include('silk.urls', namespace='silk')), # MEH: Silk for check query (Can be a comment in publish)
+    path('api/', include('api.urls')), # MEH: All api related urls
 ]
 
 if settings.DEBUG:
