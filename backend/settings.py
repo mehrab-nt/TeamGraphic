@@ -116,7 +116,7 @@ INSTALLED_APPS = [
     'delivery.apps.DeliveryConfig',
     'product.apps.ProductConfig',
     'order.apps.OrderConfig',
-    'massage.apps.MassageConfig',
+    'message.apps.MessageConfig',
     'report.apps.ReportConfig',
     'landing.apps.LandingConfig',
     'config.apps.ConfigConfig',
