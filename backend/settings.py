@@ -79,6 +79,7 @@ SPECTACULAR_SETTINGS = {
         {'name': 'Gallery', 'description': 'Operations Related to Galleries'},
         {'name': 'Option', 'description': 'Operations Related to Product Options'},
         {'name': 'Price-List', 'description': 'Operations Related to Product Price List Table'},
+        {'name': 'Message', 'description': 'Operations Related to Message (Alarm/SMS/Web Messages)'},
         {'name': 'Report', 'description': 'Operations Related to Reports'},
         {'name': 'Api-Access', 'description': 'Operations Related to Api Access Categories & Items (Only Admin)'},
     ],

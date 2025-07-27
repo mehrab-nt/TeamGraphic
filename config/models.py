@@ -79,3 +79,16 @@ class PriceListConfig(models.Model):
     last_pdf_update = models.DateTimeField(blank=True, null=True, verbose_name='Last Pdf Update')
     pdf_file = models.FileField(upload_to=price_list_upload_path,
                                 blank=True, null=True, verbose_name='PDF File')
+
+
+class MessageConfig(models.Model):
+    order_message = models.BooleanField(default=True,
+                                        blank=False, null=False, verbose_name='Order Message')
+    order_message_description = models.TextField(max_length=1378,
+                                                 blank=True, null=True, verbose_name='Order Message Description')
+    support_message_description = models.TextField(max_length=1378,
+                                                   blank=True, null=True, verbose_name='Support Message Description')
+    tracking_message_description = models.TextField(max_length=1378,
+                                                    blank=True, null=True, verbose_name='Tracking Message Description')
+    point_message_description = models.TextField(max_length=1378,
+                                                 blank=True, null=True, verbose_name='Point Message Description')
