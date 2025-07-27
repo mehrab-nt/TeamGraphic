@@ -86,6 +86,8 @@ class UserViewSet(CustomMixinModelViewSet):
         user = self.request.user
         is_employee = getattr(user, 'is_employee', False)
         if user.is_superuser or is_employee:
+            if self.action == 'change_password':
+                return  super().get_queryset()
             qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
             if self.action == 'list':
                 return qs.select_related('role').prefetch_related('credit', 'company')
