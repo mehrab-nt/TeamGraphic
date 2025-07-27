@@ -8,10 +8,13 @@ from .serializers import AdminApiCategorySerializer, AdminApiItemSerializer
 from rest_framework.exceptions import NotFound
 from django_filters.rest_framework import DjangoFilterBackend
 from .responses import *
+from rest_framework.viewsets import ReadOnlyModelViewSet
+from rest_framework import status
+from rest_framework.response import Response
 
 
 @extend_schema(tags=['Api-Access'])
-class ApiCategoryViewSet(CustomMixinModelViewSet):
+class ApiCategoryViewSet(ReadOnlyModelViewSet):
     """
     MEH: Api Category Model viewset
     """
@@ -39,15 +42,16 @@ class ApiCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Get Api-Category (with pk) Api-Item List (GET/POST ACTION)
         """
-        api_category = self.get_object(pk=pk)
+        api_category = self.get_object()
         if getattr(api_category, 'api_items', None):
-            return self.custom_get(api_category.api_items)
+            serializer = self.get_serializer(api_category.api_items, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         else:
             raise NotFound
 
 
 @extend_schema(tags=['Api-Access'])
-class ApiItemViewSet(CustomMixinModelViewSet):
+class ApiItemViewSet(ReadOnlyModelViewSet):
     """
     MEH: Api Item Model viewset
     """

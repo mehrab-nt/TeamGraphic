@@ -5,16 +5,16 @@ from product.filters import ProductReportFilter
 from .serializers import ProductReportSerializer
 from product.models import Product
 from drf_spectacular.utils import extend_schema
-from rest_framework.viewsets import ReadOnlyModelViewSet
-
+from api.mixins import CustomMixinModelViewSet
 
 @extend_schema(tags=['Report'])
-class ProductReportViewSet(ReadOnlyModelViewSet):
+class ProductReportViewSet(CustomMixinModelViewSet):
     """
     MEH: Report Product sale Viewset (READ-Only)
     """
     queryset = Product.objects.select_related('parent_category')
     serializer_class = ProductReportSerializer
+    http_method_names = ['get', 'head', 'options']
     filterset_class = ProductReportFilter
     filter_backends = [
         DjangoFilterBackend,
