@@ -9,7 +9,7 @@ from api.throttles import PhoneNumberRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
-from django.db.models import Subquery, OuterRef, Count
+from django.db.models import Subquery, OuterRef
 from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, \
     UserSerializer, UserBriefSerializer, UserChangePasswordSerializer, UserResendCodeSerializer, \
     UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
@@ -26,6 +26,8 @@ from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
 from file_manager.excel_handler import ExcelHandler
+from message.models import WebMessage
+from message.serializers import WebMessageSerializer
 
 
 @extend_schema(tags=["Auth"], summary="Get Refresh Token")
@@ -75,7 +77,8 @@ class UserViewSet(CustomMixinModelViewSet):
         **dict.fromkeys(['import_user_list', 'import_user_list_valid_field'], ['import_user_list']),
         'download_user_list': ['download_user_list'],
         'create_address': ['create_address', 'customer_address'],
-        'manually_verify_phone': ['verify_phone']
+        'manually_verify_phone': ['verify_phone'],
+        'web_message_list': ['message_manager']
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -413,6 +416,17 @@ class UserViewSet(CustomMixinModelViewSet):
             return self.custom_update(user, request, partial=(request.method == 'PATCH'))
         return self.custom_get(user)
 
+    @extend_schema(summary="Get User web message list")
+    @action(detail=True, methods=['get'],
+            url_path='web-message', serializer_class=WebMessageSerializer, filter_backends=[None])
+    def web_message_list(self, request, pk=None):
+        """
+        MEH: Get User Web Message brief list
+        """
+        user = self.get_object(pk=pk)
+        web_message_list = WebMessage.objects.select_related('user', 'employee', 'department').filter(user=user).order_by('-last_update_date')
+        return self.custom_get(web_message_list)
+
 
 @extend_schema(tags=["User-Introduction"])
 class IntroductionViewSet(CustomMixinModelViewSet):
@@ -443,7 +457,7 @@ class RoleViewSet(CustomMixinModelViewSet):
     serializer_class = RoleSerializer
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        **dict.fromkeys(['list', 'retrieve', 'update', 'partial_update', 'destroy', 'bulk_delete', 'role_api_item_list'], ['get_user_role_access']),
+        '__all__': ['get_user_role_access'],
         'create': ['create_user_role_access']
     }
 
