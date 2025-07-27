@@ -14,6 +14,8 @@ from file_manager.images import *
 from typing import Optional, Dict
 from django.db import transaction
 from drf_spectacular.utils import extend_schema
+from django.core.cache import cache
+import hashlib
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -91,12 +93,21 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     pagination_class.page_size = 20
     pagination_class.max_page_size = 100
     required_api_keys = None # MEH: Override this In each model view set for handle Access
+    cache_key = None # MEH: Override this if used cached for list
 
     def get_required_api_key(self):
         """
         MEH: get required key for check in permission class
         """
         return self.required_api_keys.get(self.action) or self.required_api_keys.get('__all__')
+
+    def get_cache_key(self, request):
+        """
+        MEH: for pagination & filtering cached
+        """
+        query_string = request.GET.urlencode()
+        hashed = hashlib.md5(query_string.encode()).hexdigest()
+        return f"{self.cache_key}_{hashed}"
 
     def get_serializer_fields(self, serializer: Optional[serializers.BaseSerializer] = None,
                               parent_prefix: str = '') -> Dict[str, serializers.Field]:
@@ -131,24 +142,32 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         except ValueError:
             raise NotFound(TG_EXPECTED_ID_NUMBER)
 
+    def list(self, request, timeout=60 * 60 * 24, *args, **kwargs):
+        """
+        MEH: Override list (GET) ViewSet logic for Cached data
+        """
+        if self.cache_key:
+            full_cache_key = self.get_cache_key(request) # MEH: different cache key for different request
+            cached_data = cache.get(full_cache_key)
+            if cached_data:
+                return Response(cached_data)
+            res = super().list(request, *args, **kwargs)
+            cache.set(self.cache_key, res.data, timeout=timeout) # MEH: Default 1 day!
+            return res
+        return super().list(request, *args, **kwargs)
+
     def retrieve(self, request, *args, **kwargs):
         """
         MEH: for override retrieve (GET) ViewSet logic, noting change for now
         """
         return super().retrieve(request, *args, **kwargs)
 
-    def list(self, request, *args, **kwargs):
-        """
-        MEH: for override list (GET) ViewSet logic, noting change for now
-        """
-        return super().list(request, *args, **kwargs)
-
     def create(self, request, *args, **kwargs): # MEH: override ->
         """
         MEH: for override create (POST) ViewSet logic,
         user custom create for handle is_many & EXCEPTION response
         """
-        return self.custom_create(request.data)
+        return self.custom_create(request.data, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """
@@ -156,7 +175,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         user custom update for handle is_many & EXCEPTION response
         """
         instance = self.get_object()
-        return self.custom_update(instance, request.data)
+        return self.custom_update(instance, request.data, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         """
@@ -164,7 +183,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         user custom update for handle is_many & EXCEPTION response
         """
         instance = self.get_object()
-        return self.custom_update(instance, request.data, partial=True)
+        return self.custom_update(instance, request.data, partial=True, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -380,21 +399,30 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         MEH: override for parse **kwargs if any data there & handle transaction
         """
         with transaction.atomic(): # MEH: With transaction if anything wrong, Everything in DB roll back to first place
-            return serializer.save(**kwargs)
+            res = serializer.save(**kwargs)
+        if self.cache_key:
+            cache.delete_pattern(f'{self.cache_key}*')
+        return res
 
     def perform_update(self, serializer, **kwargs):
         """
         MEH: override for parse **kwargs if any data there & handle transaction
         """
         with transaction.atomic():
-            return serializer.save(**kwargs)
+            res = serializer.save(**kwargs)
+        if self.cache_key:
+            cache.delete_pattern(f'{self.cache_key}*') # MEH: Delete all cache begin with this key
+        return res
 
     def perform_destroy(self, instance):
         """
         MEH: override just for handle transaction
         """
         with transaction.atomic():
-            return instance.delete()
+            res = instance.delete()
+        if self.cache_key:
+            cache.delete_pattern(f'{self.cache_key}*')
+        return res
 
 
 class CustomBulkListSerializer(serializers.ListSerializer):
@@ -420,6 +448,9 @@ class CustomBulkListSerializer(serializers.ListSerializer):
 
 
 class CustomMixinHideModelViewSet(CustomMixinModelViewSet):
+    """
+    MEH: For hidden all default viewset action on Schema
+    """
     @extend_schema(exclude=True)  # MEH: Hidden GET list from Api Documentation
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
