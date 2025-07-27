@@ -2,7 +2,6 @@ from rest_framework import serializers
 from .models import FileDirectory, FileItem, ClearFileHistory
 from api.responses import *
 from api.mixins import CustomModelSerializer
-from django.utils import timezone
 import jdatetime
 
 
@@ -11,7 +10,6 @@ class FileDirectorySerializer(CustomModelSerializer):
     MEH: File Directory Full Information for file_explorer
     """
     type = serializers.SerializerMethodField()
-    create_date = serializers.DateField(default=timezone.now(), read_only=True)
     parent_directory = serializers.PrimaryKeyRelatedField(queryset=FileDirectory.objects.all(), required=False, allow_null=True)
 
     class Meta:
@@ -35,17 +33,6 @@ class FileDirectorySerializer(CustomModelSerializer):
             fields.pop('parent_directory', None)
         return fields
 
-    def validate_parent_directory(self, value): # MEH: Prevent from loop Directory A->B->C->A
-        instance = self.instance
-        if not instance or not value:
-            return value
-        current = value
-        while current:
-            if current == instance:
-                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_directory
-        return value
-
 
 class FileItemSerializer(CustomModelSerializer):
     """
@@ -53,7 +40,6 @@ class FileItemSerializer(CustomModelSerializer):
     (img width & height can set manually for final optimized image size if `seo_base = True`)
     """
     preview = serializers.ImageField(read_only=True)
-    create_date = serializers.DateField(default=timezone.now(), read_only=True)
     type = serializers.CharField(read_only=True)
     volume = serializers.FloatField(read_only=True)
     img_width = serializers.IntegerField(default=0, write_only=True)
@@ -114,7 +100,6 @@ class ClearFileSerializer(CustomModelSerializer):
             from_date=from_date,
             until_date=until_date,
             employee=self.context['request'].user.employee_profile,
-            submit_date=timezone.now(),
         )
         history.clear_order_files()
         return history

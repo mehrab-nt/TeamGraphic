@@ -10,7 +10,7 @@ from django.core.exceptions import ValidationError
 class FileDirectory(MPTTModel):
     name = models.CharField(max_length=78, validators=[validators.MinLengthValidator(1)],
                             blank=False, null=False)
-    create_date = models.DateField(default=timezone.now,
+    create_date = models.DateField(auto_now_add=True,
                                    blank=True, null=True, verbose_name='Create Date')
     parent_directory = TreeForeignKey('self', on_delete=models.CASCADE,
                                       blank=True, null=True, verbose_name='Parent Directory',
@@ -69,7 +69,7 @@ class FileItem(models.Model):
                             blank=True, null=False)
     preview = models.ImageField(upload_to=preview_image_path, blank=True, null=True)
     file = models.FileField(upload_to=upload_file_path, blank=False, null=False)
-    create_date = models.DateField(default=timezone.now,
+    create_date = models.DateField(auto_now_add=True,
                                    blank=True, null=True, verbose_name='Create Date')
     volume = models.FloatField(default=0,
                                blank=False, null=False)
@@ -112,7 +112,7 @@ class ClearFileHistory(models.Model):
                                  related_name='clear_file_actions')
     from_date = models.DateField(blank=False, null=False)
     until_date = models.DateField(blank=False, null=False)
-    submit_date = models.DateTimeField(default=timezone.now)
+    submit_date = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         ordering = ['-submit_date']

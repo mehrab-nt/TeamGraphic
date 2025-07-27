@@ -95,17 +95,6 @@ class ProductCategorySerializer(CustomModelSerializer):
         if instance and isinstance(instance, ProductCategory):
             self.fields['parent_category'].queryset = ProductCategory.objects.exclude(pk=instance.pk)
 
-    def validate_parent_category(self, value): # MEH: Prevent from loop Category A->B->C->A
-        instance = self.instance
-        if not instance or not value:
-            return value
-        current = value
-        while current:
-            if current == instance:
-                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_category
-        return value
-
     def update(self, instance, validated_data):
         if instance.status != validated_data['status']:
             instance = super().update(instance, validated_data)
@@ -337,17 +326,6 @@ class FileFieldSerializer(CustomModelSerializer):
         instance = self.instance
         if instance and isinstance(instance, ProductFileField):
             self.fields['depend_on'].queryset = ProductFileField.objects.exclude(pk=instance.pk)
-
-    def validate_depend_on(self, value):  # MEH: Prevent from loop A->B->C->A
-        instance = self.instance
-        if not instance or not value:
-            return value
-        current = value
-        while current:
-            if current == instance:
-                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.depend_on
-        return value
 
 
 class ProductFileSerializer(CustomModelSerializer):
@@ -622,17 +600,6 @@ class GalleryCategorySerializer(CustomModelSerializer):
         if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, parent_category assign and don't allow to change!
             fields.pop('parent_category', None)
         return fields
-
-    def validate_parent_category(self, value): # MEH: Prevent from loop Category A->B->C->A
-        instance = self.instance
-        if not instance or not value:
-            return value
-        current = value
-        while current:
-            if current == instance:
-                raise serializers.ValidationError(TG_PREVENT_CIRCULAR_CATEGORY)
-            current = current.parent_category
-        return value
 
 
 class GalleryImageSerializer(CustomModelSerializer):
