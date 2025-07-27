@@ -110,16 +110,21 @@ class FileItem(models.Model):
 class ClearFileHistory(models.Model):
     employee = models.ForeignKey(Employee, on_delete=models.PROTECT, blank=False, null=False,
                                  related_name='clear_file_actions')
-    from_date = models.DateField(blank=False, null=False)
-    until_date = models.DateField(blank=False, null=False)
-    submit_date = models.DateTimeField(auto_now_add=True)
+    from_date = models.DateField(blank=False, null=False, verbose_name='From Date')
+    until_date = models.DateField(blank=False, null=False, verbose_name='Last Update')
+    submit_date = models.DateTimeField(auto_now_add=True,
+                                       verbose_name='Submit Date')
+    delete_number = models.PositiveIntegerField(default=0,
+                                                blank=False, null=False, verbose_name='Delete Number')
 
     class Meta:
         ordering = ['-submit_date']
         verbose_name = "Clear File History"
         verbose_name_plural = "Clear File Histories"
 
-    def clear_order_files(self): # MEH: Delete old file in request range if The File in for an Order (for delete Other Files di it manually)
+    def clear_order_files(self): # MEH: Delete old file in request range if The File in an Order (for delete Other Files di it manually)
         qs_file = FileItem.objects.filter(create_date__range=[self.from_date, self.until_date], for_orders__isnull=False).distinct()
         deleted_count, _ = qs_file.delete()
+        self.delete_number = deleted_count
+        self.save(update_fields=['delete_number'])
         return deleted_count
