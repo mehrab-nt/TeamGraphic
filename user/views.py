@@ -26,7 +26,7 @@ from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
 from file_manager.excel_handler import ExcelHandler
-from message.models import WebMessage
+from message.models import WebMessage, WebMessageType
 from message.serializers import WebMessageSerializer
 
 
@@ -421,10 +421,25 @@ class UserViewSet(CustomMixinModelViewSet):
             url_path='web-message', serializer_class=WebMessageSerializer, filter_backends=[None])
     def web_message_list(self, request, pk=None):
         """
-        MEH: Get User Web Message brief list
+        MEH: Get User Web Message list (without Order)
         """
         user = self.get_object(pk=pk)
-        web_message_list = WebMessage.objects.select_related('user', 'employee', 'department').filter(user=user).order_by('-last_update_date')
+        web_message_list = (WebMessage.objects.select_related('user', 'employee', 'department')
+                            .filter(user=user).exclude(type=WebMessageType.ORDER)
+                            .order_by('-last_update_date'))
+        return self.custom_get(web_message_list)
+
+    @extend_schema(summary="Get User request order web message list")
+    @action(detail=True, methods=['get'],
+            url_path='order-message', serializer_class=WebMessageSerializer, filter_backends=[None])
+    def order_web_message_list(self, request, pk=None):
+        """
+        MEH: Get User Web Message list (just Order)
+        """
+        user = self.get_object(pk=pk)
+        web_message_list = (WebMessage.objects.select_related('user', 'employee', 'department')
+                            .filter(user=user, type=WebMessageType.ORDER)
+                            .order_by('-last_update_date'))
         return self.custom_get(web_message_list)
 
 

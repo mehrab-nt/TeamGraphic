@@ -12,7 +12,7 @@ class DepartmentAdmin(admin.ModelAdmin):
     list_display = ['id', 'title']
 
 class WebMessageAdmin(admin.ModelAdmin):
-    list_display = ['id', 'title', 'user', 'status', 'create_date', 'department', 'employee']
+    list_display = ['id', 'title', 'type', 'user', 'status', 'create_date', 'department', 'employee']
 
 class WebMessageContentAdmin(admin.ModelAdmin):
     list_display = ['id', 'date', 'type']
@@ -23,4 +23,3 @@ admin.site.register(SmsMessage, SmsMessageAdmin)
 admin.site.register(Department, DepartmentAdmin)
 admin.site.register(WebMessage, WebMessageAdmin)
 admin.site.register(WebMessageContent, WebMessageContentAdmin)
-
