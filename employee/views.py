@@ -21,24 +21,28 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     MEH: Employee Model viewset
     (Employee dont back super user in any way)
     """
-    queryset = (Employee.objects.select_related('user', 'user__user_profile', 'level')
-                .filter(user__is_superuser=False)
-                .order_by('-user'))
+    queryset = Employee.objects.filter(user__is_superuser=False)
     serializer_class = EmployeeSerializer
     filterset_class = EmployeeFilter
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['user__first_name', 'user__last_name']
     ordering_fields = ['rate']
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': ['get_employee'],
-        'create': ['create_employee'],
+        '__all__': ['employee_manager'],
+        'create': ['create_employee']
     }
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('user')
+        if self.action == 'change_password':
+            return qs
+        return qs.select_related('user', 'user__user_profile', 'level').order_by('-user')
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -53,9 +57,9 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         """
         MEH: Employee User can try change old password (most authenticate)
         """
-        employee = self.get_object(pk=pk)
-        self.check_object_permissions(request, employee)
-        return self.custom_update(employee.user, request.data, customize_response=True)
+        employee = self.get_object()
+        self.check_object_permissions(request, employee) # MEH: Check obj permission manually
+        return self.custom_update(employee.user, request, response_data_back=True)
 
 
 @extend_schema(tags=['Employee-Level'])
@@ -70,15 +74,15 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']
     ordering_fields = ['title']
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': ['get_employee_level_access'],
-        'create': ['create_employee_level_access'],
+        '__all__': ['employee_level_access_manager'],
+        'create': ['create_employee_level_access']
     }
 
     def create(self, request, *args, **kwargs):
@@ -87,7 +91,7 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
         """
         if getattr(request.user, 'employee_profile', False): # MEH: Make sure correct Employee manager received here!
             employee = request.user.employee_profile
-            return self.custom_create(request.data, manager=employee)
+            return self.custom_create(request, manager=employee)
         raise PermissionDenied(TG_PERMISSION_DENIED)
 
     @extend_schema(summary='Api Item list for each EmployeeLevel')

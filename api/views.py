@@ -6,24 +6,19 @@ from .models import ApiItem, ApiCategory
 from .permissions import ApiAccess
 from .serializers import AdminApiCategorySerializer, AdminApiItemSerializer
 from rest_framework.exceptions import NotFound
-from django_filters.rest_framework import DjangoFilterBackend
-from .responses import *
-from rest_framework.viewsets import ReadOnlyModelViewSet
-from rest_framework import status
-from rest_framework.response import Response
 
 
 @extend_schema(tags=['Api-Access'])
-class ApiCategoryViewSet(ReadOnlyModelViewSet):
+class ApiCategoryViewSet(CustomMixinModelViewSet):
     """
     MEH: Api Category Model viewset
     """
     queryset = ApiCategory.objects.all()
     serializer_class = AdminApiCategorySerializer
+    http_method_names = ['get', 'head', 'options']
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title'] # MEH: Get search query
     ordering_fields = ['sort_number', 'title']
@@ -40,28 +35,26 @@ class ApiCategoryViewSet(ReadOnlyModelViewSet):
             url_path='item-list', serializer_class=AdminApiItemSerializer)
     def api_item_list(self, request, pk=None):
         """
-        MEH: Get Api-Category (with pk) Api-Item List (GET/POST ACTION)
+        MEH: Get Api-Category (with pk) Api-Item List
         """
-        api_category = self.get_object()
+        api_category = self.get_object(pk=pk)
         if getattr(api_category, 'api_items', None):
-            serializer = self.get_serializer(api_category.api_items, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return self.custom_get(api_category.api_items)
         else:
             raise NotFound
 
 
 @extend_schema(tags=['Api-Access'])
-class ApiItemViewSet(ReadOnlyModelViewSet):
+class ApiItemViewSet(CustomMixinModelViewSet):
     """
     MEH: Api Item Model viewset
     """
-    queryset = (ApiItem.objects.prefetch_related('category')
-                .order_by('sort_number'))
+    queryset = ApiItem.objects.prefetch_related('category').order_by('sort_number')
     serializer_class = AdminApiItemSerializer
+    http_method_names = ['get', 'head', 'options']
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']  # MEH: Get search query
     ordering_fields = ['sort_number', 'category']

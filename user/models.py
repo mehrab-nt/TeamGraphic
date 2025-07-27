@@ -202,7 +202,7 @@ class Address(models.Model):
                                    blank=False, null=False, verbose_name='Unit Number')
     is_default = models.BooleanField(default=False,
                                      blank=False, null=False, verbose_name='Is Default')
-    submit_date = models.DateTimeField(default=timezone.now,
+    submit_date = models.DateTimeField(auto_now_add=True,
                                        blank=False, null=False, verbose_name='Submit Date')
 
     class Meta:

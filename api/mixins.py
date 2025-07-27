@@ -136,7 +136,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         lookup_value = self.kwargs.get(self.lookup_field, '')
         try:
             obj = queryset.get(pk=int(lookup_value))
-            return obj # MEH: Object Access check again after In has_object_permission
+            return obj # MEH: Object Access check again after In has_object_permission (Just in main action, for custom action most call manual)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         except ValueError:
@@ -167,7 +167,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         MEH: for override create (POST) ViewSet logic,
         user custom create for handle is_many & EXCEPTION response
         """
-        return self.custom_create(request.data, **kwargs)
+        return self.custom_create(request, **kwargs)
 
     def update(self, request, *args, **kwargs):
         """
@@ -175,7 +175,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         user custom update for handle is_many & EXCEPTION response
         """
         instance = self.get_object()
-        return self.custom_update(instance, request.data, **kwargs)
+        return self.custom_update(instance, request, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         """
@@ -183,7 +183,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         user custom update for handle is_many & EXCEPTION response
         """
         instance = self.get_object()
-        return self.custom_update(instance, request.data, partial=True, **kwargs)
+        return self.custom_update(instance, request, partial=True, **kwargs)
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -193,26 +193,28 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         return self.custom_destroy(instance)
 
-    def custom_get(self, data, request=None):
+    def custom_get(self, data):
         """
         MEH: Mix retrieve & list method In 1 logic
         """
         is_many = not isinstance(data, models.Model)
-        if request: # MEH: parse request in context for get absolute url on file field
-            serializer = self.get_serializer(data, many=is_many, context={'request': request})
-        else:
-            serializer = self.get_serializer(data, many=is_many)
+        if is_many:
+            page = self.paginate_queryset(data)
+            if page is not None:
+                serializer = self.get_serializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(data, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def custom_create(self, data, many=False, customize_response=None, **kwargs):
+    def custom_create(self, request, many=False, response_data_back=None, **kwargs):
         """
         MEH: Handle single or list obj create & handle Exception response,
         send manual field data that not in the request with **kwargs
         """
-        is_many = isinstance(data, list)
+        is_many = isinstance(request.data, list)
         if is_many and not many: # MEH: Many Post most Handle from View Actions -> (many=T or F)...
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(data=data, many=many)
+        serializer = self.get_serializer(data=request.data, many=many)
         try:
             serializer.is_valid(raise_exception=True)
             created_data = self.perform_create(serializer, **kwargs)
@@ -224,19 +226,19 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        if customize_response: # MEH: If wanting data in response
+        if response_data_back: # MEH: If wanting data in response
             return Response({'detail': created_data}, status=status.HTTP_202_ACCEPTED)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 
-    def custom_update(self, instance, data, partial=False, customize_response=None, **kwargs):
+    def custom_update(self, instance, request, partial=False, response_data_back=None, **kwargs):
         """
         MEH: Handle only single obj update & handle Exception response,
         send manual field data that not in the request with **kwargs
         """
-        is_many = isinstance(data, list)
+        is_many = isinstance(request.data, list)
         if is_many: # MEH: Many Update disable here -> (handle with custom_list_update)
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
-        serializer = self.get_serializer(instance, data=data, partial=partial)
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
         try:
             serializer.is_valid(raise_exception=True)
             updated_data = self.perform_update(serializer, **kwargs)
@@ -248,7 +250,9 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        if customize_response:
+        if getattr(instance, '_prefetched_objects_cache', None):  # MEH: Invalidate prefetch cache if needed
+            instance._prefetched_objects_cache = {}
+        if response_data_back:
             return Response({'detail': updated_data}, status=status.HTTP_200_OK)
         return Response({'detail': TG_DATA_UPDATED}, status=status.HTTP_200_OK)
 
@@ -287,24 +291,31 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         return serializer.validated_data
 
-    def explorer_bulk_queryset(self, data, category_model, item_model, field=None):
+    def explorer_bulk_queryset(self, request, category_model, item_model):
         """
         MEH: Handle selected list of cat & item in explorer view
         """
-        validated_ids = self.get_validate_data(data) # MEH: Get 2 ids list
+        validated_ids = self.get_validate_data(request.data) # MEH: Get 2 ids list
         cat_ids = validated_ids.get('layer_ids', [])
         itm_ids = validated_ids.get('item_ids', [])
         cat_qs = category_model.objects.filter(id__in=cat_ids)
         itm_qs = item_model.objects.filter(id__in=itm_ids)
-        field_value = validated_ids.get(field, None) # MEH: Only for update some fields in all list
-        update_fields = None
+        return itm_qs, cat_qs
+
+    def explorer_bulk_update_fields(self, request, field_name=None):
+        """
+        MEH: Handle 1 field bulk-update with value in explorer view
+        """
+        validated_ids = self.get_validate_data(request.data)
+        field_value = validated_ids.get(field_name, None) # MEH: Only for update some fields in all list
+        update_field = None
         if field_value is not None:
-            update_fields = {
-                field: field_value,
+            update_field = {
+                field_name: field_value,
             }
-        elif field_value is None and field:
+        elif field_value is None and field_name:
             raise NotFound(TG_DATA_EMPTY)
-        return itm_qs, cat_qs, update_fields
+        return update_field
 
     @staticmethod
     def custom_list_destroy(queryset_list: list):
@@ -445,32 +456,3 @@ class CustomBulkListSerializer(serializers.ListSerializer):
         for data in validated_data: # MEH: Now Create 1 by 1 (nested create, most handle in serializer create method)
             data_list.append(self.child.create(data))
         return data_list
-
-
-class CustomMixinHideModelViewSet(CustomMixinModelViewSet):
-    """
-    MEH: For hidden all default viewset action on Schema
-    """
-    @extend_schema(exclude=True)  # MEH: Hidden GET list from Api Documentation
-    def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden GET retrieve from Api Documentation
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden POST from Api Documentation
-    def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden DELETE from Api Documentation
-    def destroy(self, request, *args, **kwargs):
-        return super().destroy(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden PUT from Api Documentation
-    def update(self, request, *args, **kwargs):
-        return super().update(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden PATCH from Api Documentation
-    def partial_update(self, request, *args, **kwargs):
-        return super().partial_update(request, *args, **kwargs)

@@ -1,10 +1,8 @@
 from rest_framework import status, filters
-from datetime import datetime, date
 from rest_framework.response import Response
 from api.permissions import ApiAccess
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
-from .filters import ProductReportFilter
 from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActivateSerializer, \
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
@@ -19,7 +17,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
     FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer, FileFieldDropDownSerializer, \
     DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
     OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionCategoryBriefSerializer, OptionBriefSerializer, \
-    OptionSelectListSerializer, OptionProductListSerializer, \
+    OptionCategorySelectListSerializer, OptionProductListSerializer, \
     ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
     PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer, PriceListTableBriefSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
@@ -42,9 +40,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     queryset = ProductCategory.objects.all()
     serializer_class = ProductCategorySerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
@@ -55,9 +52,10 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     }
 
     def get_queryset(self, *args, **kwargs):
+        qs = super().get_queryset()
         if self.action == 'product_list':
-            return super().get_queryset()
-        return super().get_queryset().select_related('gallery', 'image', 'landing')
+            return qs
+        return qs.select_related('gallery', 'image', 'landing')
 
     @extend_schema(exclude=True) # MEH: Hidden list from Api Documentation (only Admin work)
     def list(self, request, *args, **kwargs):
@@ -99,7 +97,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, ProductCategory, Product)
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, ProductCategory, Product)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -116,7 +114,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change status field in List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, OptionCategory, Option, field='status')
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, OptionCategory, Option)
+        update_field = self.explorer_bulk_update_fields(request, field_name='status')
         return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
@@ -142,7 +141,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
             url_path='product-list', filter_backends=[None])
     def product_list(self, request, pk=None):
         """
-        MEH: Product List in category (for price table)
+        MEH: Product List in category until last child (for price table)
         """
         category = self.get_object(pk=pk)
         all_category_ids = category.get_descendants(include_self=True).values_list('id', flat=True)
@@ -158,16 +157,15 @@ class ProductViewSet(CustomMixinModelViewSet):
     queryset = Product.objects.all()
     serializer_class = ProductInfoSerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']
     ordering_fields = ['parent_category_display', 'sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['product_manager', 'create_product'],
-        **dict.fromkeys(['create', 'copy_product'], ['create_product']),
+        **dict.fromkeys(['create', 'copy_product'], ['create_product'])
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -200,7 +198,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(offset_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(offset_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(offset_product)
 
     @extend_schema(summary="Page 2 of Product Edit (LargeFormat)")
@@ -216,7 +214,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(large_format_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(large_format_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(large_format_product)
 
     @extend_schema(summary="Page 2 of Product Edit (Solid-Product)")
@@ -232,7 +230,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(solid_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(solid_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(solid_product)
 
     @extend_schema(summary="Page 2 of Product Edit (Digital)")
@@ -252,52 +250,52 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(digital_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(digital_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(digital_product)
 
     @extend_schema(summary="Page 3 of Product Edit")
     @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=ProductGallerySerializer,
             url_path='gallery', filter_backends=[None])
-    def gallery(self, request, pk=None):
+    def gallery_field(self, request, pk=None):
         """
         MEH: Product Gallery
         Page 3 of Product Edit
         """
         product = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(product)
 
     @extend_schema(summary="Page 4 of Product Edit")
     @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=ProductDesignSerializer,
             url_path='designs', filter_backends=[None])
-    def designs(self, request, pk=None):
+    def designs_field(self, request, pk=None):
         """
         MEH: Product Design List
         Page 4 of Product Edit
         """
         product = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(product)
 
     @extend_schema(summary="Page 5 of Product Edit")
     @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=ProductFileSerializer,
             url_path='files', filter_backends=[None])
-    def files(self, request, pk=None):
+    def files_field(self, request, pk=None):
         """
         MEH: Product File List
         Page 5 of Product Edit
         """
         product = self.get_object(pk=pk)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(product)
 
     @extend_schema(summary="Page 6 of Product Edit")
     @action(detail=True, methods=['get', 'post'], serializer_class=ProductOptionSerializer,
             url_path='options', filter_backends=[None])
-    def option_list(self, request, pk=None):
+    def option_field_list(self, request, pk=None):
         """
         MEH: Product Option List
         Page 6 of Product Edit
@@ -318,7 +316,7 @@ class ProductViewSet(CustomMixinModelViewSet):
                 incoming_option_ids = [opt['option'].id for opt in incoming_options] # MEH: Now work on DB with clean data
                 existing_options = product.option_list.select_related('option').prefetch_related('dependent_option')
                 existing_options.exclude(option_id__in=incoming_option_ids).delete() # MEH: Delete old options not in list
-                valid_option_ids = set(existing_options.values_list("option__id", flat=True))  # MEH: for Ignore unrelated option_id in sending list
+                valid_option_ids = set(existing_options.values_list("option__id", flat=True)) # MEH: for Ignore unrelated option_id in sending list
                 for option_data in incoming_options: # MEH: Upsert
                     deps = option_data.pop('dependent_option', [])
                     option = option_data['option']
@@ -347,7 +345,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(offset_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(offset_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(offset_product)
 
     @extend_schema(summary="Page 7 of Product Edit (Digital)")
@@ -363,7 +361,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
-            return self.custom_update(digital_product, request.data, partial=(request.method == 'PATCH'))
+            return self.custom_update(digital_product, request, partial=(request.method == 'PATCH'))
         return self.custom_get(digital_product)
 
     @action(detail=False, methods=['post'], serializer_class=CopyWithIdSerializer,
@@ -420,8 +418,7 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
     queryset = GalleryCategory.objects.all().order_by('sort_number', 'name')
     serializer_class = GalleryCategorySerializer
     filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
+        filters.SearchFilter
     ]
     search_fields = ['name']
     pagination_class = None
@@ -468,7 +465,7 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Image Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, GalleryCategory, GalleryImage)
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, GalleryCategory, GalleryImage)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(summary='for DropDown List')
@@ -476,12 +473,10 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
             url_path='list', filter_backends=[None])
     def drop_down_list(self, request):
         """
-        MEH: List of Gallery Category (id & name)
+        MEH: Tree-based List of Gallery Category (id & name + children)
         """
-        category_list = self.get_queryset()
-        if not category_list:
-            raise NotFound(TG_DATA_EMPTY)
-        return self.custom_get(category_list)
+        root_category_list = self.get_queryset().filter(parent_category__isnull=True).prefetch_related('sub_galleries')
+        return self.custom_get(root_category_list)
 
 
 @extend_schema(tags=['Gallery'])
@@ -492,8 +487,7 @@ class GalleryImageViewSet(CustomMixinModelViewSet):
     queryset = GalleryImage.objects.select_related('parent_category').order_by('sort_number', 'name')
     serializer_class = GalleryImageSerializer
     filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
+        filters.SearchFilter
     ]
     search_fields = ['name']
     pagination_class = None
@@ -512,9 +506,8 @@ class FileFieldViewSet(CustomMixinModelViewSet):
     queryset = ProductFileField.objects.all()
     serializer_class = FileFieldSerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']
     ordering_fields = ['sort_number']
@@ -538,8 +531,6 @@ class FileFieldViewSet(CustomMixinModelViewSet):
         MEH: List of File Field (id & title)
         """
         file_field_list = self.get_queryset()
-        if not file_field_list:
-            raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(file_field_list)
 
 
@@ -551,9 +542,8 @@ class DesignViewSet(CustomMixinModelViewSet):
     queryset = Design.objects.select_related('image').prefetch_related('category')
     serializer_class = DesignSerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title', 'category__title']
     ordering_fields = ['sort_number', 'title']
@@ -599,28 +589,6 @@ class DesignViewSet(CustomMixinModelViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class SizeViewSet(CustomMixinModelViewSet):
-    """
-    MEH: Size Model viewset
-    """
-    queryset = Size.objects.all()
-    serializer_class = SizeSerializer
-    filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
-    ]
-    search_fields = ['name', 'display_name']
-    ordering_fields = ['display_name']
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
-
-
-@extend_schema(tags=['Product-Fields'])
 class TirageViewSet(CustomMixinModelViewSet):
     """
     MEH: Tirage Model viewset
@@ -636,121 +604,96 @@ class TirageViewSet(CustomMixinModelViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class PageViewSet(CustomMixinModelViewSet):
+class SizeViewSet(TirageViewSet):
+    """
+    MEH: Size Model viewset
+    """
+    queryset = Size.objects.all()
+    serializer_class = SizeSerializer
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['name', 'display_name']
+    ordering_fields = ['display_name']
+
+
+@extend_schema(tags=['Product-Fields'])
+class PageViewSet(TirageViewSet):
     """
     MEH: Page Model viewset
     """
     queryset = Page.objects.all()
     serializer_class = PageSerializer
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Product-Fields'])
-class DurationViewSet(CustomMixinModelViewSet):
+class DurationViewSet(TirageViewSet):
     """
     MEH: Duration Model viewset
     """
     queryset = Duration.objects.all()
     serializer_class = DurationSerializer
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Product-Fields'])
-class BannerViewSet(CustomMixinModelViewSet):
+class BannerViewSet(TirageViewSet):
     """
     MEH: Banner Model viewset
     """
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Product-Fields'])
-class ColorViewSet(CustomMixinModelViewSet):
+class ColorViewSet(TirageViewSet):
     """
     MEH: Color Model viewset
     """
     queryset = Color.objects.all()
     serializer_class = ColorSerializer
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Product-Fields'])
-class SheetPaperViewSet(CustomMixinModelViewSet):
+class SheetPaperViewSet(TirageViewSet):
     """
     MEH: Sheet Paper Model viewset
     """
     queryset = SheetPaper.objects.all()
     serializer_class = SheetPaperSerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['material', 'display_name']
     ordering_fields = ['inventory']
-    pagination_class = None
-    permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['field_manager'],
+        '__all__': ['field_manager']
     }
 
 
 @extend_schema(tags=['Product-Fields'])
-class PaperViewSet(CustomMixinModelViewSet):
+class PaperViewSet(TirageViewSet):
     """
     MEH: Paper Model viewset
     """
     queryset = Paper.objects.select_related('size', 'sheet_paper')
     serializer_class = PaperSerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['size__display_name', 'sheet_paper__display_name']
     ordering_fields = ['inventory', 'per_paper_price']
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Product-Fields'])
-class FoldingViewSet(CustomMixinModelViewSet):
+class FoldingViewSet(TirageViewSet):
     """
     MEH: Folding Model viewset
     """
     queryset = Folding.objects.all()
     serializer_class = FoldingSerializer
-    pagination_class = None
-    permission_classes = [ApiAccess]
-    required_api_keys = {
-        '__all__': ['field_manager'],
-        'list': ['product_manager', 'create_product', 'field_manager']
-    }
 
 
 @extend_schema(tags=['Option'])
@@ -761,9 +704,8 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
     queryset = OptionCategory.objects.all().order_by('sort_number')
     serializer_class = OptionCategorySerializer
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title']
     pagination_class = None
@@ -771,7 +713,7 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
     required_api_keys = {
         '__all__': ['option_manager'],
         'create': ['create_option'],
-        **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option']),
+        **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option'])
     }
 
     @extend_schema(
@@ -809,7 +751,7 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, OptionCategory, Option)
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, OptionCategory, Option)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -826,8 +768,19 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change is_active field in List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, OptionCategory, Option, field='is_active')
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, OptionCategory, Option)
+        update_field = self.explorer_bulk_update_fields(request, field_name='is_active')
         return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
+
+    @action(detail=False, methods=['get'], serializer_class=OptionCategorySelectListSerializer,
+            url_path='select-list', filter_backends=[None])
+    def product_option_select(self, request):
+        """
+        MEH: Tree-based OptionCategory list with active Option under each category for select
+        in Page 6 of Product Edit
+        """
+        root_category_list = self.get_queryset().filter(parent_category__isnull=True).prefetch_related('sub_categories', 'option_list')
+        return self.custom_get(root_category_list)
 
 
 @extend_schema(tags=['Option'])
@@ -838,8 +791,7 @@ class OptionViewSet(CustomMixinModelViewSet):
     queryset = Option.objects.select_related('parent_category').order_by('parent_category', 'sort_number')
     serializer_class = OptionSerializer
     filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
+        filters.SearchFilter
     ]
     search_fields = ['title']
     pagination_class = None
@@ -870,16 +822,6 @@ class OptionViewSet(CustomMixinModelViewSet):
         option_copy.save()
         return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
 
-    @action(detail=False, methods=['get'], serializer_class=OptionSelectListSerializer,
-            url_path='select-list', filter_backends=[None])
-    def product_option_select(self, request):
-        """
-        MEH: Full list of active Option for select
-        in Page 6 of Product Edit
-        """
-        option_list = self.get_queryset().filter(is_active=True)
-        return self.custom_get(option_list)
-
     @action(detail=True, methods=['get'], serializer_class=OptionProductListSerializer,
             url_path='related-product', filter_backends=[None])
     def option_related_product(self, request, pk=None):
@@ -887,10 +829,7 @@ class OptionViewSet(CustomMixinModelViewSet):
         MEH: Full list of related Product to Option
         """
         option = self.get_object(pk=pk)
-        if getattr(option, 'product_list', None):
-            return self.custom_get(option.product_list)
-        else:
-            raise NotFound(TG_DATA_EMPTY)
+        return self.custom_get(option.product_list)
 
 
 @extend_schema(tags=['Price-List'])
@@ -901,9 +840,7 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
     queryset = PriceListCategory.objects.all().order_by('sort_number')
     serializer_class = PriceListCategorySerializer
     filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.SearchFilter
     ]
     search_fields = ['title']
     pagination_class = None
@@ -948,7 +885,7 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Category & Option Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, _ = self.explorer_bulk_queryset(request.data, PriceListCategory, PriceListTable)
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, PriceListCategory, PriceListTable)
         return self.custom_list_destroy([itm_qs, cat_qs])
 
     @extend_schema(
@@ -965,7 +902,8 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change is_active field in List of Category & Table Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs, update_field = self.explorer_bulk_queryset(request.data, PriceListCategory, PriceListTable, field='is_active')
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, PriceListCategory, PriceListTable)
+        update_field = self.explorer_bulk_update_fields(request, field_name='is_active')
         return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
 
@@ -977,8 +915,7 @@ class PriceListTableViewSet(CustomMixinModelViewSet):
     queryset = PriceListTable.objects.select_related('product_category').prefetch_related('price_list_categories').order_by('sort_number')
     serializer_class = PriceListTableSerializer
     filter_backends = [
-        DjangoFilterBackend,
-        filters.SearchFilter,
+        filters.SearchFilter
     ]
     search_fields = ['title']
     pagination_class = None

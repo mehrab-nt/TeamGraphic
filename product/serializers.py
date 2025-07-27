@@ -538,9 +538,19 @@ class GalleryDropDownSerializer(CustomModelSerializer):
     """
     MEH: Gallery Category id & name for drop-down list
     """
+    children = serializers.SerializerMethodField()
+
     class Meta:
         model = GalleryCategory
-        fields = ['id', 'name']
+        fields = ['id', 'name', 'children']
+
+    @staticmethod
+    def get_children(obj): # MEH: This will recursively serialize children categories
+        children = obj.get_children()
+        if children.exists():
+            serializer = GalleryDropDownSerializer(children, many=True)
+            return serializer.data
+        return []
 
 
 class GalleryCategoryBriefSerializer(CustomModelSerializer):
@@ -717,7 +727,28 @@ class OptionSelectListSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Option
-        fields = ['id', 'parent_category', 'title', 'is_numberize', 'base_amount', 'price_type']
+        fields = ['id', 'title', 'is_numberize', 'base_amount', 'price_type']
+
+
+class OptionCategorySelectListSerializer(CustomModelSerializer):
+    children = serializers.SerializerMethodField()
+    option_list = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OptionCategory
+        fields = ['id', 'title', 'children', 'option_list']
+
+    @staticmethod
+    def get_children(obj):
+        children = obj.get_children()
+        if children.exists():
+            return OptionCategorySelectListSerializer(children, many=True).data
+        return []
+
+    @staticmethod
+    def get_option_list(obj):
+        options = obj.option_list.filter(is_active=True)
+        return OptionSelectListSerializer(options, many=True).data
 
 
 class OptionProductListSerializer(CustomModelSerializer):

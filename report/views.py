@@ -19,11 +19,11 @@ class ProductReportViewSet(CustomMixinModelViewSet):
     filter_backends = [
         DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title', 'parent_category__title']
     ordering_fields = ['total_order', 'last_order', 'total_main_sale', 'total_option_sale']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['allow_any'],
+        '__all__': ['allow_any']
     }

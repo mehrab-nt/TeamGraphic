@@ -8,6 +8,9 @@ router.register(r'access-category', ApiCategoryViewSet, basename='api-access')
 router.register(r'access-item', ApiItemViewSet, basename='api-access-item')
 
 def get_combined_router():
+    """
+    MEH: Generate all url from all app routers.py file
+    """
     combined_router = DefaultRouter()
     for app_config in apps.get_app_configs():
         try:

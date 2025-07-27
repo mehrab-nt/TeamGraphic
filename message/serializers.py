@@ -84,7 +84,7 @@ class WebMessageWithContentSerializer(WebMessageSerializer):
     content_list = WebMessageContentSerializer(many=True, read_only=True)
 
 
-class WebMessageRequestSerializer(WebMessageSerializer):
+class WebMessageRequestNewSerializer(WebMessageSerializer):
     """
     MEH: Web Message New message request Information
     """

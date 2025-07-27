@@ -1,16 +1,14 @@
-from rest_framework import status, filters
+from rest_framework import filters
 from rest_framework.response import Response
 from api.permissions import ApiAccess
 from rest_framework.decorators import action
-from django_filters.rest_framework import DjangoFilterBackend
 from .models import FileDirectory, FileItem, ClearFileHistory
 from .serializers import FileDirectorySerializer, FileItemSerializer, ClearFileSerializer
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
-from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import CombineBulkDeleteSerializer
 from django.core.cache import cache
-from rest_framework.exceptions import MethodNotAllowed
+from rest_framework.exceptions import PermissionDenied
 
 
 @extend_schema(tags=['File-Manager'])
@@ -20,10 +18,10 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     """
     queryset = FileDirectory.objects.all().order_by('-create_date')
     serializer_class = FileDirectorySerializer
+    http_method_names = ['get', 'head', 'option', 'post', 'delete']
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['name']
     ordering_fields = ['create_date', 'name']
@@ -31,20 +29,8 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['file_manager'],
-        **dict.fromkeys(['retrieve', 'update', 'partial_update'], []), # MEH: Admin User
+       'retrieve': [] # MEH: Admin User
     }
-
-    @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
-    @extend_schema(exclude=True)  # MEH: Hidden PUT from Api Documentation (only Admin work!)
-    def update(self, request, *args, **kwargs):
-        raise MethodNotAllowed('PUT')
-
-    @extend_schema(exclude=True)  # MEH: Hidden PATCH from Api Documentation (only Admin work!)
-    def partial_update(self, request, *args, **kwargs):
-        raise MethodNotAllowed('PATCH')
 
     @extend_schema(
         summary='Tree list of Both Directories & Files',
@@ -82,7 +68,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Delete List of Directory & File Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, dir_qs, _ = self.explorer_bulk_queryset(request.data, FileDirectory, FileItem)
+        itm_qs, dir_qs = self.explorer_bulk_queryset(request, FileDirectory, FileItem)
         return self.custom_list_destroy([itm_qs, dir_qs])
 
 @extend_schema(tags=['File-Manager'])
@@ -92,10 +78,10 @@ class FileItemViewSet(CustomMixinModelViewSet):
     """
     queryset = FileItem.objects.all().order_by('-create_date')
     serializer_class = FileItemSerializer
+    http_method_names = ['get', 'head', 'option', 'post', 'delete']
     filter_backends = [
-        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['name']
     ordering_fields = ['create_date', 'name', 'type', 'volume']
@@ -104,33 +90,23 @@ class FileItemViewSet(CustomMixinModelViewSet):
     required_api_keys = {
         '__all__': ['file_manager'],
         'clear_old_files': ['clear_old_files'],
-        **dict.fromkeys(['retrieve', 'update', 'partial_update'], []), # MEH: Admin User
+        'retrieve': [] # MEH: Admin User
     }
-
-    @extend_schema(exclude=True)  # MEH: Hidden GET <pk> from Api Documentation (only Admin work!)
-    def retrieve(self, request, *args, **kwargs):
-        return super().retrieve(request, *args, **kwargs)
-
-    @extend_schema(exclude=True) # MEH: Hidden PUT from Api Documentation (MethodNotAllowed)
-    def update(self, request, *args, **kwargs):
-        raise MethodNotAllowed('PUT')
-
-    @extend_schema(exclude=True) # MEH: Hidden PATCH from Api Documentation (MethodNotAllowed)
-    def partial_update(self, request, *args, **kwargs):
-        raise MethodNotAllowed('PATCH')
 
     @extend_schema(summary = "Related to Clear old file from Orders")
     @action(detail=False, methods=['get', 'post'],
             url_path='clear-old-files', serializer_class=ClearFileSerializer, filter_backends=[None])
     def clear_old_files(self, request):
         cache_key = 'clear_old_files'
+        if not hasattr(request.user, 'employee_profile'): # MEH: Just make sure, employee got here
+            raise PermissionDenied
         if request.method == 'POST':
             cache.delete(cache_key)
-            return self.custom_create(request.data)
+            return self.custom_create(request, employee=request.user.employee_profile)
         cached_data = cache.get(cache_key)
         if cached_data:
             return Response(cached_data)
         histories = ClearFileHistory.objects.select_related('employee').order_by('-submit_date')
         res = self.custom_get(histories)
-        cache.set(cache_key, res.data, timeout=60 * 60 * 24 * 365)
+        cache.set(cache_key, res.data, timeout=60 * 60 * 24 * 365) # MEH: 1 year (always) until change
         return res
