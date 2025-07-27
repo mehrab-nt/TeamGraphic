@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from api.responses import *
+from config.models import MessageConfig
 from user.models import Role, User
 from .models import AlarmMessage, Department, SmsMessage, WebMessage, WebMessageContent, MessageStatus, MessageType
 from api.mixins import CustomModelSerializer, CustomChoiceField
@@ -144,6 +145,14 @@ class WebMessageContentUserResponseSerializer(WebMessageContentSerializer):
     """
     MEH: Web Message content User Response information
     """
+    def validate(self, data): # MEH: Check uploaded file size
+        file = data.get('file')
+        if file:
+            size_mb = file.size / (1024 * 1024)
+            if size_mb > MessageConfig.objects.all().first().max_file_size:
+                raise serializers.ValidationError(TG_MAX_FILE_SIZE + str(size_mb) + 'MB')
+        return data
+
     def create(self, validated_data):
         parent = validated_data.get('parent')
         if parent.status == MessageStatus.PENDING:

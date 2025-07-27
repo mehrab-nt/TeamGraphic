@@ -125,7 +125,7 @@ class MessageType(models.TextChoices):
     RECEIVE = 'REC', 'دریافت'
 
 def user_message_upload_path(instance, filename): # MEH: Store file in media in user folder (it's not in file manager!)
-    return f'user/messages/{instance.parent.id}-{instance.date.strftime('%Y%m%d%H%M%S')}-{filename}'
+    return f'user/messages/{instance.parent.id}/{instance.date.strftime('%Y%m%d%H%M%S')}-{filename}'
 
 class WebMessageContent(models.Model):
     content = models.TextField(max_length=500, validators=[validators.MinLengthValidator(3)],

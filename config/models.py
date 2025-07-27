@@ -92,3 +92,5 @@ class MessageConfig(models.Model):
                                                     blank=True, null=True, verbose_name='Tracking Message Description')
     point_message_description = models.TextField(max_length=1378,
                                                  blank=True, null=True, verbose_name='Point Message Description')
+    max_file_size = models.PositiveSmallIntegerField(default=20,
+                                                     blank=False, null=False, verbose_name='Max File Size')

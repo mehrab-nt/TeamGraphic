@@ -50,7 +50,7 @@ class FileItemSerializer(CustomModelSerializer):
         if file:
             size_mb = file.size / (1024 * 1024)
             if size_mb > 100: # todo: set max_size in some config for file manager (also for max_image_size)
-                raise serializers.ValidationError(TG_MAX_FILE_SIZE + str(size_mb) + 'MB')
+                raise serializers.ValidationError(TG_MAX_FILE_SIZE + str(100) + 'MB')
             seo_base = data.get('seo_base', False)
             if seo_base: # MEH: Change image to SEO base friendly format
                 data['file'] = self.validate_upload_image(file, max_image_size=23, max_width=None, max_height=None, size=(width, height))
