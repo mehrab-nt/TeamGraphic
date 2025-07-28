@@ -7,6 +7,8 @@ from rest_framework.decorators import action
 from rest_framework.throttling import ScopedRateThrottle
 from api.throttles import PhoneNumberRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
+from financial.models import DepositConfirmStatus
+from financial.serializers import CreditSerializer, DepositBriefInfoForUserManualListSerializer
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef
@@ -89,7 +91,7 @@ class UserViewSet(CustomMixinModelViewSet):
         user = self.request.user
         is_employee = getattr(user, 'is_employee', False)
         if user.is_superuser or is_employee:
-            if self.action == 'change_password':
+            if self.action in ['change_password', 'web_message_list', 'order_web_message_list']:
                 return  super().get_queryset()
             qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
             if self.action == 'list':
@@ -100,6 +102,8 @@ class UserViewSet(CustomMixinModelViewSet):
                 return qs.select_related('role')
             if self.action == 'profile':
                 return qs.select_related('user_profile')
+            if self.action in ['credit_info', 'manual_deposit_list']:
+                return qs.select_related('credit')
             return (
                 qs.select_related('role', 'user_profile', 'introduce_from', 'introducer')
                 .annotate(default_province=Subquery(Address.objects.filter(user=OuterRef('pk'), is_default=True).values('province__name')[:1]))
@@ -441,6 +445,35 @@ class UserViewSet(CustomMixinModelViewSet):
                             .filter(user=user, type=WebMessageType.ORDER)
                             .order_by('-last_update_date'))
         return self.custom_get(web_message_list)
+
+    @extend_schema(
+        summary="Get User Credit info with deposit list",
+        parameters=[
+            OpenApiParameter(name='deposit_type', type=OpenApiTypes.STR, location='query'),
+            OpenApiParameter(name='submit_date__gte', type=OpenApiTypes.DATE, location='query'),
+            OpenApiParameter(name='submit_date__lte', type=OpenApiTypes.DATE, location='query'),
+            OpenApiParameter(name='page', type=OpenApiTypes.INT, location='query'),
+            OpenApiParameter(name='size', type=OpenApiTypes.INT, location='query'),
+        ],
+    )
+    @action(detail=True, methods=['get'],
+            url_path='credit', serializer_class=CreditSerializer, filter_backends=[None])
+    def credit_info(self, request, pk=None):
+        """
+        MEH: Get User Credit info
+        """
+        user = self.get_object(pk=pk)
+        return self.custom_get(user.credit)
+
+    @action(detail=True, methods=['get'],
+            url_path='manual-deposit-list', serializer_class=DepositBriefInfoForUserManualListSerializer, filter_backends=[None])
+    def manual_deposit_list(self, request, pk=None):
+        """
+        MEH: Get User manual_deposit info
+        """
+        user = self.get_object(pk=pk)
+        deposit_list = user.credit.deposit_list.exclude(confirm_status=DepositConfirmStatus.AUTO)
+        return self.custom_get(deposit_list)
 
 
 @extend_schema(tags=["User-Introduction"])
