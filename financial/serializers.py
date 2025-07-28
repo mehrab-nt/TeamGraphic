@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .filters import DepositFilter
-from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit
+from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit, BankAccount
 from user.models import User
 from api.mixins import CustomModelSerializer, CustomChoiceField
 from api.responses import *
@@ -92,16 +92,6 @@ class DepositPendingListSerializer(DepositSerializer):
         fields = ['id', 'submit_date', 'user_display', 'total_price', 'deposit_type', 'deposit_type_display',
                   'transaction_type', 'transaction_type_display', 'deposit_date',
                   'confirm_status', 'confirm_status_display', 'submit_by_display', 'description', 'tracking_code', 'bank_display']
-
-    # def get_deposit_list(self, obj):
-    #     request = self.context.get('request')
-    #     deposit_list = obj.deposit_list.all().filter(confirm_status=DepositConfirmStatus.CONFIRMED) # MEH: Filter only Confirmed deposit
-    #     filter_qs = DepositFilter(request.GET, queryset=deposit_list).qs # MEH: Filter in request param
-    #     view = self.context.get('view')
-    #     page = view.paginator.paginate_queryset(filter_qs, request, view=view) # MEH: use viewset pagination setting for nested deposit list
-    #     return view.paginator.get_paginated_response(
-    #         DepositBriefInfoForCreditSerializer(page, many=True, context=self.context).data
-    #     ).data
 
 
 class DepositPendingSetStatusSerializer(CustomModelSerializer):
@@ -242,3 +232,21 @@ class CreditSerializer(CustomModelSerializer):
         return view.paginator.get_paginated_response(
             DepositBriefInfoForCreditSerializer(page, many=True, context=self.context).data
         ).data
+
+
+class BankAccountSerializer(CustomModelSerializer):
+    """
+    MEH: Bank Account full Information (Offline)
+    """
+    class Meta:
+        model = BankAccount
+        exclude = ['is_online']
+
+
+class BankAccountBriefSerializer(BankAccountSerializer):
+    """
+    MEH: Bank Account Brief Information for list
+    """
+    class Meta:
+        model = BankAccount
+        fields = ['id', 'title', 'description', 'is_active']

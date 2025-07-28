@@ -2,10 +2,11 @@ from drf_spectacular.utils import extend_schema
 from rest_framework import filters
 from rest_framework.decorators import action
 from api.mixins import CustomMixinModelViewSet
-from .models import Company, Deposit, DepositConfirmStatus
+from .models import Company, Deposit, DepositConfirmStatus, BankAccount
 from api.permissions import ApiAccess
 from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, \
-    DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer
+    DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer, \
+    BankAccountSerializer, BankAccountBriefSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import DepositFilter
 from rest_framework.exceptions import PermissionDenied
@@ -83,3 +84,28 @@ class DepositViewSet(CustomMixinModelViewSet):
         """
         deposit = self.get_object(pk=pk)
         return self.custom_update(deposit, request, partial=(request.method == 'PATCH'))
+
+
+@extend_schema(tags=['Financial'])
+class OfflineBankAccountViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Bank Account Model viewset (Offline)
+    """
+    queryset = BankAccount.objects.all().filter(is_online=False)
+    serializer_class = BankAccountSerializer
+    permission_classes = [ApiAccess]
+    required_api_keys = {} # MEH: Empty mean just Admin can Access
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return BankAccountBriefSerializer
+        return super().get_serializer_class()
+
+
+@extend_schema(tags=['Financial'])
+class OnlineBankAccountViewSet(OfflineBankAccountViewSet):
+    """
+    MEH: Bank Account Model viewset (Online)
+    """
+    def create(self, request, *args, **kwargs):
+        return self.custom_create(request, is_online=True)
