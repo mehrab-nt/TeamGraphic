@@ -354,14 +354,12 @@ class UserSerializer(UserBriefSerializer):
         return value
 
     def create(self, validated_data, **kwargs): # MEH: Nested create a User with Profile (Just for Admin work) example like from Excel file...
-        self.validate_filed(validated_data)
         profile_data = validated_data.pop('user_profile', {})
         user_profile = UserProfile.objects.create(**profile_data)
         user = User.objects.create_user(**validated_data, username=validated_data['phone_number'], user_profile=user_profile)
         return user
 
     def update(self, instance, validated_data, **kwargs): # MEH: Nested update for User Profile
-        self.validate_filed(validated_data, instance.pk)
         profile_data = validated_data.pop('user_profile', {})
         for attr, value in validated_data.items():
             if attr == 'phone_number' and instance.phone_number != value:
@@ -574,25 +572,13 @@ class RoleSerializer(CustomModelSerializer):
     """
     description = serializers.CharField(default=None, style={'base_template': 'textarea.html'})
     api_items = serializers.PrimaryKeyRelatedField(many=True, queryset=ApiItem.objects.filter(category__role_base=True))
-    all_api_items = serializers.SerializerMethodField()
 
     class Meta:
         model = Role
         fields = '__all__'
 
-    def get_all_api_items(self, obj): # MEH: Provide all api-item list for UI form generate
-        if self.context.get('view').action == 'retrieve': # MEH: Only for get single obj
-            items = ApiItem.objects.select_related('category').filter(category__role_base=True)
-            return [
-                {"id": item.id, "title": item.title, "category": item.category.title}
-                for item in items
-            ]
-        return None
-
     def to_representation(self, instance):
         data = super().to_representation(instance)
-        if self.context.get('view').action != 'retrieve': # MEH: Drop all-api-item list if request action not retrieve
-            data.pop('all_api_items', None)
         if self.context.get('view').action == 'list': # MEH: api-item in list view
             data.pop('api_items', None)
         return data

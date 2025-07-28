@@ -102,6 +102,4 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
         MEH: List of Api Item a EmployeeLevel can have for Employee (role_base=False)
         """
         api_category_list = ApiCategory.objects.prefetch_related('api_items').filter(role_base=False)
-        if not api_category_list:
-            raise NotFound(TG_DATA_EMPTY)
         return self.custom_get(api_category_list)
