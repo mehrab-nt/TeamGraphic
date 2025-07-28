@@ -339,15 +339,19 @@ class UserSerializer(UserBriefSerializer):
         except AttributeError:
             return None
 
-    @staticmethod
-    def validate_filed(user_data, pk=None): # MEH: validate phone or national_id is not in DB (except self data for update)
-        if 'phone_number' in user_data:
-            if User.objects.exclude(pk=pk).filter(phone_number=user_data['phone_number']).exists():
-                raise serializers.ValidationError({'phone_number': TG_UNIQUE_PROTECT})
-        if 'national_id' in user_data:
-            if user_data['national_id']:
-                if User.objects.exclude(pk=pk).filter(national_id=user_data['national_id']).exists():
-                    raise serializers.ValidationError({'national_id': TG_UNIQUE_PROTECT})
+    def validate_phone_number(self, value):
+        if self.instance and self.instance.phone_number == value:
+            return value
+        if User.objects.exclude(pk=self.instance.pk if self.instance else None).filter(phone_number=value).exists():
+            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return value
+
+    def validate_national_id(self, value):
+        if self.instance and self.instance.national_id == value:
+            return value
+        if User.objects.exclude(pk=self.instance.pk if self.instance else None).filter(national_id=value).exists():
+            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+        return value
 
     def create(self, validated_data, **kwargs): # MEH: Nested create a User with Profile (Just for Admin work) example like from Excel file...
         self.validate_filed(validated_data)
@@ -394,7 +398,7 @@ class UserImportDataSerializer(UserSerializer):
         model = User
         fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'user_profile']
-        list_serializer_class = CustomBulkListSerializer
+        list_serializer_class = CustomBulkListSerializer # MEH: for validate all data and response with number
 
 
 class UserImportFieldDataSerializer(CustomModelSerializer):

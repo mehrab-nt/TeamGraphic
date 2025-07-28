@@ -441,18 +441,22 @@ class CustomBulkListSerializer(serializers.ListSerializer):
     MEH: for Override ListSerializer behavior
     most be set in serializer class Meta -> list_serializer_class = CustomBulkListSerializer
     """
-    def create(self, validated_data):
+    def is_valid(self, *, raise_exception=False):
         """
-        MEH: Override bulk create to (1 by 1) (instead of .bulk_create: because 1 by 1 maybe slower but safer!)
-        if in custom_create, parse many=True, perform_create, use this method instead of serializer default create method...
-        Used for import data with Excel
+        MEH: Override bulk validate (1 by 1)
+        if in custom_create, parse many=True, perform_create, use this method for validate data
+        Used for import data with Excel and so on
         """
-        data_list = []
-        for i, data in enumerate(validated_data): # MEH: First Validate data 1 by 1 if anything wrong, No Data Create at all
-            try:
-                self.child.validate_filed(data)
-            except serializers.ValidationError as e:
-                raise serializers.ValidationError({f"item-{i+1}": e.detail})
-        for data in validated_data: # MEH: Now Create 1 by 1 (nested create, most handle in serializer create method)
-            data_list.append(self.child.create(data))
-        return data_list
+        _validated_data = []
+        _errors = {}
+        for idx, item in enumerate(self.initial_data):
+            serializer = self.child.__class__(data=item, context=self.context)
+            if not serializer.is_valid():
+                _errors[f'item-{idx+1}'] = serializer.errors
+            else:
+                _validated_data.append(serializer.validated_data)
+        if _errors:
+            if raise_exception:
+                raise serializers.ValidationError(_errors)
+            return False
+        return True
