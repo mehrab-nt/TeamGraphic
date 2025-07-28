@@ -2,6 +2,9 @@ from django.db import models
 from django.core import validators
 from employee.models import Employee
 from user.models import User, Role
+from django.db import models, transaction
+from django.core.exceptions import ValidationError
+from api.responses import TG_PREVENT_DELETE_DEFAULT
 
 
 class AlarmMessage(models.Model):
@@ -60,6 +63,7 @@ class Department(models.Model):
                                        related_name='department_list')
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name='Is Active')
+    is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
 
     class Meta:
         ordering = ['title']
@@ -68,6 +72,22 @@ class Department(models.Model):
 
     def __str__(self):
         return f'Department: {self.title}'
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            other_default = Department.objects.exclude(pk=self.pk).filter(is_default=True)
+            if self.is_default:
+                if other_default.exists():
+                    other_default.update(is_default=False)
+            else:
+                if not other_default.exists():
+                    self.is_default = True
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.is_default:
+            raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
+        super().delete(*args, **kwargs)
 
 
 class MessageStatus(models.TextChoices):
