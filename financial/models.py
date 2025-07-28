@@ -5,32 +5,33 @@ from user.models import User, Role
 from employee.models import Employee
 from order.models import Order, Cart
 from product.models import ProductCategory
+from city.models import City, Province
 
 
 class Company(models.Model):
     name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
                             blank=False, null=False)
-    manager = models.OneToOneField(User, on_delete=models.CASCADE, blank=True, null=True,
-                                   related_name='company')
+    agent = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False,
+                                 related_name='company')
     national_number = models.CharField(max_length=11, unique=True,
-                                       blank=True, null=True, verbose_name='National number')
+                                       blank=False, null=False, verbose_name='National number')
     economic_number = models.CharField(max_length=11, unique=True,
-                                       blank=True, null=True, verbose_name='Economic number')
+                                       blank=False, null=False, verbose_name='Economic number')
     registry_number = models.CharField(max_length=11, unique=True,
-                                       blank=True, null=True, verbose_name='Registry Number')
+                                       blank=False, null=False, verbose_name='Registry Number')
     postal_code = models.CharField(max_length=10, validators=[validators.MinLengthValidator(10)],
-                                   blank=True, null=True, verbose_name='Postal Code')
-    state = models.CharField(max_length=23,
-                             blank=True, null=True)
-    city = models.CharField(max_length=23,
-                            blank=True, null=True)
-    address_content = models.TextField(blank=True, null=True, verbose_name='Address Content')
+                                   blank=False, null=False, verbose_name='Postal Code')
+    province = models.ForeignKey(Province, on_delete=models.PROTECT,
+                                 blank=False, null=False)
+    city = models.ForeignKey(City, on_delete=models.PROTECT,
+                             blank=False, null=False)
+    address_content = models.TextField(blank=False, null=False, verbose_name='Address Content')
     phone_number = models.CharField(max_length=12,
-                                    blank=True, null=True, verbose_name='Phone Number')
+                                    blank=False, null=False, verbose_name='Phone Number')
     accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name='Accounting ID')
 
     class Meta:
-        ordering = ['manager']
+        ordering = ['agent']
         verbose_name = 'Company'
         verbose_name_plural = 'Companies'
 
@@ -55,23 +56,9 @@ class Credit(models.Model):
     def __str__(self):
         return f'Credit For: {self.owner}'
 
-
-class TurnOver(models.Model):
-    credit = models.ForeignKey(Credit, on_delete=models.PROTECT,
-                               blank=False, null=False,
-                               related_name='turn_over_list')
-    deposit = models.OneToOneField('Deposit', on_delete=models.PROTECT,
-                                   blank=False, null=False,
-                                   related_name='turn_over_list')
-    result_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Result Amount')
-
-    class Meta:
-        ordering = ['deposit', 'credit']
-        verbose_name = 'Turn Over'
-        verbose_name_plural = 'Turn Overs'
-
-    def __str__(self):
-        return f'Turn Over For: {self.credit.owner}'
+    def update_total_amount(self, value):
+        self.total_amount += value
+        self.save(update_fields=['total_amount'])
 
 
 class CoinStatus(models.TextChoices):
@@ -135,36 +122,67 @@ class CashBack(models.Model):
         return f'Cash Back For: {self.credit.owner}'
 
 
+class DepositConfirmStatus(models.TextChoices):
+    CONFIRMED = 'CON', 'تایید شده'
+    REJECT = 'REJ', 'تایید نشده'
+    PENDING = 'PEN', 'بررسی نشده'
+    AUTO = 'AUT', 'تایید خودکار'
+
+class OnlineDepositStatus(models.TextChoices):
+    START = 'STR', 'موفق'
+    REQUEST = 'REQ', 'ارتباط با بانک'
+    SUCCESS = 'SUC', 'موفق'
+    FAILURE = 'FAL', 'ناموفق'
+    CANCELLED = 'CAN', 'لغو شده'
+    UNMATCHED = 'UNM', 'مغایرت'
+
 class DepositType(models.TextChoices):
-    ONLINE = 'ONL', 'پرداخت آنلاین'
-    CARD = 'CRD', 'کارت به کارت'
-    CASH =  'CSH', 'نقد'
-    POS = 'POS', 'کارتخوان'
     WEBSITE = 'WEB', 'ثبت سفارش آنلاین'
     IN_PERSON_SUBMIT= 'PER', 'ثبت سفارش حضوری'
+    PLEDGE = 'PLG', 'بیعانه'
     DELIVERY = 'DEL', 'هزینه ارسال'
     PAY = 'PAT', 'بازگشت وجه'
+    DAMAGE = 'DMG', 'خسارت'
     CASHBACK = 'BAK', 'سود اعتبار'
     FREE_DISCOUNT = 'DIS', 'تخفیف دستی'
     CODE_DISCOUNT = 'COD', 'کد تخفیف'
     FESTIVAL_DISCOUNT = 'FSD', 'تخفیف جشنواره'
     FESTIVAL_CREDIT = 'FSC', 'اعتبار جشنواره'
-    PRE_ORDER = 'PRE', 'پیش فاکتور'
     CANCELLED = 'CAN', 'لفو سفارش'
+    MANUAL_CREDIT = 'INC', 'اعتبار دستی'
+
+class TransactionType(models.TextChoices):
+    ONLINE = 'ONL', 'پرداخت آنلاین'
+    CARD = 'CRD', 'کارت به کارت'
+    CASH =  'CSH', 'نقد'
+    POS = 'POS', 'کارتخوان'
+    DRAFT = 'DRF', 'حواله'
+    CHECK = 'CHE', 'چک'
+    CREDIT = 'CRE', 'اعتبار'
+    DISCOUNT = 'DIS', 'تخفیف'
+
+def deposit_picture_upload_path(instance, filename): # MEH: Store picture in media in deposit folder (it's not in file manager!)
+    return f'deposit/{instance.user.id}/{instance.deposit_date.strftime('%Y%m%d%H%M%S')}.jpg'
 
 
 class Deposit(models.Model):
     total_price = models.PositiveBigIntegerField(blank=False, null=False, verbose_name='Total Price')
-    submit_date = models.DateField(default=timezone.now,
-                                   blank=False, null=False, verbose_name='Submit Date')
+    credit = models.ForeignKey(Credit, on_delete=models.CASCADE,
+                               blank=False, null=False, related_name='deposit_list')
+    submit_date = models.DateTimeField(auto_now_add=True,
+                                            blank=False, null=False, verbose_name='Submit Date')
     submit_by = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                   blank=True, null=True, verbose_name='Submit By',
                                   related_name='deposit_submit_list')
-    deposit_date = models.DateField(blank=True, null=True, verbose_name='Deposit Date')
+    deposit_date = models.DateTimeField(blank=True, null=True, verbose_name='Deposit Date')
     income = models.BooleanField(default=True, blank=False, null=False)
-    type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                            choices=DepositType.choices)
-    confirm = models.BooleanField(default=False, blank=False, null=False)
+    transaction_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                        choices=TransactionType.choices)
+    deposit_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                    choices=DepositType.choices)
+    confirm_status = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                      choices=DepositConfirmStatus.choices, default=DepositConfirmStatus.PENDING,
+                                      verbose_name='Confirm Status')
     confirm_by = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                    blank=True, null=True, verbose_name='Confirm By',
                                    related_name='deposit_confirm_list')
@@ -172,9 +190,15 @@ class Deposit(models.Model):
                                    blank=False, null=False)
     tracking_code = models.CharField(max_length=25,
                                      blank=True, null=True, verbose_name="Tracking Code")
-    steps = models.JSONField(default=dict, blank=False, null=False)
-    cart = models.ForeignKey(Cart, on_delete=models.PROTECT,
-                             blank=True, null=True, related_name='cart_deposit_list')
+    info = models.JSONField(default=dict, blank=True, null=True)
+    steps = models.JSONField(default=dict, blank=True, null=True)
+    online_status = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                     choices=OnlineDepositStatus.choices,
+                                     blank=True, null=True, verbose_name='Online Status')
+    bank = models.ForeignKey('BankAccount', on_delete=models.SET_NULL,
+                             blank=True, null=True,
+                             related_name='bank_deposit_list')
+    picture = models.ImageField(upload_to=deposit_picture_upload_path, blank=True, null=True)
 
     class Meta:
         ordering = ['-submit_date']
@@ -183,16 +207,30 @@ class Deposit(models.Model):
 
     def __str__(self):
         if self.income:
-            return f'Deposit {self.total_price} /Income From: {self.turn_over_list.credit.owner}'
+            return f'Deposit {self.total_price} /Income From: {self.credit.owner}'
         else:
-            return f'Deposit {self.total_price} /Pay For: {self.turn_over_list.credit.owner}'
+            return f'Deposit {self.total_price} /Pay For: {self.credit.owner}'
+
+    def save(self, *args, **kwargs):
+        if not self.deposit_date:
+            self.deposit_date = self.submit_date
+        super().save(*args, **kwargs)
+
+    def display_price(self):
+        if not self.income:
+            return self.total_price * -1
+        return self.total_price
 
 
-class OfflineBankAccount(models.Model):
+class BankAccount(models.Model):
+    id = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                          primary_key=True, blank=False, null=False)
     title = models.CharField(max_length=78,
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
+    is_online = models.BooleanField(default=False,
+                                    blank=False, null=False, verbose_name='Is Online')
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False ,verbose_name='Is Active')
     sort_number = models.PositiveIntegerField(default=0,
@@ -203,39 +241,22 @@ class OfflineBankAccount(models.Model):
     bank_account_number = models.CharField(max_length=16,
                                            blank=True, null=True, verbose_name='Bank Account Number')
     accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name="Accounting ID")
-
-    class Meta:
-        ordering = ['-sort_number']
-        verbose_name = 'Offline Bank Account'
-        verbose_name_plural = 'Offline Bank Accounts'
-
-    def __str__(self):
-        return f'Bank: {self.title}'
-
-
-class OnlinePaymentModule(models.Model):
-    title = models.CharField(max_length=23,
-                             blank=False, null=False)
-    sort_number = models.PositiveIntegerField(default=0,
-                                              blank=False, null=False, verbose_name='Sort Number')
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False ,verbose_name='Is Active')
-    accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name="Accounting ID")
     detail = models.JSONField(default=dict, blank=True, null=True)
 
     class Meta:
         ordering = ['-sort_number']
-        verbose_name = 'Online Payment Module'
-        verbose_name_plural = 'Online Payment Modules'
+        verbose_name = 'Bank Account'
+        verbose_name_plural = 'Bank Accounts'
 
     def __str__(self):
-        return f'{self.title}'
+        if self.is_online:
+            return f'Online Bank: {self.title}'
+        return f'Offline Bank: {self.title}'
 
 
 class DiscountAmountType(models.TextChoices):
     PERCENT = 'PER', 'درصدی'
     FIX = 'FIX', 'ثابت'
-
 
 class DiscountType(models.TextChoices):
     ONE_TIME = 'ONT', 'فقط یک بار'
