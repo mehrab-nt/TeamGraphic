@@ -12,7 +12,7 @@ from api.mixins import CustomModelSerializer, CustomChoiceField, CustomBulkListS
 from api.models import ApiItem
 from file_manager.images import *
 import random
-from .task import send_phone_verification_code
+from .tasks import send_phone_verification_code
 from django.core.cache import cache
 
 

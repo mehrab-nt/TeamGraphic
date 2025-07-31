@@ -110,6 +110,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'drf_spectacular',
     'django.contrib.gis',
+    'django_celery_beat',
     'user.apps.UsersConfig',
     'city.apps.CityConfig',
     'employee.apps.EmployeeConfig',
