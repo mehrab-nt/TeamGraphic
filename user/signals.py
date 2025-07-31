@@ -39,27 +39,35 @@ def user_post_save(sender, instance, created, **kwargs):
     if (instance.is_employee or instance.is_staff) and instance.role:
         instance.role = None
         flag = True
+    if instance.role.cashback_active and not getattr(instance.credit, "cashback", None):
+        CashBack.objects.create(
+            credit=instance.credit
+        )
+    elif not instance.role.cashback_active and getattr(instance.credit, "cashback", None):
+        instance.credit.cashback.delete()
     if flag:
         instance.save()
 
 
-# @receiver(pre_save, sender=User)
-# def user_pre_save(sender, instance, **kwargs):
-#     """
-#     Clean user data before save!
-#     """
-#     if instance.pk:
-#         try:
-#             old_user = User.objects.get(pk=instance.pk)
-#         except User.DoesNotExist:
-#             return
-#         if old_user.introduce_from != instance.introduce_from:
-#             if old_user.introduce_from:
-#                 old_user.introduce_from.number = F('number') + 1
-#                 old_user.introduce_from.save(update_fields=['number'])
-#             if instance.introduce_from:
-#                 instance.introduce_from.number = F('number') + 1
-#                 instance.introduce_from.save(update_fields=['number'])
+@receiver(pre_save, sender=Role)
+def role_pre_save(sender, instance, **kwargs):
+    """
+    MEH: Clean User with this Role before save.
+    """
+    if instance.pk:
+        try:
+            old_role = Role.objects.get(pk=instance.pk)
+        except Role.DoesNotExist:
+            return
+        if old_role.cashback_active != instance.cashback_active:
+            user_list = instance.role_all_users.select_related('credit').all()
+            for user in user_list:
+                if instance.cashback_active and not getattr(user.credit, 'cashback', None):
+                    CashBack.objects.create(
+                        credit=user.credit
+                    )
+                elif not instance.cashback_active and getattr(user.credit, 'cashback', None):
+                    user.credit.cashback.delete()
 
 
 @receiver(post_delete, sender=User)

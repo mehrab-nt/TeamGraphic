@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .filters import DepositFilter
-from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit, BankAccount
+from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit, BankAccount, \
+    CashBackPercent, CashBack
 from user.models import User
 from api.mixins import CustomModelSerializer, CustomChoiceField
 from api.responses import *
@@ -250,3 +251,44 @@ class BankAccountBriefSerializer(BankAccountSerializer):
     class Meta:
         model = BankAccount
         fields = ['id', 'title', 'description', 'is_active']
+
+
+class CashBackPercentSerializer(CustomModelSerializer):
+    """
+    MEH: Cash Back Percent full Information
+    """
+    class Meta:
+        model = CashBackPercent
+        fields = '__all__'
+
+
+class CashBackSerializer(CustomModelSerializer):
+    """
+    MEH: Cash Back full Information
+    """
+    owner_id = serializers.SerializerMethodField()
+    owner_display = serializers.SerializerMethodField()
+    now_percent = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CashBack
+        exclude = ['credit']
+        read_only_fields = ['history', 'tmp_cashback', 'tmp_total_order_amount', 'now_cashback', 'now_total_order_amount', 'last_confirm']
+
+    @staticmethod
+    def get_owner_id(obj):
+        return str(obj.credit.owner.id)
+
+    @staticmethod
+    def get_owner_display(obj):
+        return str(obj.credit.owner)
+
+    @staticmethod
+    def get_now_percent(obj):
+        return obj.now_percent()
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if self.context.get('view').action == 'list':  # MEH: Drop history in list action
+            data.pop('history', None)
+        return data

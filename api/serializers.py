@@ -12,7 +12,9 @@ class CopyWithIdSerializer(serializers.Serializer):
     id = serializers.IntegerField(allow_null=False, required=True)
 
 
-class BulkDeleteSerializer(serializers.Serializer):
+class SendSignalSerializer(serializers.Serializer):
+    """
+    MEH: For post just empty, to do some job
     """
     MEH: Get a list of IDs for bulk delete
     """

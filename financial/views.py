@@ -1,15 +1,19 @@
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 from rest_framework import filters
 from rest_framework.decorators import action
 from api.mixins import CustomMixinModelViewSet
-from .models import Company, Deposit, DepositConfirmStatus, BankAccount
+from api.serializers import BulkListSerializer, SendSignalSerializer
+from .models import Company, Deposit, DepositConfirmStatus, BankAccount, CashBackPercent, CashBack
 from api.permissions import ApiAccess
 from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, \
-    DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer, \
-    BankAccountSerializer, BankAccountBriefSerializer
+    DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer, CompanyBriefSerializer, \
+    BankAccountSerializer, BankAccountBriefSerializer, CashBackPercentSerializer, CashBackSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import DepositFilter
+from rest_framework import status
+from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from api.responses import TG_DATA_CREATED
 
 
 @extend_schema(tags=['Financial'])
@@ -109,3 +113,81 @@ class OnlineBankAccountViewSet(OfflineBankAccountViewSet):
     """
     def create(self, request, *args, **kwargs):
         return self.custom_create(request, is_online=True)
+
+
+@extend_schema(tags=['Financial'])
+class CashBackPercentViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Cash Back Percent Model viewset
+    """
+    queryset = CashBackPercent.objects.all()
+    serializer_class = CashBackPercentSerializer
+    permission_classes = [ApiAccess]
+    required_api_keys = {} # MEH: Empty mean just Admin can Access
+
+
+@extend_schema(tags=['Financial'])
+class CashBackViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Cash Back Model viewset
+    """
+    queryset = CashBack.objects.all()
+    serializer_class = CashBackSerializer
+    http_method_names = ['get', 'put', 'patch', 'head', 'options']
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['credit__owner__first_name', 'credit__owner__last_name', 'credit__owner__phone_number']
+    ordering_fields = ['now_total_order_amount', 'now_cashback']
+    permission_classes = [ApiAccess]
+    required_api_keys = {} # MEH: Empty mean just Admin can Access
+
+    def get_queryset(self):
+        qs = super().get_queryset().select_related('credit__owner').prefetch_related('valid_category')
+        if self.action in ['confirm', 'bulk_confirm']:
+            qs = qs.filter(last_confirm=False)
+        return qs
+
+    @extend_schema(
+        summary='Confirm a list of Cashback',
+        request=BulkListSerializer,
+        responses={
+           200: OpenApiResponse(description="Successfully confirmed List."),
+           400: OpenApiResponse(description="Invalid IDs or constraint violation."),
+        },
+    )
+    @action(detail=False, methods=['post'], http_method_names=['post'], serializer_class=BulkListSerializer,
+            url_path='bulk-confirm')
+    def bulk_confirm(self, request):
+        """
+        MEH: Confirm and increase credit for List of Cashback Objects (use POST ACTION for sending list of id `ids` in request body)
+        """
+        validated_data = self.get_validate_data(request.data)
+        ids = validated_data['ids']
+        cashback_list = self.get_queryset().filter(id__in=ids)
+        if hasattr(request.user, 'employee_profile'): # MEH: Just make sure, employee got here
+            employee = request.user.employee_profile
+            result_list = []
+            for cashback in cashback_list:
+                value = cashback.confirm_cashback(employee)
+                result_list.append({
+                    "user": str(cashback.credit.owner),
+                    "value": str(value)
+                })
+            return Response({"detail": TG_DATA_CREATED, "results": result_list}, status=status.HTTP_201_CREATED)
+        raise PermissionDenied
+
+    @extend_schema(summary='Confirm Cashback')
+    @action(detail=True, methods=['post'], http_method_names=['post'], serializer_class=SendSignalSerializer,
+            url_path='confirm')
+    def confirm(self, request, pk=None):
+        """
+        MEH: Confirm and increase credit for Cashback Objects
+        """
+        cashback = self.get_object(pk=pk)
+        if hasattr(request.user, 'employee_profile'): # MEH: Just make sure, employee got here
+            employee = request.user.employee_profile
+            value = cashback.confirm_cashback(employee)
+            return Response({"detail": TG_DATA_CREATED,"results": {"user": str(cashback.credit.owner), "value": str(value)}}, status=status.HTTP_201_CREATED)
+        raise PermissionDenied

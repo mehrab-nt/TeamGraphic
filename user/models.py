@@ -129,7 +129,9 @@ class Role(models.Model):
                                     blank=False, null=False, verbose_name="Is Active")
     is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
     api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items", blank=True,
-                                       related_name='roles',)
+                                       related_name='roles')
+    cashback_active = models.BooleanField(default=False,
+                                          blank=False, null=False, verbose_name='Cashback Active')
 
     class Meta:
         ordering = ['sort_number']
@@ -151,7 +153,7 @@ class Role(models.Model):
             super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        if self.is_default:
+        if self.is_default or self.cashback_active:
             raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
         super().delete(*args, **kwargs)
 

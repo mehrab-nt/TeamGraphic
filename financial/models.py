@@ -3,9 +3,12 @@ from django.core import validators
 from django.utils import timezone
 from user.models import User, Role
 from employee.models import Employee
-from order.models import Order, Cart
+from order.models import Order, Cart, OrderStatusRole
 from product.models import ProductCategory
 from city.models import City, Province
+import jdatetime
+from jsonschema.exceptions import ValidationError
+from rest_framework.exceptions import PermissionDenied
 
 
 class Company(models.Model):
@@ -220,6 +223,158 @@ class Deposit(models.Model):
         if not self.income:
             return self.total_price * -1
         return self.total_price
+
+
+class CashBackPercent(models.Model):
+    percent = models.FloatField(blank=False, null=False)
+    min_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Min Amount')
+    max_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Max Amount')
+
+    class Meta:
+        ordering = ['percent']
+        verbose_name = 'Cash Back Percent'
+        verbose_name_plural = 'Cash Back Percents'
+
+    def __str__(self):
+        return f'Cash Back Percent: #{self.percent}'
+
+
+class CashBack(models.Model):
+    tmp_cashback = models.PositiveIntegerField(default=0,
+                                               blank=False, null=False, verbose_name='Tmp Cashback')
+    tmp_total_order_amount = models.BigIntegerField(default=0,
+                                                    blank=False, null=False, verbose_name='Tmp Total Order Amount')
+    now_cashback = models.PositiveIntegerField(default=0,
+                                               blank=False, null=False, verbose_name='Now Cashback')
+    now_total_order_amount = models.BigIntegerField(default=0,
+                                                    blank=False, null=False, verbose_name='Now Total Order Amount')
+    manual_percent = models.FloatField(default=0,
+                                       blank=False, null=False, verbose_name='Manual Percent')
+    credit = models.OneToOneField('Credit', on_delete=models.CASCADE,
+                                  blank=False, null=False,
+                                  related_name='cashback')
+    valid_category = models.ManyToManyField(ProductCategory, blank=True, verbose_name='Valid Category',
+                                            related_name='in_cashback')
+    history = models.JSONField(default=dict, blank=True, null=True)
+    is_active = models.BooleanField(default=False,
+                                    blank=False, null=False, verbose_name='Is Active')
+    last_confirm = models.BooleanField(default=False,
+                                       blank=False, null=False, verbose_name='Last Confirm')
+
+    class Meta:
+        verbose_name = 'Cash Back'
+        verbose_name_plural = 'Cash Backs'
+
+    def __str__(self):
+        return f'Cash Back For: {self.credit.owner}'
+
+    def now_percent(self, old=False):
+        if old:
+            if self.tmp_total_order_amount > 0:
+                return round((self.tmp_cashback / self.tmp_total_order_amount) * 100, 2)
+            return 0
+        if self.now_total_order_amount > 0:
+            return round((self.now_cashback / self.now_total_order_amount) * 100, 2)
+        return 0
+
+    def calculate_cashback(self, order): # MEH: Auto run each tima an order submit or canceled
+        if order.product.parent_category in self.valid_category or not self.valid_category.exists(): # MEH: Just valid category (Empty means all)
+            jalali_now = jdatetime.datetime.fromgregorian(datetime=timezone.now())
+            order_jalali_date = jdatetime.datetime.fromgregorian(datetime=order.submit_date)
+            if jalali_now.month == order_jalali_date.month: # MEH: Same month (NOW)
+                if order.status.role == OrderStatusRole.CANCEL:
+                    self.now_total_order_amount -= order.total_price
+                else:
+                    self.now_total_order_amount += order.total_price
+                percent = self.manual_percent
+                if not percent:
+                    percent_list = CashBackPercent.objects.filter(min_amount__lte=self.now_total_order_amount,
+                                                                  min_amount__gt=self.now_total_order_amount)
+                    if percent_list.exists():
+                        percent = percent_list.first().percent
+                self.now_cashback = self.now_total_order_amount * percent / 100
+            else:
+                pre_month = jalali_now.month - 1 # MEH: Previous month (-1) Means 1 order canceled!
+                if pre_month == 0:
+                    pre_month = 12
+                if pre_month == order_jalali_date.month: # MEH: Make sure its for previous month
+                    self.tmp_total_order_amount -= order.total_price
+                    percent = self.manual_percent
+                    if not percent:
+                        percent_list = CashBackPercent.objects.filter(min_amount__lte=self.tmp_total_order_amount,
+                                                                      min_amount__gt=self.tmp_total_order_amount)
+                        if percent_list.exists():
+                            percent = percent_list.first().percent
+                    self.tmp_cashback = self.tmp_total_order_amount * percent / 100
+                    self.set_cashback_in_history(reset=True) # Manually update history
+            self.save()
+        pass
+
+    def set_cashback_in_history(self, reset=False): # Auto run in celery beat task every month to set history (confirm = false)
+        jalali_now = jdatetime.datetime.fromgregorian(datetime=timezone.now())
+        history_date = jalali_now.replace(day=1) - jdatetime.timedelta(days=1)
+        history_year = history_date.year
+        history_month = history_date.month
+        key = f"{history_year}-{history_month:02}"
+        if not reset:
+            if self.history is None:
+                self.history = {}
+            self.history[key] = {
+                "year": history_year,
+                "month": history_month,
+                "cashback": self.now_cashback,
+                "total_order_amount": self.now_total_order_amount,
+                "percent": self.now_percent(),
+                "confirm": False
+            }
+            self.tmp_cashback = self.now_cashback
+            self.tmp_total_order_amount = self.now_total_order_amount
+            self.now_total_order_amount = 0
+            self.now_cashback = 0
+            self.last_confirm = False
+        else:
+            self.history[key]["cashback"] = self.tmp_cashback
+            self.history[key]["total_order_amount"] = self.tmp_total_order_amount
+            self.history[key]["percent"] = self.now_percent(old=True)
+        self.save()
+
+    def confirm_cashback(self, employee): # MEH: To confirm manually last history, then increase user credit (create deposit)
+        jalali_now = jdatetime.datetime.fromgregorian(datetime=timezone.now())
+        history_date = jalali_now.replace(day=1) - jdatetime.timedelta(days=1) # MEH: Previous month
+        history_year = history_date.year
+        history_month = history_date.month
+        key = f"{history_year}-{history_month:02}" # MEH: Like : 1404-11
+        if key not in self.history:# MEH: Just for make sure
+            raise ValidationError("Cashback for this period is not prepared yet.")
+        if self.history[key]["confirm"]: # MEH: Make sure, if already true, don't continue
+            self.last_confirm = True
+            self.save(update_fields=["last_confirm"])
+            return 0
+        if not self.is_active:
+            raise PermissionDenied("CashBack deactivate!")
+        self.history[key]["cashback"] = self.tmp_cashback
+        self.history[key]["total_order_amount"] = self.tmp_total_order_amount
+        self.history[key]["percent"] = self.now_percent(old=True)
+        self.history[key]["confirm"] = True
+        self.last_confirm = True
+        Deposit.objects.create(
+            total_price=self.tmp_cashback,
+            credit=self.credit,
+            submit_by=employee,
+            deposit_date=timezone.now(),
+            income=True,
+            transaction_type=TransactionType.CREDIT,
+            deposit_type=DepositType.CASHBACK,
+            confirm_status=DepositConfirmStatus.AUTO,
+            description=f' بازگشت سود اعتبار{key} کاربر {str(self.credit.owner)}',
+            tracking_code=f'{self.credit.owner.id}-{key}'
+        )
+        self.credit.update_total_amount(value=self.tmp_cashback)
+        value = self.tmp_cashback
+        self.tmp_cashback = 0
+        self.tmp_total_order_amount = 0
+        self.save()
+        return value
 
 
 class BankAccount(models.Model):
