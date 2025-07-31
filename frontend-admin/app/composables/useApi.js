@@ -1,69 +1,38 @@
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useAuth } from './useAuth'
 
-const user = ref(null)
-const loading = ref(true)
-const error = ref(null)
+export function useApi() {
+    const { logout, getToken, refreshToken } = useAuth()
+    const config = useRuntimeConfig()
 
-export function useAuth() {
-    const router = useRouter()
-    const isClient = process.client
+    const fetchWithAuth = async (url, options = {}) => {
+        if (!process.client) return { data: null, error: 'SSR' }
 
-    const loadUser = () => {
-        if (!isClient) return
-        const storedUser = localStorage.getItem('user')
-        if (storedUser) user.value = JSON.parse(storedUser)
-        loading.value = false
-    }
-
-    const saveUser = (userData) => {
-        user.value = userData
-        if (isClient) {
-            localStorage.setItem('user', JSON.stringify(userData))
+        options.headers = {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${getToken()}`
         }
-    }
 
-    const clearAuth = () => {
-        user.value = null
-        if (isClient) {
-            localStorage.removeItem('access_token')
-            localStorage.removeItem('refresh_token')
-            localStorage.removeItem('user')
-        }
-    }
-
-    const login = async ({ phone_number, password }) => {
-        error.value = null
         try {
-            const config = useRuntimeConfig()
-            const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
-                method: 'POST',
-                body: { phone_number, password, keep_me_signed_in: false },
-            })
-            if (res.access && res.user) {
-                localStorage.setItem('access_token', res.access)
-                localStorage.setItem('refresh_token', res.refresh)
-                saveUser(res.user)
-                await router.push('/dashboard')
-            } else {
-                error.value = 'توکن دریافت نشد.'
+            const data = await $fetch(`${config.public.apiBase}${url}`, options)
+            return { data, error: null }
+        } catch (err) {
+            if (err.response?.status === 401) {
+                const ok = await refreshToken()
+                if (ok) {
+                    options.headers.Authorization = `Bearer ${getToken()}`
+                    try {
+                        const data = await $fetch(`${config.public.apiBase}${url}`, options)
+                        return { data, error: null }
+                    } catch {
+                        await logout()
+                    }
+                } else {
+                    await logout()
+                }
             }
-        } catch (e) {
-            error.value = e?.data?.detail || 'خطا در ورود. لطفاً دوباره تلاش کنید.'
+            return { data: null, error: err }
         }
     }
 
-    const logout = async () => {
-        clearAuth()
-        await router.push('/login')
-    }
-
-    // Run loadUser only on client mount
-    if (isClient) {
-        onMounted(() => loadUser())
-    } else {
-        loading.value = false // no user on server
-    }
-
-    return { user, loading, error, login, logout, clearAuth }
+    return { fetchWithAuth }
 }

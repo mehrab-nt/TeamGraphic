@@ -1,18 +1,18 @@
-import { useAuth } from '../composables/useAuth'
+export default defineNuxtRouteMiddleware(async (to) => {
+  const { user, loadUser } = useAuth()
 
-export default defineNuxtRouteMiddleware(async (to, from) => {
-  const { user, loading } = useAuth()
-
-  // Wait until loading completes before redirecting
-  while (loading.value) {
-    await new Promise(r => setTimeout(r, 50))
+  // Always hydrate user on client
+  if (process.client && !user.value) {
+    loadUser()
   }
 
-  if (to.path === '/login' && user.value) {
-    return navigateTo('/dashboard')
-  }
-
+  // If unauthenticated on a protected route
   if (to.path !== '/login' && !user.value) {
     return navigateTo('/login')
+  }
+
+  // If already authenticated and visiting login
+  if (to.path === '/login' && user.value) {
+    return navigateTo('/dashboard')
   }
 })

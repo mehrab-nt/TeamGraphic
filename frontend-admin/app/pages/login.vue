@@ -16,7 +16,11 @@ import { useAuth } from '~/composables/useAuth'
 
 const phone_number = ref('')
 const password = ref('')
-const { login, error, loading } = useAuth()
+const { user, loading, login, logout, loadUser } = useAuth()
+
+onMounted(() => {
+  loadUser()
+})
 
 const onSubmit = async () => {
   await login({ phone_number: phone_number.value, password: password.value })

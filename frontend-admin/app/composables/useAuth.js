@@ -1,72 +1,57 @@
-import { ref, watch } from 'vue'
+import { useState } from '#imports'
 import { useRouter } from 'vue-router'
 
-const user = ref(null)
-const loading = ref(true)
-const error = ref(null)
-
-export function useAuth() {
+export const useAuth = () => {
+    const user = useState('authUser', () => null)
     const router = useRouter()
 
-    // Check if running on client
-    const isClient = process.client
-
-    // Load user from localStorage on client
     const loadUser = () => {
-        if (!isClient) return
-        const storedUser = localStorage.getItem('user')
-        if (storedUser) {
-            user.value = JSON.parse(storedUser)
-        }
-        loading.value = false
-    }
-
-    // Save user to localStorage
-    const saveUser = (userData) => {
-        user.value = userData
-        if (isClient) {
-            localStorage.setItem('user', JSON.stringify(userData))
-        }
-    }
-
-    // Clear user and tokens
-    const clearAuth = () => {
-        user.value = null
-        if (isClient) {
-            localStorage.removeItem('access_token')
-            localStorage.removeItem('refresh_token')
-            localStorage.removeItem('user')
+        if (process.client) {
+            const stored = localStorage.getItem('user')
+            user.value = stored ? JSON.parse(stored) : null
         }
     }
 
     const login = async ({ phone_number, password }) => {
-        error.value = null
-        try {
-            const config = useRuntimeConfig()
-            const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
-                method: 'POST',
-                body: { phone_number, password, keep_me_signed_in: false },
-            })
-            if (res.access && res.user) {
-                localStorage.setItem('access_token', res.access)
-                localStorage.setItem('refresh_token', res.refresh)
-                saveUser(res.user)
-                await router.push('/dashboard')
-            } else {
-                error.value = 'توکن دریافت نشد.'
-            }
-        } catch (e) {
-            error.value = e?.data?.detail || 'خطا در ورود. لطفاً دوباره تلاش کنید.'
+        const config = useRuntimeConfig()
+        const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
+            method: 'POST',
+            body: { phone_number, password, keep_me_signed_in: false }
+        })
+        if (res.access && res.user) {
+            localStorage.setItem('access_token', res.access)
+            localStorage.setItem('refresh_token', res.refresh)
+            localStorage.setItem('user', JSON.stringify(res.user))
+            user.value = res.user
+            await router.push('/dashboard')
+        } else {
+            throw new Error('Login failed')
         }
     }
 
     const logout = async () => {
-        clearAuth()
+        user.value = null
+        if (process.client) localStorage.clear()
         await router.push('/login')
     }
 
-    // Initialize on composable use
-    if (loading.value) loadUser()
+    const getToken = () => process.client ? localStorage.getItem('access_token') : null
+    const refreshToken = async () => {
+        const token = process.client ? localStorage.getItem('refresh_token') : null
+        if (!token) return false
+        const config = useRuntimeConfig()
+        try {
+            const res = await $fetch(`${config.public.apiBase}user/token/refresh/`, {
+                method: 'POST',
+                body: { refresh: token }
+            })
+            if (res.access) {
+                localStorage.setItem('access_token', res.access)
+                return true
+            }
+        } catch {}
+        return false
+    }
 
-    return { user, loading, error, login, logout, clearAuth }
+    return { user, loadUser, login, logout, getToken, refreshToken }
 }
