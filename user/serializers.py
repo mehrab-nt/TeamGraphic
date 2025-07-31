@@ -206,7 +206,7 @@ class UserSignInWithPasswordSerializer(CustomModelSerializer):
         if not user:
             raise serializers.ValidationError(TG_SIGNIN_ERROR)
         data['user'] = user
-        return user
+        return data
 
     def create(self, validated_data, **kwargs):
         user = validated_data['user']

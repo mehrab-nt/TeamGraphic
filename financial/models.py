@@ -105,7 +105,7 @@ class DepositType(models.TextChoices):
     MANUAL_CREDIT = 'INC', 'اعتبار دستی'
 
 class TransactionType(models.TextChoices):
-    ONLINE = 'ONL', 'پرداخت آنلاین'
+    ONLINE = 'ONL', 'درگاه پرداخت آنلاین'
     CARD = 'CRD', 'کارت به کارت'
     CASH =  'CSH', 'نقد'
     POS = 'POS', 'کارتخوان'

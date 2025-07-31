@@ -227,7 +227,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if response_data_back: # MEH: If wanting data in response
-            return Response({'detail': created_data}, status=status.HTTP_202_ACCEPTED)
+            return Response(created_data, status=status.HTTP_202_ACCEPTED)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 
     def custom_update(self, instance, request, partial=False, response_data_back=None, **kwargs):

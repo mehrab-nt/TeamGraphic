@@ -139,6 +139,10 @@ MIDDLEWARE = [
     'silk.middleware.SilkyMiddleware',
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+]
+
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [

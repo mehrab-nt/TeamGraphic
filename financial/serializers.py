@@ -104,6 +104,15 @@ class DepositPendingListSerializer(DepositSerializer):
                   'confirm_status', 'confirm_status_display', 'submit_by_display', 'description', 'tracking_code', 'bank_display']
 
 
+class DepositOnlineListSerializer(DepositSerializer):
+    """
+    MEH: Deposit Online List
+    """
+    class Meta:
+        model = Deposit
+        fields = ['id', 'user', 'user_display', 'total_price', 'online_status', 'submit_date', 'bank', 'bank_display', 'tracking_code']
+
+
 class DepositPendingSetStatusSerializer(CustomModelSerializer):
     """
     MEH: Deposit Pending for update confirm status (Confirm or Reject)
@@ -164,7 +173,10 @@ class DepositCreateSerializer(CustomModelSerializer):
     def create(self, validated_data):
         user = validated_data.pop('user')
         validated_data['credit'] = user.credit
-        return super().create(validated_data)
+        deposit = super().create(validated_data)
+        if deposit.confirm_status == DepositConfirmStatus.AUTO:
+            deposit.credit.update_total_amount(deposit.display_price())
+        return deposit
 
 
 class DepositCreateInPersonSerializer(DepositCreateSerializer):
@@ -235,7 +247,7 @@ class CreditSerializer(CustomModelSerializer):
 
     def get_deposit_list(self, obj):
         request = self.context.get('request')
-        deposit_list = obj.deposit_list.all().filter(confirm_status=DepositConfirmStatus.CONFIRMED) # MEH: Filter only Confirmed deposit
+        deposit_list = obj.deposit_list.all().filter(confirm_status__in=[DepositConfirmStatus.CONFIRMED, DepositConfirmStatus.AUTO]) # MEH: Filter only Confirmed deposit
         filter_qs = DepositFilter(request.GET, queryset=deposit_list).qs # MEH: Filter in request param
         view = self.context.get('view')
         page = view.paginator.paginate_queryset(filter_qs, request, view=view) # MEH: use viewset pagination setting for nested deposit list
