@@ -26,7 +26,7 @@ from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParamet
 from drf_spectacular.types import OpenApiTypes
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
-from api.serializers import BulkDeleteSerializer, ApiCategorySerializer
+from api.serializers import BulkListSerializer, ApiCategorySerializer
 from file_manager.excel_handler import ExcelHandler
 from message.models import WebMessage, WebMessageType
 from message.serializers import WebMessageSerializer
@@ -521,13 +521,13 @@ class RoleViewSet(CustomMixinModelViewSet):
 
     @extend_schema(summary='Delete a list of Role')
     @extend_schema(
-        request=BulkDeleteSerializer,
+        request=BulkListSerializer,
         responses={
            200: OpenApiResponse(description="Successfully deleted List."),
            400: OpenApiResponse(description="Invalid IDs or constraint violation."),
         },
     )
-    @action(detail=False, methods=['post'], serializer_class=BulkDeleteSerializer,
+    @action(detail=False, methods=['post'], serializer_class=BulkListSerializer,
             url_path='bulk-delete')
     def bulk_delete(self, request):
         """

@@ -3,17 +3,7 @@ from django.dispatch import receiver
 from django.db.models import F
 from django.core.cache import cache
 from .models import Role, User, UserProfile
-from financial.models import Credit
-
-
-# @receiver(post_delete, sender=Role)
-# def role_post_delete(sender, instance, **kwargs):
-#     """
-#     MEH: Lessen if default role remove! why?
-#     """
-#     default_role = Role.objects.filter(is_default=True).first()
-#     if default_role:
-#         User.objects.filter(role__isnull=True, is_employee=False).update(role=default_role)
+from financial.models import Credit, CashBack
 
 
 @receiver(post_save, sender=User)

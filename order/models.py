@@ -102,6 +102,7 @@ class Order(models.Model):
     # preview = models.ImageField(upload_to="previews/", blank=False, null=False)
     # alt = models.CharField(max_length=73, validators=[validators.MinLengthValidator(3)],
     #                        blank=False, null=False)
+    submit_date = models.DateTimeField(blank=True, null=True, verbose_name='Submit Date')
     ready_date = models.DateField(blank=True, null=True, verbose_name='Ready Date')
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
