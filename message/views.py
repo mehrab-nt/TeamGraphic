@@ -5,6 +5,8 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from api.responses import TG_DATA_NOT_FOUND
+from api.serializers import SendSignalSerializer
+from api.responses import TG_DATA_SET
 from .models import AlarmMessage, Department, SmsMessage, WebMessage, MessageStatus, MessageType, WebMessageContent, \
     WebMessageType
 from .serializers import AlarmMessageSerializer, DepartmentSerializer, SmsMessageSerializer, \
@@ -74,13 +76,16 @@ class WebMessageViewSet(CustomMixinModelViewSet):
     required_api_keys = {
         '__all__': ['message_manager'],
         'destroy': ['delete_message'],
-        **dict.fromkeys(['list', 'retrieve'], ['message_manager', 'customer_message']),
-        ** dict.fromkeys(['request_message', 'user_response'], ['customer_message'])
+        **dict.fromkeys(['list', 'retrieve'], ['message_manager', 'customer_message', 'delete_message']),
+        ** dict.fromkeys(['request_message', 'user_response'], ['customer_message']),
+        'send_group_message': ['send_group_message']
     }
     cache_key = 'web_message_list'
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('user', 'department', 'employee')
+        if self.action in ['employee_response', 'user_response']:
+            qs = qs.exclude(status=MessageStatus.ENDED)
         user = self.request.user
         if user.is_superuser:
             return qs
@@ -147,6 +152,17 @@ class WebMessageViewSet(CustomMixinModelViewSet):
         """
         web_message = self.get_object(pk=pk)
         return self.custom_create(request, parent=web_message, type=MessageType.RECEIVE, status=MessageStatus.PENDING)
+
+    @action(detail=True, methods=['post'], http_method_names=['post'],
+            url_path='set-closed', serializer_class=SendSignalSerializer, filter_backends=[None])
+    def set_closed(self, request, pk=None):
+        """
+        MEH: Employee send signal to close web message
+        """
+        web_message = self.get_object(pk=pk)
+        web_message.status = MessageStatus.ENDED
+        web_message.save(update_fields=['status'])
+        return Response({"detail": TG_DATA_SET, "results": {"web_message": str(web_message), "status": web_message.status}}, status=status.HTTP_201_CREATED)
 
     @action(detail=False, methods=['post'], http_method_names = ['post'],
             url_path='send-group-message', serializer_class=WebMessageGroupSendingSerializer, filter_backends=[None])
