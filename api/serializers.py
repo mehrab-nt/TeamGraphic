@@ -16,7 +16,11 @@ class SendSignalSerializer(serializers.Serializer):
     """
     MEH: For post just empty, to do some job
     """
-    MEH: Get a list of IDs for bulk delete
+
+
+class BulkListSerializer(serializers.Serializer):
+    """
+    MEH: Get a list of IDs for bulk delete or update
     """
     ids = serializers.ListField(child=serializers.IntegerField(), allow_empty=False, required=True)
 
