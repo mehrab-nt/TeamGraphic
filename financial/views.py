@@ -3,9 +3,9 @@ from rest_framework import filters
 from rest_framework.decorators import action
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkListSerializer, SendSignalSerializer
-from .models import Company, Deposit, DepositConfirmStatus, BankAccount, CashBackPercent, CashBack
+from .models import Company, Deposit, DepositConfirmStatus, BankAccount, CashBackPercent, CashBack, DepositType
 from api.permissions import ApiAccess
-from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, \
+from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, DepositOnlineListSerializer, \
     DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer, CompanyBriefSerializer, \
     BankAccountSerializer, BankAccountBriefSerializer, CashBackPercentSerializer, CashBackSerializer
 from django_filters.rest_framework import DjangoFilterBackend
@@ -51,7 +51,12 @@ class DepositViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['description']
     permission_classes = [ApiAccess]
-    required_api_keys = {} # MEH: Empty mean just Admin can Access
+    required_api_keys = {
+        '__all__': ['financial_document'],
+        **dict.fromkeys(['pending_list', 'pending_deposit_set_status', 'retrieve',], ['pending_list']),
+        'online_list': ['online_list', 'retrieve'],
+        'create_deposit': ['create_deposit']
+    }
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -93,6 +98,15 @@ class DepositViewSet(CustomMixinModelViewSet):
         """
         deposit = self.get_object(pk=pk)
         return self.custom_update(deposit, request, partial=(request.method == 'PATCH'))
+
+    @action(detail=False, methods=['get'],
+            url_path='online-list', serializer_class=DepositOnlineListSerializer, filter_backends=[None])
+    def online_list(self, request):
+        """
+        MEH: Deposit Online List View for check
+        """
+        deposit_list = self.get_queryset().select_related('bank').filter(deposit_type=DepositType.WEBSITE)
+        return self.custom_get(deposit_list)
 
 
 @extend_schema(tags=['Financial'])
