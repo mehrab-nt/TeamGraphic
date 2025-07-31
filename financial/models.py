@@ -45,8 +45,8 @@ class Company(models.Model):
 class Credit(models.Model):
     total_amount = models.BigIntegerField(default=0,
                                           blank=False, null=False, verbose_name='Total Amount')
-    total_coin = models.PositiveIntegerField(default=0,
-                                             blank=False, null=False, verbose_name='Total Coin')
+    last_update = models.DateTimeField(auto_now=True,
+                                       blank=False, null=False, verbose_name='Last Update')
     owner = models.OneToOneField(User, on_delete=models.CASCADE,
                                  blank=False, null=False,
                                  related_name='credit')
@@ -62,67 +62,17 @@ class Credit(models.Model):
     def update_total_amount(self, value):
         self.total_amount += value
         self.save(update_fields=['total_amount'])
-
-
-class CoinStatus(models.TextChoices):
-    ACTIVE = 'ACT', 'فعال'
-    EXPIRED = 'EXP', 'منقضی'
-    USED = 'USE', 'استفاده شده'
-
-
-class Coin(models.Model):
-    base_coin_amount = models.PositiveSmallIntegerField(blank=False, null=False, verbose_name='Base Coin Amount')
-    now_coin_amount = models.PositiveSmallIntegerField(blank=False, null=False, verbose_name='Now Coin Amount')
-    description = models.TextField(max_length=78,
-                                   blank=False, null=False)
-    reg_date = models.DateField(default=timezone.now,
-                                blank=False, null=False, verbose_name='Reg Date')
-    exp_date = models.DateField(blank=False, null=False, verbose_name='Exp Date')
-    status = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                              choices=CoinStatus.choices, default=CoinStatus.ACTIVE,
-                              blank=False, null=False)
-    credit = models.ForeignKey(Credit, on_delete=models.CASCADE,
-                               blank=False, null=False,
-                               related_name='coin_list')
-
-    class Meta:
-        ordering = ['-reg_date', 'credit']
-        verbose_name = 'Coin'
-        verbose_name_plural = 'Coins'
-
-    def __str__(self):
-        return f'Coin #{self.base_coin_amount} /For: {self.credit.owner}'
-
-
-class CashBackPercent(models.Model):
-    percent = models.FloatField(blank=False, null=False)
-    min_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Min Amount')
-    max_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Max Amount')
-
-    class Meta:
-        ordering = ['-percent']
-        verbose_name = 'Cash Back Percent'
-        verbose_name_plural = 'Cash Back Percents'
-
-    def __str__(self):
-        return f'Cash Back Percent: #{self.percent}'
-
-
-class CashBack(models.Model):
-    tmp_cashback = models.PositiveIntegerField(blank=False, null=False, verbose_name='Tmp Cashback')
-    total_order_amount = models.BigIntegerField(blank=False, null=False, verbose_name='Total Order Amount')
-    percent = models.ForeignKey(CashBackPercent, on_delete=models.PROTECT, blank=False, null=False)
-    now_cashback = models.PositiveIntegerField(blank=False, null=False, verbose_name='Now Cashback')
-    credit = models.OneToOneField('Credit', on_delete=models.PROTECT,
-                                  blank=False, null=False,
-                                  related_name='cashback')
-
-    class Meta:
-        verbose_name = 'Cash Back'
-        verbose_name_plural = 'Cash Backs'
-
-    def __str__(self):
-        return f'Cash Back For: {self.credit.owner}'
+    
+    def validate_total_amount(self):
+        deposit_list = self.deposit_list.all()
+        value = 0
+        for deposit in deposit_list:
+            if deposit.income:
+                value += deposit.total_price
+            else:
+                value -= deposit.total_price
+        self.total_amount = value
+        self.save(update_fields=['total_amount'])
 
 
 class DepositConfirmStatus(models.TextChoices):
@@ -173,12 +123,14 @@ class Deposit(models.Model):
     credit = models.ForeignKey(Credit, on_delete=models.CASCADE,
                                blank=False, null=False, related_name='deposit_list')
     submit_date = models.DateTimeField(auto_now_add=True,
-                                            blank=False, null=False, verbose_name='Submit Date')
+                                       blank=False, null=False, verbose_name='Submit Date')
     submit_by = models.ForeignKey(Employee, on_delete=models.PROTECT,
                                   blank=True, null=True, verbose_name='Submit By',
                                   related_name='deposit_submit_list')
     deposit_date = models.DateTimeField(blank=True, null=True, verbose_name='Deposit Date')
     income = models.BooleanField(default=True, blank=False, null=False)
+    official_invoice = models.BooleanField(default=False,
+                                           blank=False, null=False, verbose_name='Official Invoice')
     transaction_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                         choices=TransactionType.choices)
     deposit_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
@@ -397,6 +349,8 @@ class BankAccount(models.Model):
                                            blank=True, null=True, verbose_name='Bank Account Number')
     accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name="Accounting ID")
     detail = models.JSONField(default=dict, blank=True, null=True)
+    official_invoice = models.BooleanField(default=False,
+                                           blank=False, null=False, verbose_name='Official Invoice')
 
     class Meta:
         ordering = ['-sort_number']
