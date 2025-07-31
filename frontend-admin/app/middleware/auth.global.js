@@ -1,18 +1,10 @@
+// app/middleware/auth.global.js
+import { useAuth } from '~/composables/useAuth'
+
 export default defineNuxtRouteMiddleware(async (to) => {
-  const { user, loadUser } = useAuth()
+    const { user, loadUser } = useAuth()
+    if (process.client && !user.value) loadUser()
 
-  // Always hydrate user on client
-  if (process.client && !user.value) {
-    loadUser()
-  }
-
-  // If unauthenticated on a protected route
-  if (to.path !== '/login' && !user.value) {
-    return navigateTo('/login')
-  }
-
-  // If already authenticated and visiting login
-  if (to.path === '/login' && user.value) {
-    return navigateTo('/dashboard')
-  }
+    if (to.path === '/login' && user.value) return navigateTo('/dashboard')
+    if (to.path !== '/login' && !user.value) return navigateTo('/login')
 })

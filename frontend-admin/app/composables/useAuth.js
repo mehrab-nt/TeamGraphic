@@ -1,3 +1,4 @@
+// app/composables/useAuth.js
 import { useState } from '#imports'
 import { useRouter } from 'vue-router'
 
@@ -7,8 +8,8 @@ export const useAuth = () => {
 
     const loadUser = () => {
         if (process.client) {
-            const stored = localStorage.getItem('user')
-            user.value = stored ? JSON.parse(stored) : null
+            const raw = localStorage.getItem('user')
+            user.value = raw ? JSON.parse(raw) : null
         }
     }
 
@@ -16,7 +17,7 @@ export const useAuth = () => {
         const config = useRuntimeConfig()
         const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
             method: 'POST',
-            body: { phone_number, password, keep_me_signed_in: false }
+            body: { phone_number, password, keep_me_signed_in: false },
         })
         if (res.access && res.user) {
             localStorage.setItem('access_token', res.access)
@@ -24,8 +25,6 @@ export const useAuth = () => {
             localStorage.setItem('user', JSON.stringify(res.user))
             user.value = res.user
             await router.push('/dashboard')
-        } else {
-            throw new Error('Login failed')
         }
     }
 
@@ -35,7 +34,7 @@ export const useAuth = () => {
         await router.push('/login')
     }
 
-    const getToken = () => process.client ? localStorage.getItem('access_token') : null
+    const getToken = () => (process.client ? localStorage.getItem('access_token') : null)
     const refreshToken = async () => {
         const token = process.client ? localStorage.getItem('refresh_token') : null
         if (!token) return false
@@ -43,14 +42,13 @@ export const useAuth = () => {
         try {
             const res = await $fetch(`${config.public.apiBase}user/token/refresh/`, {
                 method: 'POST',
-                body: { refresh: token }
+                body: { refresh: token },
             })
-            if (res.access) {
-                localStorage.setItem('access_token', res.access)
-                return true
-            }
-        } catch {}
-        return false
+            if (res.access) localStorage.setItem('access_token', res.access)
+            return true
+        } catch {
+            return false
+        }
     }
 
     return { user, loadUser, login, logout, getToken, refreshToken }

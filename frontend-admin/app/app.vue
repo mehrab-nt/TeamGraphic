@@ -1,20 +1,20 @@
 <template>
-  <div>
-    <NuxtLayout />
-    <NuxtPage />
+  <div v-if="loading" class="min-h-screen flex items-center justify-center">
+    <p>Loading...</p>
   </div>
+  <NuxtLayout v-else>
+    <NuxtPage />
+  </NuxtLayout>
 </template>
 
 <script setup>
-const ready = ref(false)
+import { useAuth } from '~/composables/useAuth'
+import { ref, onMounted } from 'vue'
+const { user, loadUser } = useAuth()
+const loading = ref(true)
 
 onMounted(() => {
-  const token = localStorage.getItem('access_token')
-  if (token || window.location.pathname === '/login') {
-    ready.value = true
-  } else {
-    // Don't render anything until middleware kicks in
-    navigateTo('/login')
-  }
+  loadUser()
+  loading.value = false
 })
 </script>

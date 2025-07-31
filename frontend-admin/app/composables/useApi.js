@@ -1,37 +1,34 @@
 import { useAuth } from './useAuth'
 
 export function useApi() {
-    const { logout, getToken, refreshToken } = useAuth()
-    const config = useRuntimeConfig()
+    const { getAccessToken, tryRefreshToken } = useAuth()
 
-    const fetchWithAuth = async (url, options = {}) => {
-        if (!process.client) return { data: null, error: 'SSR' }
+    async function fetchWithAuth(url, options = {}) {
+        let token = getAccessToken()
+        if (!options.headers) options.headers = {}
+        options.headers.Authorization = `Bearer ${token}`
 
-        options.headers = {
-            ...(options.headers || {}),
-            Authorization: `Bearer ${getToken()}`
-        }
-
-        try {
-            const data = await $fetch(`${config.public.apiBase}${url}`, options)
-            return { data, error: null }
-        } catch (err) {
-            if (err.response?.status === 401) {
-                const ok = await refreshToken()
-                if (ok) {
-                    options.headers.Authorization = `Bearer ${getToken()}`
-                    try {
-                        const data = await $fetch(`${config.public.apiBase}${url}`, options)
-                        return { data, error: null }
-                    } catch {
-                        await logout()
-                    }
+        let res = await fetch(process.env.PUBLIC_API_BASE + url, options)
+        if (res.status === 401) {
+            // Try refresh token once
+            if (tryRefreshToken) {
+                const refreshed = await tryRefreshToken()
+                if (refreshed) {
+                    token = getAccessToken()
+                    options.headers.Authorization = `Bearer ${token}`
+                    res = await fetch(process.env.PUBLIC_API_BASE + url, options)
                 } else {
-                    await logout()
+                    throw new Error('Unauthorized and refresh failed')
                 }
+            } else {
+                throw new Error('Unauthorized and no refresh function')
             }
-            return { data: null, error: err }
         }
+        if (!res.ok) {
+            const error = await res.json()
+            throw error
+        }
+        return await res.json()
     }
 
     return { fetchWithAuth }
