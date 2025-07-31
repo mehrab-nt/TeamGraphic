@@ -30,6 +30,11 @@ class CompanyViewSet(CustomMixinModelViewSet):
     permission_classes = [ApiAccess]
     required_api_keys = {} # MEH: Empty mean just Admin can Access
 
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return CompanyBriefSerializer
+        return super().get_serializer_class()
+
 
 @extend_schema(tags=['Financial'])
 class DepositViewSet(CustomMixinModelViewSet):

@@ -28,6 +28,15 @@ class CompanySerializer(CustomModelSerializer):
         return data
 
 
+class CompanyBriefSerializer(CompanySerializer):
+    """
+    MEH: Company brief information
+    """
+    class Meta:
+        model = Company
+        fields = ['id', 'agent', 'agent_display', 'name', 'province_display', 'city_display', 'phone_number']
+
+
 class DepositSerializer(CustomModelSerializer):
     """
     MEH: Deposit Full information
