@@ -1,8 +1,19 @@
-// https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2025-07-15',
-  devtools: { enabled: true },
+  vite: {
+    server: {
+      proxy: {
+        // Proxy all /api requests to your Django backend
+        '/api': {
+          target: 'http://localhost:8000',
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
+        },
+      },
+    },
+  },
   runtimeConfig: {
-    public: { apiBase: 'http://localhost:8000/api/' }
-  }
+    public: {
+      apiBase: '/api/', // use proxy, so relative URL works
+    },
+  },
 })

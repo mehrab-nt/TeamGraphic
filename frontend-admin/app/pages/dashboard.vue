@@ -1,13 +1,41 @@
+<script setup>
+import { ref, onMounted } from 'vue'
+import { useApi } from '~/composables/useApi'
+
+const users = ref([])
+const error = ref(null)
+const loading = ref(false)
+
+const { fetchWithAuth } = useApi()
+
+onMounted(async () => {
+  loading.value = true
+  error.value = null
+  try {
+    const res = await fetchWithAuth('user/')
+    users.value = res.results || []
+  } catch (e) {
+    error.value = e.detail || e.message || 'Unknown error'
+  } finally {
+    loading.value = false
+  }
+})
+
+import { useAuth } from '~/composables/useAuth'
+
+const { logout } = useAuth()
+</script>
+
 <template>
+  <button @click="logout">Logout</button>
   <div>
-    <nav>
-      <button @click="logout">Logout</button>
-    </nav>
-    <h1>Welcome, {{ user.id }}</h1>
+    <h1>User List</h1>
+    <p v-if="loading">Loading users...</p>
+    <p v-if="error" style="color:red;">{{ error }}</p>
+    <ul v-if="!loading && !error">
+      <li v-for="user in users" :key="user.id">
+        {{ user.phone_number || user.first_name || 'No phone' }}
+      </li>
+    </ul>
   </div>
 </template>
-
-<script setup>
-import { useAuth } from '~/composables/useAuth'
-const { user, logout } = useAuth()
-</script>

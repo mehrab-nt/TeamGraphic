@@ -1,4 +1,3 @@
-// app/composables/useAuth.js
 import { useState } from '#imports'
 import { useRouter } from 'vue-router'
 
@@ -34,22 +33,28 @@ export const useAuth = () => {
         await router.push('/login')
     }
 
-    const getToken = () => (process.client ? localStorage.getItem('access_token') : null)
+    const getAccessToken = () => (process.client ? localStorage.getItem('access_token') : null)
+
     const refreshToken = async () => {
-        const token = process.client ? localStorage.getItem('refresh_token') : null
+        if (!process.client) return false
+        const token = localStorage.getItem('refresh_token')
         if (!token) return false
+
         const config = useRuntimeConfig()
         try {
-            const res = await $fetch(`${config.public.apiBase}user/token/refresh/`, {
+            const res = await $fetch(`${config.public.apiBase}token/refresh/`, {
                 method: 'POST',
                 body: { refresh: token },
             })
-            if (res.access) localStorage.setItem('access_token', res.access)
-            return true
+            if (res.access) {
+                localStorage.setItem('access_token', res.access)
+                return true
+            }
+            return false
         } catch {
             return false
         }
     }
 
-    return { user, loadUser, login, logout, getToken, refreshToken }
+    return { user, loadUser, login, logout, getAccessToken, refreshToken }
 }

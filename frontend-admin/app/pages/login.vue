@@ -21,8 +21,17 @@ const { login } = useAuth()
 const onSubmit = async () => {
   try {
     await login({ phone_number: phone.value, password: pass.value })
+    error.value = null
   } catch (e) {
-    error.value = 'Login failed'
+    if (e.data.detail) {
+      error.value = e.data.detail
+    } else if (e.detail) {
+      error.value = e.detail
+    } else if (e.data) {
+      error.value = Object.values(e.data).flat().join(' | ')
+    } else {
+      error.value = 'خطای ناشناخته'
+    }
   }
 }
 </script>

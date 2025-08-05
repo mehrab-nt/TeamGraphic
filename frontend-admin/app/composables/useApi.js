@@ -1,34 +1,49 @@
 import { useAuth } from './useAuth'
 
 export function useApi() {
-    const { getAccessToken, tryRefreshToken } = useAuth()
+    const { getAccessToken, refreshToken, logout } = useAuth()
 
     async function fetchWithAuth(url, options = {}) {
         let token = getAccessToken()
+
+        if (!token) {
+            // No access token at all
+            throw new Error('No access token found. Please login.')
+        }
+
         if (!options.headers) options.headers = {}
         options.headers.Authorization = `Bearer ${token}`
 
-        let res = await fetch(process.env.PUBLIC_API_BASE + url, options)
+        const config = useRuntimeConfig()
+        let res = await fetch(config.public.apiBase + url, options)
+
         if (res.status === 401) {
-            // Try refresh token once
-            if (tryRefreshToken) {
-                const refreshed = await tryRefreshToken()
-                if (refreshed) {
-                    token = getAccessToken()
-                    options.headers.Authorization = `Bearer ${token}`
-                    res = await fetch(process.env.PUBLIC_API_BASE + url, options)
-                } else {
-                    throw new Error('Unauthorized and refresh failed')
-                }
+            // Try to refresh token once
+            const refreshed = await refreshToken()
+            if (refreshed) {
+                token = getAccessToken()
+                options.headers.Authorization = `Bearer ${token}`
+                res = await fetch(config.public.apiBase + url, options)
             } else {
-                throw new Error('Unauthorized and no refresh function')
+                // If refresh failed, logout user
+                await logout()
+                throw new Error('Unauthorized: Token expired and refresh failed.')
             }
         }
-        if (!res.ok) {
-            const error = await res.json()
-            throw error
+
+        let data
+        try {
+            data = await res.json()
+        } catch (e) {
+            throw new Error('Response is not JSON')
         }
-        return await res.json()
+
+        if (!res.ok) {
+            // API error, throw JSON error
+            throw data
+        }
+
+        return data
     }
 
     return { fetchWithAuth }
