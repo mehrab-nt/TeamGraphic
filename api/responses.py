@@ -51,3 +51,4 @@ TG_DONT_ALLOW_FILE = 'برای آپلود فایل نیاز به دسترسی د
 TG_WAIT_FOR_RESPONSE = 'لطفا منتظر پاسخ بمانید'
 TG_MESSAGE_CLOSED = 'این گفت و گو بسته شده است.'
 TG_DATA_SET = 'با موفقیت ثبت شد.'
+TG_SIGN_OUT = 'با موفقیت خارج شدید'

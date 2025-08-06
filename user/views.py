@@ -17,7 +17,8 @@ from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer
     UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
     UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
     UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, \
-    UserAccountingSerializer, AddressSerializer, AddressBriefSerializer, IntroductionSerializer, RoleSerializer
+    UserAccountingSerializer, AddressSerializer, AddressBriefSerializer, IntroductionSerializer, RoleSerializer, \
+    UserSignOutRequestSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -95,7 +96,7 @@ class UserViewSet(CustomMixinModelViewSet):
                 return  super().get_queryset()
             qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
             if self.action == 'list':
-                return qs.select_related('role').prefetch_related('credit', 'company')
+                return qs.select_related('role', 'credit', 'company')
             if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
                 return qs
             if self.action == 'accounting':
@@ -202,6 +203,25 @@ class UserViewSet(CustomMixinModelViewSet):
         Only User that not authenticated have permission
         """
         return self.custom_create(request, response_data_back=True)
+
+    @extend_schema(
+        tags=['Auth'],
+        summary="Sign Out request",
+        responses={
+            205: OpenApiResponse(description="Successfully logged out."),
+            400: OpenApiResponse(description="Invalid or missing refresh token."),
+        }
+    )
+    @action(detail=False, methods=['post'],
+            url_path='sign-out-request', serializer_class=UserSignOutRequestSerializer, filter_backends=[None],
+            permission_classes=[IsOwner])
+    def sign_out_request(self, request):
+        """
+        MEH: User request Sign Out (POST ACTION) and send valid refresh token
+        Only User that authenticated have permission.
+        """
+        self.get_validate_data(request.data)
+        return Response({"detail": TG_SIGN_OUT}, status=status.HTTP_205_RESET_CONTENT)
 
     @extend_schema(tags=['Auth'], summary="Change Password request")
     @action(detail=True, methods=['put'],

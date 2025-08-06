@@ -28,6 +28,21 @@ export const useAuth = () => {
     }
 
     const logout = async () => {
+        const refresh = process.client ? localStorage.getItem('refresh_token') : null
+        const config = useRuntimeConfig()
+        if (refresh) {
+            try {
+                await $fetch(`${config.public.apiBase}user/sign-out-request/`, {
+                    method: 'POST',
+                    body: { refresh },
+                    headers: {
+                        Authorization: `Bearer ${getAccessToken()}`,
+                    },
+                })
+            } catch (e) {
+                console.warn('Logout failed', e)
+            }
+        }
         user.value = null
         if (process.client) localStorage.clear()
         await router.push('/login')

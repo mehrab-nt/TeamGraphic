@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
-from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
@@ -239,6 +239,18 @@ class UserSignInWithPasswordSerializer(UserSignInRequestSerializer):
                 'id': user.id,
             }
         }
+
+
+class UserSignOutRequestSerializer(serializers.Serializer):
+    refresh = serializers.CharField(required=True)
+
+    def validate(self, data):
+        try:
+            token = RefreshToken(data.get('refresh'))
+            token.blacklist()
+            return data
+        except TokenError as e:
+            raise serializers.ValidationError(e.args[0])
 
 
 class UserChangePasswordSerializer(CustomModelSerializer):
