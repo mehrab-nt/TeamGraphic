@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
 from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from datetime import timedelta, datetime, timezone
@@ -128,6 +129,26 @@ class UserSignInRequestSerializer(UserSignUpRequestSerializer):
             return data
         raise serializers.ValidationError(TG_SIGNIN_ERROR)
 
+    @staticmethod
+    def increase_refresh_exp_date(refresh, user, days=30):
+        now = datetime.now(timezone.utc)
+        custom_lifetime = timedelta(days=days)
+        refresh.set_exp(from_time=now, lifetime=custom_lifetime)
+        refresh.access_token.set_exp(from_time=now, lifetime=custom_lifetime)
+        try:
+            db_token = OutstandingToken.objects.get(jti=refresh['jti'])
+            db_token.expires_at = now + custom_lifetime
+            db_token.save()
+        except OutstandingToken.DoesNotExist:
+            OutstandingToken.objects.create(
+                user=user,
+                jti=refresh['jti'],
+                token=str(refresh),
+                created_at=now,
+                expires_at=now + custom_lifetime
+            )
+        return refresh
+
 
 class UserSignInWithCodeSerializer(UserSignInRequestSerializer):
     """
@@ -158,8 +179,9 @@ class UserSignInWithCodeSerializer(UserSignInRequestSerializer):
             user.phone_number_verified = True
             user.save(update_fields=['phone_number_verified'])
         refresh = RefreshToken.for_user(user)
-        if validated_data['keep_me_signed_in']:
-            refresh.set_exp(lifetime=timedelta(days=30)) # MEH: Long life access token!
+        keep_signed_in = validated_data.get('keep_me_signed_in', False)
+        if keep_signed_in:
+            refresh = self.increase_refresh_exp_date(refresh, user)
         return {
             'refresh': str(refresh),
             'access': str(refresh.access_token),
@@ -185,13 +207,11 @@ class UserResendCodeSerializer(UserSignUpRequestSerializer):
         return TG_VERIFICATION_CODE_RESENT
 
 
-class UserSignInWithPasswordSerializer(CustomModelSerializer):
+class UserSignInWithPasswordSerializer(UserSignInRequestSerializer):
     """
     MEH: Api for validate user sign in with phone number and password
     return: Access Token & Refresh Token
     """
-    phone_number = serializers.CharField(required=True,
-                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
     password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
                                      style={'input_type': 'password'})
     keep_me_signed_in = serializers.BooleanField(required=False, default=False)
@@ -209,17 +229,13 @@ class UserSignInWithPasswordSerializer(CustomModelSerializer):
 
     def create(self, validated_data, **kwargs):
         user = validated_data['user']
+        keep_signed_in = validated_data.get('keep_me_signed_in', False)
         refresh = RefreshToken.for_user(user)
-        if validated_data['keep_me_signed_in']:
-            refresh.set_exp(from_time=datetime.now(tz=timezone.utc), lifetime=timedelta(days=30))
-            access = AccessToken()
-            access.set_exp(from_time=datetime.now(tz=timezone.utc), lifetime=timedelta(days=14))
-            access['user_id'] = user.id  # Required to make it valid
-        else: # MEH: Use default lifetimes
-            access = refresh.access_token
+        if keep_signed_in:
+            refresh = self.increase_refresh_exp_date(refresh, user)
         return {
             'refresh': str(refresh),
-            'access': str(access),
+            'access': str(refresh.access_token),
             'user': {
                 'id': user.id,
             }
