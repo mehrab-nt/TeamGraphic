@@ -12,11 +12,11 @@ export const useAuth = () => {
         }
     }
 
-    const login = async ({ phone_number, password }) => {
+    const login = async ({ phone_number, password, keep_me_signed_in }) => {
         const config = useRuntimeConfig()
         const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
             method: 'POST',
-            body: { phone_number, password, keep_me_signed_in: false },
+            body: { phone_number, password, keep_me_signed_in },
         })
         if (res.access && res.user) {
             localStorage.setItem('access_token', res.access)

@@ -1,10 +1,9 @@
 from rest_framework import serializers
 from rest_framework_gis.fields import GeometryField
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import RefreshToken, AccessToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
-from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime, timezone
 from financial.models import Company
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
@@ -212,10 +211,15 @@ class UserSignInWithPasswordSerializer(CustomModelSerializer):
         user = validated_data['user']
         refresh = RefreshToken.for_user(user)
         if validated_data['keep_me_signed_in']:
-            refresh.set_exp(lifetime=timedelta(days=30))
+            refresh.set_exp(from_time=datetime.now(tz=timezone.utc), lifetime=timedelta(days=30))
+            access = AccessToken()
+            access.set_exp(from_time=datetime.now(tz=timezone.utc), lifetime=timedelta(days=14))
+            access['user_id'] = user.id  # Required to make it valid
+        else: # MEH: Use default lifetimes
+            access = refresh.access_token
         return {
             'refresh': str(refresh),
-            'access': str(refresh.access_token),
+            'access': str(access),
             'user': {
                 'id': user.id,
             }
@@ -532,7 +536,6 @@ class AddressSerializer(CustomModelSerializer):
     """
     MEH: User Address full information
     """
-    submit_date = serializers.HiddenField(default=timezone.now) # MEH: Set date time to now every time address change!
     postal_code = serializers.CharField(default=None)
     location = GeometryField()
     user = serializers.SerializerMethodField()
