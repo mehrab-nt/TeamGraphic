@@ -134,7 +134,6 @@ class UserSignInRequestSerializer(UserSignUpRequestSerializer):
         now = datetime.now(timezone.utc)
         custom_lifetime = timedelta(days=days)
         refresh.set_exp(from_time=now, lifetime=custom_lifetime)
-        refresh.access_token.set_exp(from_time=now, lifetime=custom_lifetime)
         try:
             db_token = OutstandingToken.objects.get(jti=refresh['jti'])
             db_token.expires_at = now + custom_lifetime
