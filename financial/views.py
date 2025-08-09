@@ -43,7 +43,7 @@ class DepositViewSet(CustomMixinModelViewSet):
     """
     queryset = Deposit.objects.all().order_by('-submit_date')
     serializer_class = DepositSerializer
-    http_method_names = ['get', 'delete', 'head', 'options']
+    http_method_names = ['get', 'head', 'options']
     filterset_class = DepositFilter
     filter_backends = [
         DjangoFilterBackend,
@@ -52,9 +52,9 @@ class DepositViewSet(CustomMixinModelViewSet):
     search_fields = ['description']
     permission_classes = [ApiAccess]
     required_api_keys = {
-        '__all__': ['financial_document'],
+        '__all__': ['deposit_list'],
         **dict.fromkeys(['pending_list', 'pending_deposit_set_status', 'retrieve',], ['pending_list']),
-        'online_list': ['online_list', 'retrieve'],
+        'online_list': ['deposit_list', 'online_list', 'retrieve'],
         'create_deposit': ['create_deposit']
     }
 
@@ -117,7 +117,10 @@ class OfflineBankAccountViewSet(CustomMixinModelViewSet):
     queryset = BankAccount.objects.all().filter(is_online=False)
     serializer_class = BankAccountSerializer
     permission_classes = [ApiAccess]
-    required_api_keys = {} # MEH: Empty mean just Admin can Access
+    required_api_keys = {
+        '__all__': ['offline_bank_account_list'],
+        'create': ['create_offline_bank_account']
+    }
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -130,6 +133,12 @@ class OnlineBankAccountViewSet(OfflineBankAccountViewSet):
     """
     MEH: Bank Account Model viewset (Online)
     """
+    queryset = BankAccount.objects.all().filter(is_online=True)
+    required_api_keys = {
+        '__all__': ['online_bank_account_list'],
+        'create': ['create_online_bank_account']
+    }
+
     def create(self, request, *args, **kwargs):
         return self.custom_create(request, is_online=True)
 
@@ -142,7 +151,9 @@ class CashBackPercentViewSet(CustomMixinModelViewSet):
     queryset = CashBackPercent.objects.all()
     serializer_class = CashBackPercentSerializer
     permission_classes = [ApiAccess]
-    required_api_keys = {} # MEH: Empty mean just Admin can Access
+    required_api_keys = {
+        '__all__': ['cash_back_manager']
+    }
 
 
 @extend_schema(tags=['Financial'])
@@ -160,7 +171,9 @@ class CashBackViewSet(CustomMixinModelViewSet):
     search_fields = ['credit__owner__first_name', 'credit__owner__last_name', 'credit__owner__phone_number']
     ordering_fields = ['now_total_order_amount', 'now_cashback']
     permission_classes = [ApiAccess]
-    required_api_keys = {} # MEH: Empty mean just Admin can Access
+    required_api_keys = {
+        '__all__': ['cash_back_manager']
+    }
 
     def get_queryset(self):
         qs = super().get_queryset().select_related('credit__owner').prefetch_related('valid_category')
