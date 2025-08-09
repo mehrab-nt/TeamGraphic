@@ -1,3 +1,17 @@
+<template>
+  <button @click="logout">Logout</button>
+  <div>
+    <h1>User List</h1>
+    <p v-if="loading">Loading users...</p>
+    <p v-if="error" style="color:red;">{{ error }}</p>
+    <ul v-if="!loading && !error">
+      <li v-for="user in users" :key="user.id">
+        {{ user['phone_number'] }}
+      </li>
+    </ul>
+  </div>
+</template>
+
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
@@ -25,17 +39,3 @@ import { useAuth } from '~/composables/useAuth'
 
 const { logout } = useAuth()
 </script>
-
-<template>
-  <button @click="logout">Logout</button>
-  <div>
-    <h1>User List</h1>
-    <p v-if="loading">Loading users...</p>
-    <p v-if="error" style="color:red;">{{ error }}</p>
-    <ul v-if="!loading && !error">
-      <li v-for="user in users" :key="user.id">
-        {{ user.phone_number || user.first_name || 'No phone' }}
-      </li>
-    </ul>
-  </div>
-</template>
