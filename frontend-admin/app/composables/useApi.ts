@@ -1,9 +1,9 @@
-import { useAuth } from './useAuth'
+import { useAuth } from './useAuth.ts'
 
 export function useApi() {
     const { getAccessToken, refreshToken, logout } = useAuth()
 
-    async function fetchWithAuth(url, options = {}) {
+    async function fetchWithAuth(url: string, options = {}) {
         let token = getAccessToken()
 
         if (!token) {

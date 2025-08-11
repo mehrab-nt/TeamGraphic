@@ -1,8 +1,9 @@
 import { useState } from '#imports'
 import { useRouter } from 'vue-router'
+import type {LoginDto, UserDto} from "~/models/userDto";
 
 export const useAuth = () => {
-    const user = useState('authUser', () => null)
+    const user: Ref<UserDto | null> = useState('authUser', () => null)
     const router = useRouter()
 
     const loadUser = () => {
@@ -15,9 +16,9 @@ export const useAuth = () => {
         }
     }
 
-    const login = async ({ phone_number, password, keep_me_signed_in }) => {
+    const login = async (phone_number: string, password: string, keep_me_signed_in: boolean) => {
         const config = useRuntimeConfig()
-        const res = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
+        const res: LoginDto = await $fetch(`${config.public.apiBase}user/sign-in-with-password/`, {
             method: 'POST',
             body: { phone_number, password, keep_me_signed_in },
         })
@@ -79,7 +80,7 @@ export const useAuth = () => {
         }
         const config = useRuntimeConfig()
         try {
-            const res = await $fetch(`${config.public.apiBase}token/refresh/`, {
+            const res: LoginDto = await $fetch(`${config.public.apiBase}token/refresh/`, {
                 method: 'POST',
                 body: { refresh: local_token ? local_token : session_token },
             })

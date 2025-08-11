@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import { useAuth } from '~/composables/useAuth'
+import { useAuth } from '~/composables/useAuth.ts'
 import { ref, onMounted } from 'vue'
 const { user, loadUser } = useAuth()
 const loading = ref(true)

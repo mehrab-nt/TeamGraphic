@@ -116,6 +116,7 @@ class UserSignUpVerifySerializer(UserSignUpRequestSerializer):
             'access': str(refresh.access_token),
             'user': {
                 'id': user.id,
+                'full_name': user.get_full_name(),
             }
         }
 
@@ -186,6 +187,7 @@ class UserSignInWithCodeSerializer(UserSignInRequestSerializer):
             'access': str(refresh.access_token),
             'user': {
                 'id': user.id,
+                'full_name': user.get_full_name(),
             }
         }
 
@@ -237,6 +239,7 @@ class UserSignInWithPasswordSerializer(UserSignInRequestSerializer):
             'access': str(refresh.access_token),
             'user': {
                 'id': user.id,
+                'full_name': user.get_full_name(),
             }
         }
 

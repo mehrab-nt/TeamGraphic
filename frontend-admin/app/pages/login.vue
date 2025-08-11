@@ -10,9 +10,9 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref } from 'vue'
-import { useAuth } from '~/composables/useAuth'
+import { useAuth } from '~/composables/useAuth.ts'
 
 const phone = ref('')
 const pass = ref('')
@@ -22,9 +22,9 @@ const { login } = useAuth()
 
 const onSubmit = async () => {
   try {
-    await login({ phone_number: phone.value, password: pass.value, keep_me_signed_in: keep.value })
+    await login( phone.value, pass.value, keep.value )
     error.value = null
-  } catch (e) {
+  } catch (e:any) {
     if (e.data.detail) {
       error.value = e.data.detail
     } else if (e.detail) {

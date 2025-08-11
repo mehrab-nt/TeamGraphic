@@ -1,5 +1,5 @@
 // app/middleware/auth.global.js
-import { useAuth } from '~/composables/useAuth'
+import { useAuth } from '~/composables/useAuth.ts'
 
 export default defineNuxtRouteMiddleware(async (to) => {
     const { user, loadUser } = useAuth()

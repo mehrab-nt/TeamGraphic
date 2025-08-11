@@ -12,7 +12,7 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useApi } from '~/composables/useApi'
 
@@ -28,7 +28,7 @@ onMounted(async () => {
   try {
     const res = await fetchWithAuth('user/')
     users.value = res.results || []
-  } catch (e) {
+  } catch (e:any) {
     error.value = e.detail || e.message || 'Unknown error'
   } finally {
     loading.value = false
