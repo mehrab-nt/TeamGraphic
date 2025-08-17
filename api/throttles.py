@@ -4,9 +4,17 @@ from rest_framework.throttling import UserRateThrottle, SimpleRateThrottle
 class BurstRateThrottle(UserRateThrottle):
     scope = 'burst'
 
+    @staticmethod
+    def wait_message(self, wait):
+        return f" تعداد تلاش ناموفق بالا!{int(round(wait))}ثانبه صبر کنید "
+
 
 class SustainedRateThrottle(UserRateThrottle):
     scope = 'sustained'
+
+    @staticmethod
+    def wait_message(self, wait):
+        return f" تعداد تلاش ناموفق بالا!{int(round(wait))}ثانبه صبر کنید "
 
 
 class PhoneNumberRateThrottle(SimpleRateThrottle):

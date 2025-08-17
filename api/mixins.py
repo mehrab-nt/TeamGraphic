@@ -16,7 +16,6 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema
 from django.core.cache import cache
 import hashlib
-from rest_framework.throttling import UserRateThrottle
 
 
 class CustomModelSerializer(serializers.ModelSerializer):
@@ -84,12 +83,6 @@ class CustomChoiceField(serializers.ChoiceField):
             raise serializers.ValidationError(TG_DATA_WRONG)
 
 
-class CustomThrottle(UserRateThrottle):
-    @staticmethod
-    def wait_message(self, wait):
-        return f" تعداد تلاش ناموفق بالا!{int(round(wait))}ثانبه صبر کنید "
-
-
 class CustomMixinModelViewSet(viewsets.ModelViewSet):
     """
     MEH: Custom ModelViewSet for get, put, patch, post, delete -> single obj & bulk
@@ -101,7 +94,6 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
     pagination_class.max_page_size = 100
     required_api_keys = None # MEH: Override this In each model view set for handle Access
     cache_key = None # MEH: Override this if used cached for list
-    throttle_classes = [CustomThrottle]
 
     def get_required_api_key(self):
         """
