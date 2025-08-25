@@ -52,3 +52,19 @@ TG_WAIT_FOR_RESPONSE = 'لطفا منتظر پاسخ بمانید'
 TG_MESSAGE_CLOSED = 'این گفت و گو بسته شده است.'
 TG_DATA_SET = 'با موفقیت ثبت شد.'
 TG_SIGN_OUT = 'با موفقیت خارج شدید'
+
+from rest_framework.renderers import JSONRenderer
+
+class CustomJSONRenderer(JSONRenderer):
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        response = renderer_context.get("response")
+        status_code = response.status_code if response else 200
+
+        is_success = 200 <= status_code < 300
+
+        final_data = {
+            "statusCode": status_code,
+            "isSuccess": is_success,
+            "data": data,
+        }
+        return super().render(final_data, accepted_media_type, renderer_context)

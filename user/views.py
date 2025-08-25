@@ -129,6 +129,15 @@ class UserViewSet(CustomMixinModelViewSet):
             return UserBriefSerializer
         return super().get_serializer_class()
 
+    @extend_schema(summary="Current User info")
+    @action(detail=False, methods=['get'],
+            url_path='current')
+    def current_user(self, request):
+        """
+        MEH: current User info
+        """
+        return self.custom_get(request.user)
+
     @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
             url_path='sign-up', serializer_class=UserSignUpManualSerializer)

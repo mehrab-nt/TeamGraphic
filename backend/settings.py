@@ -16,7 +16,6 @@ from datetime import timedelta
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
@@ -39,6 +38,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.AnonRateThrottle',
         'api.throttles.BurstRateThrottle',
         'api.throttles.SustainedRateThrottle',
+    ],
+    "DEFAULT_RENDERER_CLASSES": [
+        "api.responses.CustomJSONRenderer",
+        "rest_framework.renderers.BrowsableAPIRenderer",
     ],
     'DEFAULT_THROTTLE_RATES': { # MEH: Handle spam request mostly
         'anon': '23/minute',
