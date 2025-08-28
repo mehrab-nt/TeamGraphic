@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
@@ -234,7 +236,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response(created_data, status=status.HTTP_202_ACCEPTED)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 
-    def custom_update(self, instance, request, partial=False, response_data_back=None, **kwargs):
+    def custom_update(self, instance, request, partial=False, **kwargs):
         """
         MEH: Handle only single obj update & handle Exception response,
         send manual field data that not in the request with **kwargs
@@ -242,6 +244,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         is_many = isinstance(request.data, list)
         if is_many: # MEH: Many Update disable here -> (handle with custom_list_update)
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
+        print(instance)
+        print(request.data)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         try:
             serializer.is_valid(raise_exception=True)
@@ -256,9 +260,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if getattr(instance, '_prefetched_objects_cache', None):  # MEH: Invalidate prefetch cache if needed
             instance._prefetched_objects_cache = {}
-        if response_data_back:
-            return Response({'detail': updated_data}, status=status.HTTP_200_OK)
-        return Response({'detail': TG_DATA_UPDATED}, status=status.HTTP_200_OK)
+        return Response(updated_data, status=status.HTTP_200_OK)
 
     def custom_destroy(self, instance):
         """
@@ -427,7 +429,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             res = serializer.save(**kwargs)
         if self.cache_key:
             cache.delete_pattern(f'{self.cache_key}*') # MEH: Delete all cache begin with this key
-        return res
+        return self.get_serializer(res).data
 
     def perform_destroy(self, instance):
         """
