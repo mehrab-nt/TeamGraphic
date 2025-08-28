@@ -1,18 +1,21 @@
 from rest_framework import filters
-from api.permissions import ApiAccess, IsOwner
+from api.permissions import ApiAccess, IsOwner, IsNotAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
 from api.models import ApiCategory
-from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer
+from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, EmployeeSignInWithPasswordSerializer
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
 from django.core.exceptions import PermissionDenied
-from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from drf_spectacular.utils import extend_schema
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from user.serializers import UserChangePasswordSerializer
+from rest_framework.throttling import ScopedRateThrottle
+
 
 
 @extend_schema(tags=['Employee'])
@@ -31,6 +34,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['user__first_name', 'user__last_name']
     ordering_fields = ['rate']
+    throttle_scope = ''
     pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
@@ -49,17 +53,39 @@ class EmployeeViewSet(CustomMixinModelViewSet):
             return EmployeeBriefSerializer
         return super().get_serializer_class()
 
+    @extend_schema(summary="Current Employee info")
+    @action(detail=False, methods=['get', 'put', 'patch'],
+            url_path='current', permission_classes=[IsOwner])
+    def current_employee(self, request):
+        """
+        MEH: current Employee info
+        """
+        if request.method in ['PUT', 'PATCH']:
+            return self.custom_update(request.user.employee_profile, request)
+        return self.custom_get(request.user.employee_profile)
+
+    @extend_schema(tags=['Employee'], summary="Sign In Employee with password")
+    @action(detail=False, methods=['post'],
+            url_path='sign-in-employee', serializer_class=EmployeeSignInWithPasswordSerializer, filter_backends=[None],
+            permission_classes=[IsNotAuthenticated], throttle_scope = 'auth', throttle_classes=[ScopedRateThrottle])
+    def sign_in_employee(self, request):
+        """
+        MEH: Employee Sign In with password (POST ACTION) and get `access_token` & `refresh_token`
+        Only Employee that not authenticated have permission
+        """
+        return self.custom_create(request, response_data_back=True)
+
     @extend_schema(summary="Change Password request")
-    @action(detail=True, methods=['put'],
+    @action(detail=False, methods=['put'],
             url_path='change-password', serializer_class=UserChangePasswordSerializer, filter_backends=[None],
             permission_classes=[IsOwner])
     def change_password(self, request, pk=None):
         """
         MEH: Employee User can try change old password (most authenticate)
         """
-        employee = self.get_object()
-        self.check_object_permissions(request, employee) # MEH: Check obj permission manually
-        return self.custom_update(employee.user, request, response_data_back=True)
+        # employee = self.get_object()
+        # self.check_object_permissions(request, employee) # MEH: Check obj permission manually
+        return self.custom_update(request.user, request)
 
 
 @extend_schema(tags=['Employee-Level'])

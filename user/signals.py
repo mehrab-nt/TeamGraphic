@@ -27,9 +27,11 @@ def user_post_save(sender, instance, created, **kwargs):
             instance.introduce_from.number = F('number') + 1
             instance.introduce_from.save(update_fields=['number'])
     if (instance.is_employee or instance.is_staff) and instance.role:
+        if instance.role.cashback_active and getattr(instance.credit, "cashback", None):
+            instance.credit.cashback.delete()
         instance.role = None
         flag = True
-    if not instance.is_staff:
+    if not instance.is_staff and not instance.is_employee:
         if instance.role.cashback_active and not getattr(instance.credit, "cashback", None):
             CashBack.objects.create(
                 credit=instance.credit

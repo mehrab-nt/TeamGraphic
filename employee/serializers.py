@@ -2,9 +2,24 @@ from rest_framework import serializers
 from .models import Employee, EmployeeLevel
 from user.models import User
 from api.models import ApiItem
-from user.serializers import UserSerializer
+from user.serializers import UserSerializer, UserSignInWithPasswordSerializer, authenticate
 from api.mixins import CustomModelSerializer
 from api.responses import *
+from rest_framework_simplejwt.tokens import RefreshToken
+
+
+class EmployeeSignInWithPasswordSerializer(UserSignInWithPasswordSerializer):
+    """
+    MEH: Api for validate user sign in with phone number and password
+    return: Access Token & Refresh Token
+    """
+    def validate(self, data):
+        user = authenticate(phone_number=data['phone_number'], password=data['password'])
+        if user:
+            if getattr(user, 'is_employee', False):
+                data['user'] = user
+                return data
+        raise serializers.ValidationError(TG_SIGNIN_ERROR)
 
 
 class UserEmployeeSerializer(UserSerializer):
@@ -13,6 +28,7 @@ class UserEmployeeSerializer(UserSerializer):
     Create & Update Handle in UserSerializer...
     """
     is_employee = serializers.HiddenField(default=True)
+    phone_number = serializers.CharField(required=False)
 
     class Meta:
         model = User
