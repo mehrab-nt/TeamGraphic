@@ -1,6 +1,6 @@
 from rest_framework import status, filters
 from datetime import datetime, date
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from api.permissions import ApiAccess, IsNotAuthenticated, IsOwner
 from rest_framework.decorators import action
@@ -131,7 +131,7 @@ class UserViewSet(CustomMixinModelViewSet):
 
     @extend_schema(summary="Current User info")
     @action(detail=False, methods=['get'],
-            url_path='current')
+            url_path='current', permission_classes=[IsAuthenticated])
     def current_user(self, request):
         """
         MEH: current User info
