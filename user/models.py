@@ -139,7 +139,7 @@ class Role(models.Model):
         verbose_name_plural = 'Roles'
 
     def __str__(self):
-        return f'Role: {self.title}'
+        return f'{self.title}'
 
     def save(self, *args, **kwargs):
         with transaction.atomic():
