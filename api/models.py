@@ -35,4 +35,4 @@ class ApiItem(models.Model):
         verbose_name_plural = 'API Items'
 
     def __str__(self):
-        return f'Api Item: {self.title} #{self.key}'
+        return f'{self.key}'

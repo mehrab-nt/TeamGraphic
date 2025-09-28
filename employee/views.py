@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
 from api.models import ApiCategory
-from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, EmployeeSignInWithPasswordSerializer
+from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, EmployeeSignInWithPasswordSerializer, EmployeeApiList
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
 from django.core.exceptions import PermissionDenied
@@ -63,6 +63,16 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         if request.method in ['PUT', 'PATCH']:
             return self.custom_update(request.user.employee_profile, request)
         return self.custom_get(request.user.employee_profile)
+
+    @extend_schema(summary="Current Employee info")
+    @action(detail=False, methods=['get'],
+            url_path='current/api-list', serializer_class=EmployeeApiList,
+            permission_classes=[IsOwner])
+    def current_employee_api_list(self, request):
+        """
+        MEH: current Employee info
+        """
+        return self.custom_get(request.user.employee_profile.level)
 
     @extend_schema(tags=['Employee'], summary="Sign In Employee with password")
     @action(detail=False, methods=['post'],

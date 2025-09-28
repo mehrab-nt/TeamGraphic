@@ -99,6 +99,17 @@ class EmployeeSerializer(CustomModelSerializer):
         return instance
 
 
+class EmployeeApiList(CustomModelSerializer):
+    """
+    MEH: Employee API List for check permissions
+    """
+    api_items = serializers.StringRelatedField(many=True)
+
+    class Meta:
+        model = EmployeeLevel
+        fields = ['id', 'api_items']
+
+
 class EmployeeLevelSerializer(CustomModelSerializer):
     """
     MEH: Main Employee level full information
