@@ -453,16 +453,18 @@ class CustomBulkListSerializer(serializers.ListSerializer):
         if in custom_create, parse many=True, perform_create, use this method for validate data
         Used for import data with Excel and so on
         """
-        _validated_data = []
-        _errors = {}
+        self._validated_data = []
+        errors = {}
         for idx, item in enumerate(self.initial_data):
-            serializer = self.child.__class__(data=item, context=self.context)
-            if not serializer.is_valid():
-                _errors[f'item-{idx+1}'] = serializer.errors
+            child = self.child.__class__(data=item, context=self.context)
+            if not child.is_valid():
+                errors[f'item-{idx+1}'] = child.errors
             else:
-                _validated_data.append(serializer.validated_data)
-        if _errors:
+                self._validated_data.append(child.validated_data)
+        if errors:
+            self._errors = errors
             if raise_exception:
-                raise serializers.ValidationError(_errors)
-            return False
-        return True
+                raise serializers.ValidationError(errors)
+        else:
+            self._errors = {}
+        return not bool(errors)

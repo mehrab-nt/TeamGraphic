@@ -65,7 +65,7 @@ class UserViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['first_name', 'last_name', 'phone_number'] # MEH: Get search query
-    ordering_fields = ['date_joined', 'order_count', 'last_order_date']
+    ordering_fields = ['date_joined', 'order_count', 'last_order_date', 'credit']
     throttle_scope = ''
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
@@ -93,10 +93,17 @@ class UserViewSet(CustomMixinModelViewSet):
         is_employee = getattr(user, 'is_employee', False)
         if user.is_superuser or is_employee:
             if self.action in ['change_password', 'web_message_list', 'order_web_message_list']:
-                return  super().get_queryset()
+                return super().get_queryset()
             qs = super().get_queryset().filter(is_employee=False, is_superuser=False).order_by('-date_joined')
             if self.action == 'list':
-                return qs.select_related('role', 'credit', 'company')
+                ordering = self.request.query_params.get('ordering')
+                qs = qs.select_related('role', 'credit', 'company')
+                if ordering:
+                    if ordering.lstrip('-') == 'last_order_date':
+                        qs = qs.exclude(last_order_date=None).order_by(ordering)
+                    if ordering.lstrip('-') == 'order_count':
+                        qs = qs.exclude(order_count=0).order_by(ordering)
+                return qs
             if self.action in ['key', 'manually_verify_phone', 'activation', 'create_address']:
                 return qs
             if self.action == 'accounting':

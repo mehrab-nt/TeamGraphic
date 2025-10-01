@@ -327,8 +327,8 @@ class UserBriefSerializer(CustomModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_number', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
-        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
+        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
 
     @staticmethod
     def get_company(obj):
