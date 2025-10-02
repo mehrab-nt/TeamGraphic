@@ -52,7 +52,7 @@ class Credit(models.Model):
                                  related_name='credit')
 
     class Meta:
-        ordering = ['total_amount']
+        ordering = ['total_amount', 'id']
         verbose_name = 'Credit'
         verbose_name_plural = 'Credits'
 
