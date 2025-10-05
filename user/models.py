@@ -102,7 +102,7 @@ class GENDER(models.TextChoices):
 
 def user_profile_upload_path(instance, filename): # MEH: Store image in media in user folder (it's not in file manager!)
     # return f'user/profile_images/{instance.user.id}-profile.webp'
-    return f'user/profile_images/{instance.user.id}-{datetime.now().strftime('%Y%m%d-%H-%M-%S')}-profile.webp'
+    return f'user/profile_images/{instance.user.id}-{datetime.now().strftime('%Y%m%d-%H%M%S')}-profile.webp'
 
 
 class UserProfile(models.Model):
