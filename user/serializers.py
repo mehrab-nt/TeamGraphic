@@ -324,11 +324,12 @@ class UserBriefSerializer(CustomModelSerializer):
     company = serializers.SerializerMethodField()
     credit = serializers.SerializerMethodField()
     role_display = serializers.StringRelatedField(source='role')
+    province = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
-        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display']
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display', 'province']
+        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display', 'province']
 
     @staticmethod
     def get_company(obj):
@@ -344,6 +345,13 @@ class UserBriefSerializer(CustomModelSerializer):
             return credit.total_amount
         return 0
 
+    @staticmethod
+    def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list QS)
+        try:
+            return obj.default_province
+        except AttributeError:
+            return None
+
 
 class UserSerializer(UserBriefSerializer):
     """
@@ -358,7 +366,6 @@ class UserSerializer(UserBriefSerializer):
     user_profile = UserProfileSerializer(required=False)
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
     introducer = serializers.StringRelatedField()
-    province = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -366,12 +373,6 @@ class UserSerializer(UserBriefSerializer):
                   'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile', 'company', 'credit']
         read_only_fields = ['date_joined', 'is_active', 'invite_user_count', 'company', 'credit']
 
-    @staticmethod
-    def get_province(obj): # MEH: Get default province from user address list if any (To show and filter in user list QS)
-        try:
-            return obj.default_province
-        except AttributeError:
-            return None
 
     def validate_phone_number(self, value):
         if self.instance and self.instance.phone_number == value:
