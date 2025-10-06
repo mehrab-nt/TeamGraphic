@@ -61,10 +61,31 @@ class CustomJSONRenderer(JSONRenderer):
         status_code = response.status_code if response else 200
 
         is_success = 200 <= status_code < 300
+        message = None
+
+        if not is_success and isinstance(data, dict):
+            if "detail" in data:
+                detail = data["detail"]
+                if isinstance(detail, dict):
+                    first_key, first_val = next(iter(detail.items()))
+                    if isinstance(first_val, dict):
+                        sub_key, sub_val = next(iter(first_val.items()))
+                        message = sub_val[0] if isinstance(sub_val, list) else str(sub_val)
+                    elif isinstance(first_val, list):
+                        message = first_val[0]
+                    else:
+                        message = str(first_val)
+                elif isinstance(detail, list):
+                    message = detail[0]
+                else:
+                    message = str(detail)
+        if not message:
+            message = getattr(response, "reason_phrase", "عملیات با موفقیت انجام شد" if is_success else "خطایی رخ داد")
 
         final_data = {
             "statusCode": status_code,
             "isSuccess": is_success,
             "data": data,
+            "message": message,
         }
         return super().render(final_data, accepted_media_type, renderer_context)

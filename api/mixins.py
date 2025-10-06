@@ -19,7 +19,6 @@ from drf_spectacular.utils import extend_schema
 from django.core.cache import cache
 import hashlib
 
-
 class CustomModelSerializer(serializers.ModelSerializer):
     """
     MEH: for handle same logic for all serializer class
@@ -30,23 +29,30 @@ class CustomModelSerializer(serializers.ModelSerializer):
         """
         fields = super().get_fields()
         for name, field in fields.items():
+            field_label = getattr(field, "label", None) or name.replace("_", " ")
             if isinstance(field, serializers.CharField):
                 field.error_messages.update({
-                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG,
+                    'blank': f"فیلد ({field_label}) نباید خالی باشد.",
+                    'required': f"فیلد ({field_label}) الزامی است.",
+                    'invalid': f"مقدار وارد شده برای فیلد ({field_label}) نامعتبر است.",
                 })
             if isinstance(field, serializers.IntegerField):
                 field.error_messages.update({
-                    'blank': TG_DATA_BLANK, 'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_MOST_DIGIT,
+                    'blank': f"فیلد ({field_label}) نباید خالی باشد.",
+                    'required': f"فیلد ({field_label}) الزامی است.",
+                    'invalid': f"مقدار وارد شده برای فیلد ({field_label}) باید عددی باشد.",
                 })
             if isinstance(field, serializers.PrimaryKeyRelatedField):
                 field.error_messages.update({
-                    'required': TG_DATA_REQUIRED, 'invalid': TG_DATA_WRONG, 'does_not_exist': TG_DATA_NOT_FOUND,
+                    'required': f"انتخاب فیلد ({field_label}) الزامی است.",
+                    'invalid': f"انتخاب وارد شده برای فیلد ({field_label}) نامعتبر است.",
+                    'does_not_exist': f"مقدار انتخاب شده برای ({field_label}) وجود ندارد.",
                 })
             for validator in getattr(field, 'validators', []):
                 if isinstance(validator, MinLengthValidator):
-                    validator.message = TG_DATA_TOO_SHORT + str(validator.limit_value)
+                    validator.message = f"طول فیلد ({field_label}) نباید کمتر از {validator.limit_value} کاراکتر باشد."
                 if isinstance(validator, MaxLengthValidator):
-                    validator.message = TG_DATA_TOO_LONG + str(validator.limit_value)
+                    validator.message = f"طول فیلد ({field_label}) نباید بیشتر از {validator.limit_value} کاراکتر باشد."
         return fields
 
     @staticmethod
@@ -57,7 +63,7 @@ class CustomModelSerializer(serializers.ModelSerializer):
         try:
             size_mb = image.size / (1024 * 1024)
             if size_mb > max_image_size:
-                raise serializers.ValidationError(f"{TG_MAX_IMAGE_SIZE} ({max_image_size} MB)")
+                raise serializers.ValidationError(f"{TG_MAX_IMAGE_SIZE} ({max_image_size}MB)")
         except (AttributeError, TypeError):
             raise serializers.ValidationError(TG_INVALID_IMAGE)
         try:
@@ -72,6 +78,30 @@ class CustomModelSerializer(serializers.ModelSerializer):
             if width > max_width or height > max_height:
                 raise serializers.ValidationError(f"{TG_MAX_IMAGE_DIMENSIONS}({max_width}x{max_height}px)")
         return optimize_image(image, size=size)
+
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError as exc:
+            # only get the first leaf error string
+            first_error_msg = self._get_first_leaf_error_only(exc.detail)
+            raise serializers.ValidationError({"message": first_error_msg})
+
+    def _get_first_leaf_error_only(self, errors):
+        """
+        Recursively traverse ValidationError dict/list and return
+        only the first leaf error string, without repeating parent keys.
+        """
+        if isinstance(errors, dict):
+            for value in errors.values():
+                msg = self._get_first_leaf_error_only(value)
+                if msg:
+                    return msg  # return immediately, no prepending field names
+        elif isinstance(errors, list) and errors:
+            # first error in the list
+            return str(errors[0])
+        else:
+            return str(errors) if errors else None
 
 
 class CustomChoiceField(serializers.ChoiceField):
@@ -285,8 +315,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if deleted_child_count > 1:
-            return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_child_count}, status=status.HTTP_204_NO_CONTENT)
-        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_204_NO_CONTENT)
+            return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_child_count}, status=status.HTTP_200_OK)
+        return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_200_OK)
 
     def get_validate_data(self, data, many=False):
         """
