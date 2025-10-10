@@ -365,12 +365,14 @@ class UserSerializer(UserBriefSerializer):
                                         validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     user_profile = UserProfileSerializer(required=False)
     introduce_from_display = serializers.StringRelatedField(source='introduce_from')
-    introducer = serializers.StringRelatedField()
+    introducer_display = serializers.StringRelatedField(source='introducer')
+    company_display = serializers.StringRelatedField(source='company')
 
     class Meta:
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'invite_user_count', 'user_profile', 'company', 'credit']
+                  'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'introducer_display', 'invite_user_count',
+                  'user_profile', 'company', 'company_display', 'credit']
         read_only_fields = ['date_joined', 'is_active', 'invite_user_count', 'company', 'credit']
 
 
@@ -554,7 +556,7 @@ class AddressBriefSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Address
-        fields = ['id', 'receiver_name', 'province', 'city', 'content', 'plate_number', 'unit_number']
+        fields = ['id', 'title', 'receiver_name', 'receiver_phone_number', 'province', 'city', 'content', 'plate_number', 'unit_number']
 
     def to_representation(self, instance): # MEH: for display Farsi name in Api alongside id
         data = super().to_representation(instance)

@@ -51,7 +51,7 @@ class User(AbstractUser):
         ordering = ['-date_joined']
 
     def __str__(self):
-        return f'#{self.pk}: {self.first_name} {self.last_name} ({self.phone_number})'
+        return f'{self.first_name} {self.last_name}'
 
     @staticmethod
     def generate_unique_key(self, field_name, length, prefix=''):
