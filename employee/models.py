@@ -46,4 +46,4 @@ class EmployeeLevel(models.Model):
         verbose_name_plural = "Employee Levels"
 
     def __str__(self):
-        return f'Employee Level: {self.title}'
+        return f'{self.title}'

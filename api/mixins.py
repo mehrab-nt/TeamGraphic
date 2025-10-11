@@ -274,8 +274,6 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         is_many = isinstance(request.data, list)
         if is_many: # MEH: Many Update disable here -> (handle with custom_list_update)
             return Response({'detail': TG_MANY_DATA_DENIED}, status=status.HTTP_400_BAD_REQUEST)
-        print(instance)
-        print(request.data)
         serializer = self.get_serializer(instance, data=request.data, partial=partial)
         try:
             serializer.is_valid(raise_exception=True)
