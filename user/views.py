@@ -539,6 +539,10 @@ class RoleViewSet(CustomMixinModelViewSet):
     queryset = (Role.objects.prefetch_related('api_items')
                 .order_by('-is_default', 'sort_number'))
     serializer_class = RoleSerializer
+    filter_backends = [
+        filters.SearchFilter,
+    ]
+    search_fields = ['title'] # MEH: Get search query
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['get_user_role_access'],

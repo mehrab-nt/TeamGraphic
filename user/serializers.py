@@ -372,22 +372,22 @@ class UserSerializer(UserBriefSerializer):
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'order_count', 'last_order_date', 'email', 'province',
                   'is_active', 'role', 'role_display', 'introduce_from', 'introduce_from_display', 'introducer', 'introducer_display', 'invite_user_count',
-                  'user_profile', 'company', 'company_display', 'credit']
-        read_only_fields = ['date_joined', 'is_active', 'invite_user_count', 'company', 'credit']
+                  'user_profile', 'company', 'company_display', 'credit', 'accounting_id', 'accounting_name']
+        read_only_fields = ['date_joined', 'invite_user_count', 'company', 'credit']
 
 
     def validate_phone_number(self, value):
         if self.instance and self.instance.phone_number == value:
             return value
         if User.objects.exclude(pk=self.instance.pk if self.instance else None).filter(phone_number=value).exists():
-            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+            raise serializers.ValidationError('شماره موبایل ' + TG_UNIQUE_PROTECT)
         return value
 
     def validate_national_id(self, value):
         if self.instance and self.instance.national_id == value:
             return value
         if User.objects.exclude(pk=self.instance.pk if self.instance else None).filter(national_id=value).exists():
-            raise serializers.ValidationError(TG_UNIQUE_PROTECT)
+            raise serializers.ValidationError('کد ملی ' + TG_UNIQUE_PROTECT)
         return value
 
     def create(self, validated_data, **kwargs): # MEH: Nested create a User with Profile (Just for Admin work) example like from Excel file...
@@ -397,6 +397,7 @@ class UserSerializer(UserBriefSerializer):
         return user
 
     def update(self, instance, validated_data, **kwargs): # MEH: Nested update for User Profile
+        print(validated_data)
         profile_data = validated_data.pop('user_profile', {})
         for attr, value in validated_data.items():
             if attr == 'phone_number' and instance.phone_number != value:
@@ -493,17 +494,15 @@ class UserAccountingSerializer(CustomModelSerializer):
     """
     user = serializers.SerializerMethodField()
     role = serializers.StringRelatedField()
-    first_name = serializers.CharField(required=True, min_length=3, max_length=73)
-    last_name = serializers.CharField(min_length=3, max_length=73, allow_blank=True, allow_null=False)
-    accounting_id = serializers.IntegerField(default=None,
+    accounting_id = serializers.IntegerField(default=None, allow_null=True,
                                              validators=[RegexValidator(regex=r'^\d{1,16}$', message=TG_DATA_WRONG)])
-    accounting_name = serializers.CharField(default=None)
+    accounting_name = serializers.CharField(default=None, allow_null=True)
 
     class Meta:
         model = User
         fields = ['id', 'user', 'phone_number', 'national_id', 'first_name', 'last_name',
                   'role', 'accounting_id', 'accounting_name']
-        read_only_fields = ['phone_number', 'national_id']
+        read_only_fields = ['phone_number', 'national_id', 'first_name', 'last_name']
 
     def validate_accounting_id(self, data): # Make sure is Unique
         if not data:
