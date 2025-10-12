@@ -45,10 +45,11 @@ class EmployeeBriefSerializer(CustomModelSerializer):
     email = serializers.SerializerMethodField()
     is_active = serializers.SerializerMethodField()
     level_display = serializers.StringRelatedField(source='level')
+    date_joined = serializers.SerializerMethodField()
 
     class Meta:
         model = Employee
-        fields = ['id', 'full_name', 'phone_number', 'email', 'level_display', 'is_active']
+        fields = ['id', 'full_name', 'phone_number', 'email', 'level_display', 'is_active', 'rate', 'date_joined']
 
     @staticmethod
     def get_phone_number(obj):
@@ -61,6 +62,10 @@ class EmployeeBriefSerializer(CustomModelSerializer):
     @staticmethod
     def get_is_active(obj):
         return obj.user.is_active
+
+    @staticmethod
+    def get_date_joined(obj):
+        return obj.user.date_joined
 
 
 class EmployeeSerializer(CustomModelSerializer):

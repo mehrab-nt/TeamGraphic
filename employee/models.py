@@ -20,7 +20,7 @@ class Employee(models.Model):
         verbose_name_plural = "Employees"
 
     def __str__(self):
-        return f'Employee: {self.full_name}'
+        return f'{self.full_name}'
 
     def save(self, *args, **kwargs):
         if not self.full_name:

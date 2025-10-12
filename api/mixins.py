@@ -305,14 +305,15 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                 with transaction.atomic():
                     deleted_child_count = instance.delete_recursive()
             else:
-                deleted_child_count, _ = self.perform_destroy(instance)
+                deleted_child_count = 0
+                self.perform_destroy(instance)
         except ProtectedError: # Model on_delete=PROTECT
             raise PermissionDenied(TG_PREVENT_DELETE_PROTECTED)
         except DatabaseError as e:
             return Response({"detail": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        if deleted_child_count > 1:
+        if deleted_child_count:
             return Response({"detail": TG_DATA_DELETED, "deleted_count": deleted_child_count}, status=status.HTTP_200_OK)
         return Response({"detail": TG_DATA_DELETED}, status=status.HTTP_200_OK)
 

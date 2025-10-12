@@ -524,7 +524,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['title'] # MEH: Get search query
-    ordering_fields = ['title', 'number']
+    ordering_fields = ['title', 'number', 'sort_number']
     permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['full_introductions']
@@ -541,8 +541,10 @@ class RoleViewSet(CustomMixinModelViewSet):
     serializer_class = RoleSerializer
     filter_backends = [
         filters.SearchFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['title'] # MEH: Get search query
+    ordering_fields = ['title', 'sort_number', 'is_active', 'is_default']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['get_user_role_access'],

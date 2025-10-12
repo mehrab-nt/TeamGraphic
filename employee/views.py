@@ -33,9 +33,8 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['user__first_name', 'user__last_name']
-    ordering_fields = ['rate']
+    ordering_fields = ['rate', 'level']
     throttle_scope = ''
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['employee_manager'],
