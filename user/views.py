@@ -383,7 +383,10 @@ class UserViewSet(CustomMixinModelViewSet):
             if not getattr(field, 'read_only', False)
         ]
         allowed_fields = set(UserSerializer().get_fields().keys()) # MEH: Allowed field that serializer accept
-        extra_fields = {'role':check_serializer['role'].pk} # MEH: Selected Role in form for all User in Excel
+        if getattr(check_serializer, 'role', False):
+            extra_fields = {'role':check_serializer['role'].pk} # MEH: Selected Role in form for all User in Excel
+        else:
+            extra_fields = {'role':Role.objects.filter(is_default=True).first().id}
         user_data_list = ExcelHandler.import_excel(
             excel_file, allowed_fields, required_fields,
             nested_fields=profile_fields,

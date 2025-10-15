@@ -115,15 +115,18 @@ class CustomChoiceField(serializers.ChoiceField):
             raise serializers.ValidationError(TG_DATA_WRONG)
 
 
+class CustomPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'size'
+    max_page_size = 100
+
+
 class CustomMixinModelViewSet(viewsets.ModelViewSet):
     """
     MEH: Custom ModelViewSet for get, put, patch, post, delete -> single obj & bulk
     Reduce Code Line & Repeat in all Viewset
     """
-    pagination_class = PageNumberPagination # MEH: Custom Pagination :) even LimitOffsetPagination
-    pagination_class.page_size_query_param = 'size'
-    pagination_class.page_size = 20
-    pagination_class.max_page_size = 100
+    pagination_class = CustomPagination
     required_api_keys = None # MEH: Override this In each model view set for handle Access
     cache_key = None # MEH: Override this if used cached for list
 

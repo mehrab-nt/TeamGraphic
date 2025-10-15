@@ -392,8 +392,11 @@ class UserSerializer(UserBriefSerializer):
 
     def create(self, validated_data, **kwargs): # MEH: Nested create a User with Profile (Just for Admin work) example like from Excel file...
         profile_data = validated_data.pop('user_profile', {})
+        profile_image = profile_data.pop('profile_image', None)
         user_profile = UserProfile.objects.create(**profile_data)
         user = User.objects.create_user(**validated_data, username=validated_data['phone_number'], user_profile=user_profile)
+        user_profile.profile_image = profile_image
+        user_profile.save()
         return user
 
     def update(self, instance, validated_data, **kwargs): # MEH: Nested update for User Profile
@@ -432,7 +435,7 @@ class UserImportDataSerializer(UserSerializer):
     user_profile = UserProfileImportDataSerializer(required=False)
     class Meta:
         model = User
-        fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
+        fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email',
                   'is_active', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'user_profile']
         list_serializer_class = CustomBulkListSerializer # MEH: for validate all data and response with number
 
@@ -442,7 +445,7 @@ class UserImportFieldDataSerializer(CustomModelSerializer):
     MEH: temporary Serializer Class for handle Excel & user role -> (User import list)
     """
     excel_file = serializers.FileField(required=True)
-    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=True)
+    role = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), required=False)
 
     class Meta:
         model = User

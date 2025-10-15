@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DailySaleReport
+from .models import DailySaleReport, CounterReport, MonthlySaleReport
 from product.models import Product
 from api.mixins import CustomModelSerializer
 from django.core.cache import cache
@@ -14,3 +14,22 @@ class ProductReportSerializer(CustomModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'type', 'status', 'parent_category', 'parent_category_display', 'total_order', 'last_order', 'total_main_sale', 'total_option_sale']
+
+
+class CounterReportSerializer(CustomModelSerializer):
+    """
+    MEH: Counter Report Serializer
+    """
+    class Meta:
+        model = CounterReport
+        fields = '__all__'
+
+
+class MonthlySaleReportSerializer(CustomModelSerializer):
+    """
+    MEH: Counter Report Serializer
+    """
+    class Meta:
+        model = MonthlySaleReport
+        fields = '__all__'
+

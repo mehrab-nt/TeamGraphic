@@ -52,7 +52,7 @@ class DailySaleReport(models.Model):
 class MonthlySaleReport(models.Model):
     month = models.PositiveSmallIntegerField(blank=False, null=False)
     year = models.PositiveSmallIntegerField(blank=False, null=False)
-    total_product_income = models.PositiveIntegerField(blank=False, null=False, verbose_name='Total Product Income')
+    total_product_income = models.PositiveBigIntegerField(blank=False, null=False, verbose_name='Total Product Income')
     total_options_income = models.PositiveIntegerField(blank=False, null=False, verbose_name='Total Option Income')
     sale_counter = models.PositiveIntegerField(blank=False, null=False, verbose_name='Sale Counter')
     total_delivery_income = models.PositiveIntegerField(blank=False, null=False, verbose_name='Total Delivery Income')
@@ -70,7 +70,7 @@ class MonthlySaleReport(models.Model):
 class CounterReport(models.Model):
     user_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='User Number')
     product_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Product Number')
-    massage_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Massage Number')
+    message_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Massage Number')
     new_order_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Order Number')
     ongoing_order_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Ongoing Order Number')
     ready_order_number = models.PositiveIntegerField(blank=False, null=False, verbose_name='Ready Order Number')
