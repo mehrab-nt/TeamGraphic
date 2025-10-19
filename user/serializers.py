@@ -328,8 +328,8 @@ class UserBriefSerializer(CustomModelSerializer):
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display', 'province']
-        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role_display', 'province']
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role', 'role_display', 'province']
+        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role', 'role_display', 'province']
 
     @staticmethod
     def get_company(obj):
@@ -595,6 +595,15 @@ class AddressSerializer(CustomModelSerializer):
         return data
 
 
+class IntroductionBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Introduction brief Information (Customer, Co-Worker, ...)
+    """
+    class Meta:
+        model = Introduction
+        fields = ['id', 'title']
+
+
 class IntroductionSerializer(CustomModelSerializer):
     """
     MEH: Introduction full Information (Instagram, Telegram, Google, ...)
@@ -602,6 +611,15 @@ class IntroductionSerializer(CustomModelSerializer):
     class Meta:
         model = Introduction
         fields = '__all__'
+
+
+class RoleBriefSerializer(CustomModelSerializer):
+    """
+    MEH: Role brief Information (Customer, Co-Worker, ...)
+    """
+    class Meta:
+        model = Role
+        fields = ['id', 'title']
 
 
 class RoleSerializer(CustomModelSerializer):

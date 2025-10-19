@@ -19,6 +19,7 @@ class CustomerFilter(django_filters.FilterSet):
             'phone_number_verified': ['exact'],
             'user_profile__gender': ['exact'],
             'role': ['exact'],
+            'introduce_from': ['exact'],
             'date_joined': ['lte', 'gte'],
             'last_order_date': ['lte', 'gte'],
             'company__name': ['contains'],

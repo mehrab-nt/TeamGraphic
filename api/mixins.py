@@ -258,7 +258,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             serializer.is_valid(raise_exception=True)
             created_data = self.perform_create(serializer, **kwargs)
         except ValidationError as e:
-            return Response({'detail': e.detail.values()}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'detail': e.detail}, status=status.HTTP_400_BAD_REQUEST)
         except IntegrityError as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         except DatabaseError as e:

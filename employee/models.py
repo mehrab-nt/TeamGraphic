@@ -7,8 +7,8 @@ from api.models import ApiItem
 class Employee(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, blank=False, null=False,
                                 related_name='employee_profile')
-    level = models.ForeignKey("EmployeeLevel", on_delete=models.SET_NULL,
-                              blank=True, null=True,
+    level = models.ForeignKey("EmployeeLevel", on_delete=models.PROTECT,
+                              blank=False, null=False,
                               related_name="employee_list")
     rate = models.FloatField(default=5,
                              blank=False, null=False)

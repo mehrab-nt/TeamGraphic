@@ -1,11 +1,13 @@
 from rest_framework import filters
 from api.permissions import ApiAccess, IsOwner, IsNotAuthenticated
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from .models import Employee, EmployeeLevel
 from api.models import ApiCategory
-from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, EmployeeSignInWithPasswordSerializer, EmployeeApiList
+from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, \
+    EmployeeSignInWithPasswordSerializer, EmployeeApiList, EmployeeResetPasswordRequestSerializer, \
+    EmployeeResendResetPasswordRequestSerializer, EmployeeChangeVerifySerializer
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
 from django.core.exceptions import PermissionDenied
@@ -15,7 +17,7 @@ from api.responses import *
 from api.mixins import CustomMixinModelViewSet
 from user.serializers import UserChangePasswordSerializer
 from rest_framework.throttling import ScopedRateThrottle
-
+from api.throttles import PhoneNumberRateThrottle
 
 
 @extend_schema(tags=['Employee'])
@@ -33,7 +35,7 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['user__first_name', 'user__last_name']
-    ordering_fields = ['rate', 'level']
+    ordering_fields = ['rate', 'full_name']
     throttle_scope = ''
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
@@ -96,6 +98,38 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         # self.check_object_permissions(request, employee) # MEH: Check obj permission manually
         return self.custom_update(request.user, request)
 
+    @extend_schema(summary="Forget Password request")
+    @action(detail=False, methods=['post'],
+            url_path='forget-password-send-code', serializer_class=EmployeeResetPasswordRequestSerializer,
+            permission_classes=[AllowAny], throttle_scope='phone', throttle_classes=[PhoneNumberRateThrottle])
+    def forget_password_send_code(self, request, pk=None):
+        """
+        MEH: Employee User can try reset password (most not authenticate)
+        """
+        return self.custom_create(request, response_data_back=True)
+
+    @extend_schema(summary="Forget Password Request resend code")
+    @action(
+        detail=False, methods=['post'],
+        url_path='forget-password-resend-code', serializer_class=EmployeeResendResetPasswordRequestSerializer,
+        permission_classes=[AllowAny], throttle_scope='phone', throttle_classes=[PhoneNumberRateThrottle]
+    )
+    def forget_password_resend_code(self, request):
+        """
+        MEH: Re-send the last verification code
+        """
+        return self.custom_create(request, response_data_back=True)
+
+    @extend_schema(summary="Change Password verify code")
+    @action(detail=False, methods=['post'],
+            url_path='change-forget-password-verify', serializer_class=EmployeeChangeVerifySerializer,
+            permission_classes=[AllowAny], throttle_scope = 'auth', throttle_classes=[ScopedRateThrottle])
+    def change_forget_password_verify(self, request):
+        """
+        MEH: Employee change password (POST ACTION) with verify SMS code
+        """
+        return self.custom_create(request, response_data_back=True)
+
 
 @extend_schema(tags=['Employee-Level'])
 class EmployeeLevelViewSet(CustomMixinModelViewSet):
@@ -113,7 +147,6 @@ class EmployeeLevelViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['title']
     ordering_fields = ['title']
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
         '__all__': ['employee_level_access_manager'],

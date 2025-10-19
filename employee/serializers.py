@@ -6,6 +6,10 @@ from user.serializers import UserSerializer, UserSignInWithPasswordSerializer, a
 from api.mixins import CustomModelSerializer
 from api.responses import *
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core.validators import RegexValidator
+import random
+from user.tasks import send_phone_verification_code
+from django.core.cache import cache
 
 
 class EmployeeSignInWithPasswordSerializer(UserSignInWithPasswordSerializer):
@@ -34,7 +38,7 @@ class UserEmployeeSerializer(UserSerializer):
         model = User
         fields = ['id', 'phone_number', 'first_name', 'last_name', 'national_id', 'date_joined', 'email',
                   'is_active', 'is_employee', 'user_profile']
-        read_only_fields = ['id', 'date_joined', 'is_active']
+        read_only_fields = ['id', 'date_joined']
 
 
 class EmployeeBriefSerializer(CustomModelSerializer):
@@ -49,7 +53,8 @@ class EmployeeBriefSerializer(CustomModelSerializer):
 
     class Meta:
         model = Employee
-        fields = ['id', 'full_name', 'phone_number', 'email', 'level_display', 'is_active', 'rate', 'date_joined']
+        fields = ['id', 'full_name', 'phone_number', 'email', 'level', 'level_display', 'is_active', 'rate', 'date_joined']
+        read_only_fields = ['id', 'rate']
 
     @staticmethod
     def get_phone_number(obj):
@@ -73,16 +78,36 @@ class EmployeeSerializer(CustomModelSerializer):
     MEH: Main Employee full information
     """
     user = UserEmployeeSerializer(required=False) # MEH: Nested (User Model) Information
+    phone_number = serializers.CharField(required=True, write_only=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+    national_id = serializers.CharField(required=True, write_only=True,
+                                        validators=[RegexValidator(regex='^\d{10}$', message=TG_INCORRECT_NATIONAL_ID)])
     level_display = serializers.StringRelatedField(source='level')
 
     class Meta:
         model = Employee
-        fields = ['id', 'user', 'level', 'level_display', 'rate']
-        read_only_fields = ['rate']
+        fields = ['id', 'user', 'level', 'level_display', 'rate', 'phone_number', 'national_id']
+        read_only_fields = ['id', 'rate']
+
+    def validate_phone_number(self, value):
+        if self.instance and self.instance.user.phone_number == value:
+            return value
+        if User.objects.exclude(pk=self.instance.user.pk if self.instance else None).filter(phone_number=value).exists():
+            raise serializers.ValidationError('شماره موبایل ' + TG_UNIQUE_PROTECT)
+        return value
+
+    def validate_national_id(self, value):
+        if self.instance and self.instance.user.national_id == value:
+            return value
+        if User.objects.exclude(pk=self.instance.user.pk if self.instance else None).filter(national_id=value).exists():
+            raise serializers.ValidationError('کد ملی ' + TG_UNIQUE_PROTECT)
+        return value
 
     def create(self, validated_data, **kwargs): # MEH: Nested create Employee with User information and Profile, just single Employee per req
         user_data = validated_data.pop('user', {})
         if user_data:
+            user_data['phone_number'] = validated_data.pop('phone_number')
+            user_data['national_id'] = validated_data.pop('national_id')
             user_serializer = UserEmployeeSerializer(data=user_data)
             user_serializer.is_valid(raise_exception=True)
             user = user_serializer.save() # MEH: Inner Nested create user with profile data
@@ -94,6 +119,8 @@ class EmployeeSerializer(CustomModelSerializer):
     def update(self, instance, validated_data, **kwargs): # MEH: Nested update for Employee with User & Profile
         user_data = validated_data.pop('user', {})
         if user_data:
+            user_data['phone_number'] = validated_data.pop('phone_number')
+            user_data['national_id'] = validated_data.pop('national_id')
             user_serializer = UserEmployeeSerializer(instance=instance.user, data=user_data, partial=(self.context.get('request').method == 'PATCH'))
             user_serializer.is_valid(raise_exception=True)
             user = user_serializer.save()
@@ -102,6 +129,72 @@ class EmployeeSerializer(CustomModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+
+
+class EmployeeResetPasswordRequestSerializer(serializers.Serializer):
+    """
+    MEH: Api for request reset password with phone number
+    """
+    phone_number = serializers.CharField(required=True,
+                                         validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+
+    @staticmethod
+    def validate_phone_number(data): # MEH: Validate if Phone Number is new or not
+        if User.objects.filter(phone_number=data, is_employee=True).exists():
+            return data
+        raise serializers.ValidationError(TG_USER_NOT_FOUND_BY_PHONE)
+
+    def create(self, validated_data, **kwargs):
+        phone_number = validated_data['phone_number']
+        code = str(random.randint(1000, 9999))
+        cache.set(f"sms-code:{phone_number}", code, timeout=300) # MEH: 5 min verify code!
+        send_phone_verification_code.delay(code, phone_number) # MEH: Celery task run in background
+        return TG_VERIFICATION_CODE_SENT
+
+
+class EmployeeResendResetPasswordRequestSerializer(EmployeeResetPasswordRequestSerializer):
+    """
+    MEH: Api for request re-send code for reset password
+    """
+    def validate_phone_number(self, data): # MEH: Override Validate phone_number for both exist or not
+        cache_key = f'sms-code:{data}'
+        cached_code = cache.get(cache_key)
+        if not cached_code: # MEH: Check if this phone number really want resend code, or it's a new request!
+            raise serializers.ValidationError(TG_VERIFICATION_CODE_RESENT_DENIED)
+        return data
+
+    def create(self, validated_data, **kwargs):
+        super().create(validated_data, **kwargs)
+        return TG_VERIFICATION_CODE_RESENT
+
+
+class EmployeeChangeVerifySerializer(EmployeeResetPasswordRequestSerializer):
+    """
+    MEH: Api for verify sign up user with phone number & SMS code & first name (full name)
+    without password!
+    """
+    sms_code = serializers.CharField(min_length=4, max_length=4, required=True, allow_null=False, write_only=True)
+    new_password = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                         style={'input_type': 'password'})
+    new_password_repeat = serializers.CharField(required=True, min_length=8, max_length=32, write_only=True,
+                                                style={'input_type': 'password'})
+
+    def validate(self, data):
+        phone_number = data['phone_number']
+        code = data['sms_code']
+        cached_code = cache.get(f"sms-code:{phone_number}")
+        if cached_code is None or str(cached_code) != str(code):
+            raise serializers.ValidationError(TG_AUTH_INVALID_CODE)
+        if data['new_password'] != data['new_password_repeat']:
+            raise serializers.ValidationError(TG_WRONG_REPEAT_PASSWORD)
+        return data
+
+
+    def create(self, validated_data, **kwargs): # MEH: override create super method (POST)
+        employee = Employee.objects.get(user__phone_number=validated_data['phone_number'])
+        employee.user.set_password(validated_data['new_password'])
+        employee.user.save()
+        return TG_PASSWORD_CHANGED
 
 
 class EmployeeApiList(CustomModelSerializer):
@@ -119,12 +212,12 @@ class EmployeeLevelSerializer(CustomModelSerializer):
     """
     MEH: Main Employee level full information
     """
-    manager = serializers.StringRelatedField()
+    manager_display = serializers.StringRelatedField(source='manager')
     api_items = serializers.PrimaryKeyRelatedField(many=True, queryset=ApiItem.objects.filter(category__role_base=False))
 
     class Meta:
         model = EmployeeLevel
-        fields = ['id', 'title', 'description', 'is_active', 'manager', 'api_items']
+        fields = ['id', 'title', 'description', 'is_active', 'manager', 'manager_display', 'api_items']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

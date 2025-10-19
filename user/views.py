@@ -18,7 +18,7 @@ from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer
     UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
     UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, \
     UserAccountingSerializer, AddressSerializer, AddressBriefSerializer, IntroductionSerializer, RoleSerializer, \
-    UserSignOutRequestSerializer
+    UserSignOutRequestSerializer, RoleBriefSerializer, IntroductionBriefSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -73,7 +73,7 @@ class UserViewSet(CustomMixinModelViewSet):
         **dict.fromkeys(['get_by_phone', 'key'], ['get_users']),
         **dict.fromkeys(['update', 'partial_update', 'accounting'], ['update_user']),
         'profile': ['update_user', 'customer_dashboard'],
-        **dict.fromkeys(['get_address_list', 'address_detail'], ['get_address', 'customer_dashboard']),
+        **dict.fromkeys(['get_address_list', 'address_detail'], ['address_manager', 'customer_dashboard']),
         **dict.fromkeys(['sign_up_manual', 'create'], ['create_user']),
         'destroy': ['delete_user'],
         'activation': ['active_user'],
@@ -530,8 +530,19 @@ class IntroductionViewSet(CustomMixinModelViewSet):
     ordering_fields = ['title', 'number', 'sort_number']
     permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': ['full_introductions']
+        '__all__': ['full_introductions'],
+        'choice_list': ['allow_any']
     }
+
+    @extend_schema(summary='Choice list for drop down input')
+    @action(detail=False, methods=['get'], serializer_class=IntroductionBriefSerializer,
+            url_path='choice-list')
+    def choice_list(self, request):
+        """
+        MEH: List of Role for dropdown Menu
+        """
+        introduction_list = Introduction.objects.all()
+        return self.custom_get(introduction_list)
 
 
 @extend_schema(tags=["Role"])
@@ -550,9 +561,20 @@ class RoleViewSet(CustomMixinModelViewSet):
     ordering_fields = ['title', 'sort_number', 'is_active', 'is_default']
     permission_classes = [ApiAccess]
     required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
-        '__all__': ['get_user_role_access'],
-        'create': ['create_user_role_access']
+        '__all__': ['user_role_access_manager'],
+        'create': ['create_user_role_access'],
+        'choice_list': ['allow_any']
     }
+
+    @extend_schema(summary='Choice list for drop down input')
+    @action(detail=False, methods=['get'], serializer_class=RoleBriefSerializer,
+            url_path='choice-list')
+    def choice_list(self, request):
+        """
+        MEH: List of Role for dropdown Menu
+        """
+        role_list = Role.objects.filter(is_active=True)
+        return self.custom_get(role_list)
 
     @extend_schema(summary='Api Item list for each Role for User')
     @action(detail=False, methods=['get'], serializer_class=ApiCategorySerializer,
@@ -582,3 +604,21 @@ class RoleViewSet(CustomMixinModelViewSet):
         ids = validated_data['ids']
         roles = self.get_queryset().filter(id__in=ids)
         return self.custom_list_destroy([roles])
+
+
+@extend_schema(tags=["User-Address"])
+class AddressViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Address Model viewset
+    """
+    queryset = Address.objects.all()
+    serializer_class = AddressSerializer
+    permission_classes = [ApiAccess] # MEH: Handle Access for Employee (List, Obj, and per default and custom @action)
+    required_api_keys = { # MEH: API static key for each action, save exactly in DB -> Api Item with Category
+        '__all__': ['address_manager', 'customer_dashboard'],
+    }
+
+    def get_serializer_class(self):
+        if self.action == 'list':
+            return AddressBriefSerializer
+        return super().get_serializer_class()
