@@ -457,22 +457,27 @@ class UserDownloadDataSerializer(UserSerializer):
     MEH: for handle User list field for write in Excel file -> (User download list)
     """
     role = serializers.StringRelatedField()
-    gender = serializers.CharField(source='user_profile.gender')
+    gender = serializers.SerializerMethodField()
     job = serializers.CharField(source='user_profile.job')
     date_joined = serializers.SerializerMethodField()
+    introduce_from = serializers.StringRelatedField()
 
     class Meta:
         model = User
-        fields = ['phone_number', 'first_name', 'last_name', 'date_joined', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'invite_user_count', 'role', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
-        read_only_fields = ['phone_number', 'first_name', 'last_name', 'national_id', 'order_count', 'last_order_date', 'email', 'province',
-                  'is_active', 'invite_user_count', 'introduce_from', 'accounting_id', 'accounting_name', 'gender', 'job']
+        fields = ['first_name', 'last_name', 'phone_number', 'date_joined', 'national_id', 'order_count', 'last_order_date', 'credit', 'email', 'province',
+                  'is_active', 'role', 'introduce_from', 'invite_user_count', 'accounting_id', 'accounting_name', 'gender', 'job']
+        read_only_fields = ['first_name', 'last_name', 'phone_number', 'national_id', 'order_count', 'last_order_date', 'credit', 'email', 'province',
+                  'is_active', 'introduce_from', 'invite_user_count', 'accounting_id', 'accounting_name', 'gender', 'job']
 
     @staticmethod
     def get_date_joined(obj):
         if obj.date_joined:
             return obj.date_joined.strftime('%Y-%m-%d %H:%M')
         return None
+
+    @staticmethod
+    def get_gender(obj):
+        return obj.user_profile.get_gender_display()
 
 
 class UserKeySerializer(CustomModelSerializer):

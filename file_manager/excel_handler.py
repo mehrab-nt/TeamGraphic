@@ -16,11 +16,12 @@ class ExcelHandler:
             ws.title = "Excel.xlsx"
         else:
             ws.title = kwargs['file_name']
+        ws.sheet_view.rightToLeft = True
         thin_border = Border(
-            left=Side(style='thin', color='777777'),
-            right=Side(style='thin', color='777777'),
-            top=Side(style='thin', color='777777'),
-            bottom=Side(style='thin', color='777777')
+            left=Side(style='thin', color='888888'),
+            right=Side(style='thin', color='888888'),
+            top=Side(style='thin', color='888888'),
+            bottom=Side(style='thin', color='888888')
         )
         header_font = Font(size=10)
         header_fill = PatternFill(start_color='ffcc00', end_color='ffcc00', fill_type='solid')
@@ -46,7 +47,7 @@ class ExcelHandler:
                         cell.fill = PatternFill(start_color='dedede', end_color='dedede', fill_type='solid')
         for col_num, column_cells in enumerate(ws.columns, 1):  # Auto col Width
             length = max(len(str(cell.value)) for cell in column_cells)
-            ws.column_dimensions[get_column_letter(col_num)].width = length + 2
+            ws.column_dimensions[get_column_letter(col_num)].width = length + 4
         res = HttpResponse(
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')  # MEH: Prepare HTTP response
         res['Content-Disposition'] = 'attachment; filename=users.xlsx'

@@ -1,3 +1,4 @@
+import jdatetime
 from rest_framework import status, filters
 from datetime import datetime, date
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -408,6 +409,7 @@ class UserViewSet(CustomMixinModelViewSet):
         all_fields = self.get_serializer_fields()
         return Response({'detail': list(all_fields.keys())}, status=status.HTTP_200_OK)
 
+
     @extend_schema(
         summary = "Download Excel of User list",
         responses={200: OpenApiTypes.BINARY}, # or a more specific file/media type
@@ -429,21 +431,64 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: Direct Download Excel of User List with Filter (up to 1000) (GET ACTION)
         """
         check_field = request.query_params.get('check_field')
-        queryset = self.filter_queryset(self.get_queryset()) # MEH: For apply filters/search/order like list()
-        headers = list(UserDownloadDataSerializer().get_fields().keys()) # MEH: Get Header from Serializer
+        queryset = self.filter_queryset(self.get_queryset())[:10000] # MEH: For apply filters/search/order like list()
+
+        persian_header = {
+            'phone_number': 'شماره موبایل',
+            'first_name': 'نام',
+            'last_name': 'نام خانوادگی',
+            'date_joined': 'تاریخ عضویت',
+            'national_id': 'کد ملی',
+            'order_count': 'تعداد سفارش‌ها',
+            'last_order_date': 'آخرین سفارش',
+            'email': 'ایمیل',
+            'province': 'استان',
+            'is_active': 'وضعیت',
+            'invite_user_count': 'تعداد معرفی‌شدگان',
+            'role': 'نقش',
+            'introduce_from': 'نحوه آشنایی',
+            'accounting_id': 'کد حسابداری',
+            'accounting_name': 'نام حسابداری',
+            'gender': 'جنسیت',
+            'job': 'شغل',
+            'credit': 'اعتبار کاربر',
+        }
+        serializer_class = UserDownloadDataSerializer
+        base_fields = list(serializer_class().get_fields().keys())
+        headers = [persian_header.get(f, f) for f in base_fields] # MEH: Get Header from Serializer
+
         rows = []
         for user in queryset:
-            serializer = UserDownloadDataSerializer(user)
+            serializer = serializer_class(user)
             row = []
-            for field in headers:
+            for field in base_fields:
                 value = serializer.data.get(field)
-                if isinstance(value, int) or isinstance(datetime, date):
-                    row.append(value)
-                elif not value:
+
+                # Convert Gregorian to Jalali for specific fields
+                if field in ['date_joined', 'last_order_date'] and value:
+                    try:
+                        g_date = user.date_joined if field == 'date_joined' else user.last_order_date
+                        if g_date:
+                            jdate = jdatetime.datetime.fromgregorian(datetime=g_date)
+                            value = jdate.strftime('%Y/%m/%d %H:%M')
+                    except Exception:
+                        pass
+
+                # Add comma separators for numeric fields
+                if field in ['credit', 'order_count', 'invite_user_count'] and isinstance(value, (int, float)):
+                    value = f"{value:,}"
+
+                # boolean fields
+                if field in ['is_active'] and isinstance(value, bool):
+                    if value:
+                        value = 'فعال'
+                    else:
+                        value = 'غیر فعال'
+
+                # Default clean-up
+                if not value:
                     value = '-'
-                    row.append(value)
-                else:
-                    row.append(str(value))
+                row.append(str(value))
             rows.append(row)
         return ExcelHandler.generate_excel(headers, rows, file_name='users.xlsx', check_field=str(check_field))
 
