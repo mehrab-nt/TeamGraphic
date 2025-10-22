@@ -192,9 +192,9 @@ class Address(models.Model):
                              blank=False, null=False,
                              related_name='user_addresses')
     province = models.ForeignKey(Province, on_delete=models.PROTECT,
-                                 blank=False, null=True)
+                                 blank=False, null=False)
     city = models.ForeignKey(City, on_delete=models.PROTECT,
-                             blank=True, null=True)
+                             blank=False, null=False)
     location = gis_models.PointField(geography=True, blank=True, null=True)
     # "location": {
     #     "type": "Point",
@@ -206,7 +206,7 @@ class Address(models.Model):
                                    blank=True, null=True, verbose_name='Postal Code')
     receiver_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Receiver Name')
     receiver_phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
-                                             blank=False, null=False, verbose_name='Receiver Phone Number')
+                                             blank=True, null=True, verbose_name='Receiver Phone Number')
     sender_name = models.CharField(max_length=73, blank=True, null=True, verbose_name='Sender Name')
     sender_phone_number = models.CharField(max_length=11, validators=[validators.MinLengthValidator(11)],
                                            blank=True, null=True, verbose_name='Sender Phone Number')
@@ -238,6 +238,8 @@ class Address(models.Model):
                     self.is_default = True
             if not self.receiver_name and self.user:
                 self.receiver_name = self.user.get_full_name()
+            if not self.receiver_phone_number and self.user:
+                self.receiver_phone_number = self.user.phone_number
             super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

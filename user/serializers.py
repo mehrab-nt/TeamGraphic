@@ -5,6 +5,7 @@ from rest_framework_simplejwt.token_blacklist.models import OutstandingToken
 from django.core.validators import RegexValidator
 from django.contrib.auth import authenticate
 from datetime import timedelta, datetime, timezone
+from city.models import Province, City
 from financial.models import Company
 from .models import User, UserProfile, Introduction, Role, Address, GENDER
 from api.responses import *
@@ -579,10 +580,12 @@ class AddressSerializer(CustomModelSerializer):
     postal_code = serializers.CharField(default=None)
     location = GeometryField()
     user = serializers.SerializerMethodField()
-    receiver_phone_number = serializers.CharField(required=True,
+    receiver_phone_number = serializers.CharField(required=False, allow_null=True, allow_blank=True,
                                                   validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
-    sender_phone_number = serializers.CharField(required=False,
+    sender_phone_number = serializers.CharField(required=False, allow_null=True, allow_blank=True,
                                                 validators=[RegexValidator(regex=r'^09\d{9}$', message=TG_INCORRECT_PHONE_NUMBER)])
+    province = serializers.PrimaryKeyRelatedField(allow_null=False, queryset=Province.objects.all())
+    city = serializers.PrimaryKeyRelatedField(allow_null=False, queryset=City.objects.all())
 
     class Meta:
         model = Address

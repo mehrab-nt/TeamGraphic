@@ -11,3 +11,13 @@ class ProvinceSerializer(CustomModelSerializer):
     class Meta:
         model = Province
         fields = '__all__'
+
+
+class CitySerializer(CustomModelSerializer):
+    """
+    MEH: City full Information
+    """
+    class Meta:
+        model = City
+        fields = '__all__'
+
