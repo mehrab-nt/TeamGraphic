@@ -36,7 +36,8 @@ def user_post_save(sender, instance, created, **kwargs):
     if (instance.is_employee or instance.is_staff) and instance.role:
         if instance.role.cashback_active and getattr(instance.credit, "cashback", None):
             instance.credit.cashback.delete()
-        instance.credit.delete()
+        if getattr(instance, "credit", None):
+            instance.credit.delete()
         instance.role = None
         flag = True
     if not instance.is_staff and not instance.is_employee:
