@@ -2,7 +2,7 @@ from django.db.models.signals import post_delete, post_save, pre_save, m2m_chang
 from django.dispatch import receiver
 from django.db.models import F
 from django.core.cache import cache
-from .models import Role, User, UserProfile
+from .models import Role, User, UserProfile, Introduction
 from financial.models import Credit, CashBack
 
 
@@ -26,12 +26,25 @@ def user_post_save(sender, instance, created, **kwargs):
         if instance.introduce_from:
             instance.introduce_from.number = F('number') + 1
             instance.introduce_from.save(update_fields=['number'])
+
+    if getattr(instance, '_changed_introduce_from', False):
+        if instance._original_introduce_from_id and instance._original_introduce_from_id != instance.introduce_from_id:
+            Introduction.objects.filter(id=instance._original_introduce_from_id).update(number=F('number') - 1)
+        if instance.introduce_from_id:
+            Introduction.objects.filter(id=instance.introduce_from_id).update(number=F('number') + 1)
+
     if (instance.is_employee or instance.is_staff) and instance.role:
         if instance.role.cashback_active and getattr(instance.credit, "cashback", None):
             instance.credit.cashback.delete()
+        instance.credit.delete()
         instance.role = None
         flag = True
     if not instance.is_staff and not instance.is_employee:
+        if not instance.role:
+            instance.role = Role.objects.filter(is_default=True).first()
+            flag = True
+        if not getattr(instance, "credit", None):
+            Credit.objects.create(owner=instance)
         if instance.role.cashback_active and not getattr(instance.credit, "cashback", None):
             CashBack.objects.create(
                 credit=instance.credit

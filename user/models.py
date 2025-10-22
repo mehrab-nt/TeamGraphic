@@ -13,6 +13,44 @@ import string, random
 from django.core.cache import cache
 
 
+class Role(models.Model):
+    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
+                             blank=False, null=False)
+    description = models.TextField(max_length=236, blank=True, null=True)
+    sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
+    is_active = models.BooleanField(default=True,
+                                    blank=False, null=False, verbose_name="Is Active")
+    is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
+    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items", blank=True,
+                                       related_name='roles')
+    cashback_active = models.BooleanField(default=False,
+                                          blank=False, null=False, verbose_name='Cashback Active')
+
+    class Meta:
+        ordering = ['sort_number']
+        verbose_name = 'Role'
+        verbose_name_plural = 'Roles'
+
+    def __str__(self):
+        return f'{self.title}'
+
+    def save(self, *args, **kwargs):
+        with transaction.atomic():
+            other_default = Role.objects.exclude(pk=self.pk).filter(is_default=True)
+            if self.is_default:
+                if other_default.exists():
+                    other_default.update(is_default=False)
+            else:
+                if not other_default.exists():
+                    self.is_default = True
+            super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        if self.is_default or self.cashback_active:
+            raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
+        super().delete(*args, **kwargs)
+
+
 class User(AbstractUser):
     phone_number = models.CharField(max_length=11, unique=True, validators=[validators.MinLengthValidator(11), validators.RegexValidator(regex=r'^09\d{9}$')],
                                     blank=False, null=False, verbose_name='Phone Number')
@@ -32,7 +70,7 @@ class User(AbstractUser):
                                    related_name='invite_user_list')
     introduce_from = models.ForeignKey('Introduction', on_delete=models.PROTECT, blank=True, null=True, verbose_name='Introduction from',
                                        related_name='user_introduce_with')
-    role = models.ForeignKey('Role', on_delete=models.SET_NULL,
+    role = models.ForeignKey('Role', default=Role.objects.filter(is_default=True).first, on_delete=models.SET_DEFAULT,
                              blank=True, null=True,
                              related_name='role_all_users')
     user_profile = models.OneToOneField('UserProfile', on_delete=models.CASCADE, blank=True, null=True,
@@ -53,6 +91,10 @@ class User(AbstractUser):
     def __str__(self):
         return f'{self.first_name} {self.last_name}'
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._original_introduce_from_id = self.introduce_from_id  # cache old FK
+
     @staticmethod
     def generate_unique_key(self, field_name, length, prefix=''):
         chars = string.ascii_lowercase + string.digits
@@ -62,6 +104,10 @@ class User(AbstractUser):
                 return prefix
 
     def save(self, *args, **kwargs):
+        if self.pk and self.introduce_from_id != self._original_introduce_from_id:
+            self._changed_introduce_from = True
+        else:
+            self._changed_introduce_from = False
         if not self.public_key or 'tg-' not in self.public_key:
             self.public_key = self.generate_unique_key(User,'public_key', 8, 'tg-')
         if not self.private_key or len(self.private_key) != 16:
@@ -71,6 +117,7 @@ class User(AbstractUser):
         if str(self.phone_number) != str(self.username):
             self.username = self.phone_number
         super().save(*args, **kwargs)
+        self._original_introduce_from_id = self.introduce_from_id
 
     def has_api_permission(self, keys):
         if not keys:
@@ -121,44 +168,6 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"Profile: {self.user}"
-
-
-class Role(models.Model):
-    title = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(3)],
-                             blank=False, null=False)
-    description = models.TextField(max_length=236, blank=True, null=True)
-    sort_number = models.SmallIntegerField(default=0, blank=False, null=False, verbose_name='Sort Number')
-    is_active = models.BooleanField(default=True,
-                                    blank=False, null=False, verbose_name="Is Active")
-    is_default = models.BooleanField(default=False, blank=False, null=False, verbose_name='Is Default')
-    api_items = models.ManyToManyField(ApiItem, verbose_name="Api Items", blank=True,
-                                       related_name='roles')
-    cashback_active = models.BooleanField(default=False,
-                                          blank=False, null=False, verbose_name='Cashback Active')
-
-    class Meta:
-        ordering = ['sort_number']
-        verbose_name = 'Role'
-        verbose_name_plural = 'Roles'
-
-    def __str__(self):
-        return f'{self.title}'
-
-    def save(self, *args, **kwargs):
-        with transaction.atomic():
-            other_default = Role.objects.exclude(pk=self.pk).filter(is_default=True)
-            if self.is_default:
-                if other_default.exists():
-                    other_default.update(is_default=False)
-            else:
-                if not other_default.exists():
-                    self.is_default = True
-            super().save(*args, **kwargs)
-
-    def delete(self, *args, **kwargs):
-        if self.is_default or self.cashback_active:
-            raise ValidationError(TG_PREVENT_DELETE_DEFAULT)
-        super().delete(*args, **kwargs)
 
 
 class Introduction(models.Model):
