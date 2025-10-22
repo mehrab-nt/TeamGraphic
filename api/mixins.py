@@ -47,6 +47,8 @@ class CustomModelSerializer(serializers.ModelSerializer):
                     'required': f"انتخاب فیلد ({field_label}) الزامی است.",
                     'invalid': f"انتخاب وارد شده برای فیلد ({field_label}) نامعتبر است.",
                     'does_not_exist': f"مقدار انتخاب شده برای ({field_label}) وجود ندارد.",
+                    'blank': f"فیلد ({field_label}) نباید خالی باشد.",
+                    'null': f"فیلد ({field_label}) نباید خالی باشد.",
                 })
             for validator in getattr(field, 'validators', []):
                 if isinstance(validator, MinLengthValidator):
