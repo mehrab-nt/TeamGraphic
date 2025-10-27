@@ -14,6 +14,7 @@ class CustomerFilter(django_filters.FilterSet):
     class Meta:
         model = User
         fields = {
+            'id': ['exact'],
             'user_profile__job': ['contains'],
             'is_active': ['exact'],
             'phone_number_verified': ['exact'],

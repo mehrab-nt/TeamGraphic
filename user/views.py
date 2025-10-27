@@ -12,14 +12,14 @@ from financial.models import DepositConfirmStatus
 from financial.serializers import CreditSerializer, DepositBriefInfoForUserManualListSerializer
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
-from django.db.models import Subquery, OuterRef
+from django.db.models import Subquery, OuterRef, Q
 from .serializers import UserSignUpRequestSerializer, UserSignUpVerifySerializer, UserSignUpManualSerializer, \
     UserSerializer, UserBriefSerializer, UserChangePasswordSerializer, UserResendCodeSerializer, \
     UserSignInRequestSerializer, UserSignInWithCodeSerializer, UserSignInWithPasswordSerializer, \
     UserImportFieldDataSerializer, UserImportDataSerializer, UserDownloadDataSerializer, \
     UserProfileSerializer, UserActivationSerializer, UserManualVerifyPhoneSerializer, UserKeySerializer, \
     UserAccountingSerializer, AddressSerializer, AddressBriefSerializer, IntroductionSerializer, RoleSerializer, \
-    UserSignOutRequestSerializer, RoleBriefSerializer, IntroductionBriefSerializer
+    UserSignOutRequestSerializer, RoleChoiceListSerializer, IntroductionBriefSerializer, UserChoiceListSerializer
 from rest_framework_simplejwt.views import TokenRefreshView, TokenVerifyView
 from .filters import CustomerFilter
 from django.core.exceptions import ObjectDoesNotExist
@@ -32,6 +32,7 @@ from api.serializers import BulkListSerializer, ApiCategorySerializer
 from file_manager.excel_handler import ExcelHandler
 from message.models import WebMessage, WebMessageType
 from message.serializers import WebMessageSerializer
+from rest_framework.pagination import PageNumberPagination
 
 
 @extend_schema(tags=["Auth"], summary="Get Refresh Token")
@@ -145,6 +146,17 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: current User info
         """
         return self.custom_get(request.user)
+
+    @extend_schema(summary='Choice list for drop down input')
+    @action(detail=False, methods=['get'], serializer_class=UserChoiceListSerializer,
+            url_path='choice-list')
+    def choice_list(self, request):
+        """
+        MEH: List of User for dropdown Menu
+        """
+        user_list = User.objects.filter(is_active=True, is_employee=False)
+        return self.custom_get(user_list)
+
 
     @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
@@ -584,7 +596,7 @@ class IntroductionViewSet(CustomMixinModelViewSet):
             url_path='choice-list')
     def choice_list(self, request):
         """
-        MEH: List of Role for dropdown Menu
+        MEH: List of Introduction for dropdown Menu
         """
         introduction_list = Introduction.objects.all()
         return self.custom_get(introduction_list)
@@ -612,7 +624,7 @@ class RoleViewSet(CustomMixinModelViewSet):
     }
 
     @extend_schema(summary='Choice list for drop down input')
-    @action(detail=False, methods=['get'], serializer_class=RoleBriefSerializer,
+    @action(detail=False, methods=['get'], serializer_class=RoleChoiceListSerializer,
             url_path='choice-list')
     def choice_list(self, request):
         """

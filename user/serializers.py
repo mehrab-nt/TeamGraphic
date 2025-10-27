@@ -318,6 +318,21 @@ class UserProfileSerializer(CustomModelSerializer):
         return None
 
 
+class UserChoiceListSerializer(CustomModelSerializer):
+    """
+    MEH: User brief Information for Choice List
+    """
+    full_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ['id', 'full_name']
+
+    @staticmethod
+    def get_full_name(obj):
+        return obj.first_name + ' ' + obj.last_name + ' - ' + obj.phone_number
+
+
 class UserBriefSerializer(CustomModelSerializer):
     """
     MEH: Brief User information for list
@@ -621,7 +636,7 @@ class IntroductionSerializer(CustomModelSerializer):
         fields = '__all__'
 
 
-class RoleBriefSerializer(CustomModelSerializer):
+class RoleChoiceListSerializer(CustomModelSerializer):
     """
     MEH: Role brief Information (Customer, Co-Worker, ...)
     """
