@@ -6,10 +6,14 @@ class DepositFilter(django_filters.FilterSet):
     """
     MEH: Set some filter for Deposit list
     """
+    user = django_filters.NumberFilter(field_name='credit__owner__id', lookup_expr='exact')
+
     class Meta:
         model = Deposit
         fields = {
             'submit_date': ['lte', 'gte'],
             'deposit_type': ['exact'],
-            'credit__owner__first_name': ['contains']
+            'online_status': ['exact'],
+            'bank': ['exact'],
+            'tracking_code': ['contains'],
         }

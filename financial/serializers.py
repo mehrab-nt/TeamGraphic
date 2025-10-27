@@ -47,6 +47,7 @@ class DepositSerializer(CustomModelSerializer):
     confirm_by_display = serializers.StringRelatedField(source='confirm_by')
     total_price = serializers.SerializerMethodField()
     deposit_type_display = serializers.SerializerMethodField()
+    online_status_display = serializers.SerializerMethodField()
     transaction_type_display = serializers.SerializerMethodField()
     confirm_status_display = serializers.SerializerMethodField()
     bank_display = serializers.StringRelatedField(source='bank')
@@ -78,8 +79,39 @@ class DepositSerializer(CustomModelSerializer):
         return obj.get_transaction_type_display()
 
     @staticmethod
+    def get_online_status_display(obj):
+        return obj.get_online_status_display()
+
+    @staticmethod
     def get_confirm_status_display(obj):
         return obj.get_confirm_status_display()
+
+
+class DepositDownloadDataSerializer(DepositSerializer):
+    """
+    MEH: for handle Deposit list field for write in Excel file -> (Deposit download list)
+    """
+    receive_amount = serializers.SerializerMethodField()
+    pay_amount = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Deposit
+        fields = ['submit_date', 'user_display', 'receive_amount', 'pay_amount', 'deposit_type_display',
+                  'transaction_type_display', 'deposit_date', 'description']
+
+    @staticmethod
+    def get_receive_amount(obj):
+        if obj.income:
+            return obj.total_price
+        else:
+            return 0
+
+    @staticmethod
+    def get_pay_amount(obj):
+        if obj.income:
+            return 0
+        else:
+            return obj.total_price
 
 
 class DepositBriefListSerializer(DepositSerializer):
@@ -110,7 +142,7 @@ class DepositOnlineListSerializer(DepositSerializer):
     """
     class Meta:
         model = Deposit
-        fields = ['id', 'user', 'user_display', 'total_price', 'online_status', 'submit_date', 'bank', 'bank_display', 'tracking_code']
+        fields = ['id', 'user', 'user_display', 'total_price', 'online_status', 'online_status_display', 'submit_date', 'bank', 'bank_display', 'tracking_code', 'steps']
 
 
 class DepositPendingSetStatusSerializer(CustomModelSerializer):
@@ -162,20 +194,22 @@ class DepositCreateSerializer(CustomModelSerializer):
     ])
     confirm_status = CustomChoiceField(choices=[
         (DepositConfirmStatus.PENDING, DepositConfirmStatus.PENDING.label),
-        (DepositConfirmStatus.CONFIRMED, DepositConfirmStatus.AUTO.label)
+        (DepositConfirmStatus.AUTO, DepositConfirmStatus.AUTO.label)
     ])
 
     class Meta:
         model = Deposit
         fields = ['user', 'total_price', 'income', 'deposit_date', 'transaction_type', 'deposit_type',
-                  'bank', 'description', 'confirm_status', 'info']
+                  'bank', 'description', 'confirm_status', 'tracking_code']
 
     def create(self, validated_data):
         user = validated_data.pop('user')
         validated_data['credit'] = user.credit
         deposit = super().create(validated_data)
-        if deposit.confirm_status == DepositConfirmStatus.AUTO:
+        if deposit.confirm_status == DepositConfirmStatus.AUTO and deposit.transaction_type == TransactionType.CREDIT:
             deposit.credit.update_total_amount(deposit.display_price())
+        if not deposit.deposit_date:
+            deposit.save()
         return deposit
 
 

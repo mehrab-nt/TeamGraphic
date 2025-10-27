@@ -1,19 +1,24 @@
-from drf_spectacular.utils import extend_schema, OpenApiResponse
+from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 from rest_framework import filters
 from rest_framework.decorators import action
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import BulkListSerializer, SendSignalSerializer
-from .models import Company, Deposit, DepositConfirmStatus, BankAccount, CashBackPercent, CashBack, DepositType
+from .models import Company, Deposit, DepositConfirmStatus, BankAccount, CashBackPercent, CashBack, DepositType, TransactionType
 from api.permissions import ApiAccess
-from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, DepositOnlineListSerializer, \
+from .serializers import DepositSerializer, DepositBriefListSerializer, DepositCreateSerializer, \
+    DepositOnlineListSerializer, \
     DepositPendingListSerializer, DepositPendingSetStatusSerializer, CompanySerializer, CompanyBriefSerializer, \
-    BankAccountSerializer, BankAccountBriefSerializer, CashBackPercentSerializer, CashBackSerializer
+    BankAccountSerializer, BankAccountBriefSerializer, CashBackPercentSerializer, CashBackSerializer, \
+    DepositDownloadDataSerializer
 from django_filters.rest_framework import DjangoFilterBackend
 from .filters import DepositFilter
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from api.responses import TG_DATA_CREATED
+import jdatetime
+from file_manager.excel_handler import ExcelHandler
 
 
 @extend_schema(tags=['Financial'])
@@ -100,13 +105,78 @@ class DepositViewSet(CustomMixinModelViewSet):
         return self.custom_update(deposit, request, partial=(request.method == 'PATCH'))
 
     @action(detail=False, methods=['get'],
-            url_path='online-list', serializer_class=DepositOnlineListSerializer, filter_backends=[None])
+            url_path='online-list', serializer_class=DepositOnlineListSerializer)
     def online_list(self, request):
         """
         MEH: Deposit Online List View for check
         """
-        deposit_list = self.get_queryset().select_related('bank').filter(deposit_type=DepositType.WEBSITE)
+        deposit_list = self.filter_queryset(self.get_queryset().select_related('bank').filter(transaction_type=TransactionType.ONLINE))
         return self.custom_get(deposit_list)
+
+    @extend_schema(
+        summary="Download Excel of Deposit list",
+        responses={200: OpenApiTypes.BINARY},  # or a more specific file/media type
+        parameters=[
+            OpenApiParameter(
+                name='check_field',
+                description='Used for highlight Deposit row in Excel file, if check_filed is None or 0 in Excel cell',
+                required=False,
+                type=str,
+                location='query',
+                enum=list(DepositDownloadDataSerializer().get_fields().keys())
+            )
+        ]
+    )
+    @action(detail=False, methods=['get'],
+            url_path='download', serializer_class=None)
+    def download_deposit_list(self, request):
+        """
+        MEH: Direct Download Excel of Deposit List with Filter (up to 1000) (GET ACTION)
+        """
+        check_field = request.query_params.get('check_field')
+        queryset = self.filter_queryset(self.get_queryset())[:10000]  # MEH: For apply filters/search/order like list()
+
+        persian_header = {
+            'user_display': 'نام مشتری',
+            'submit_date': 'تاریخ ثبت',
+            'deposit_date': 'تاریخ پرداخت',
+            'deposit_type_display': 'نوع تراکنش',
+            'receive_amount': 'دریافت (تومان)',
+            'pay_amount': 'پرداخت (تومان)',
+            'description': 'توضیحات',
+            'transaction_type_display': 'نحوه پرداحت',
+        }
+        serializer_class = DepositDownloadDataSerializer
+        base_fields = list(serializer_class().get_fields().keys())
+        headers = [persian_header.get(f, f) for f in base_fields]  # MEH: Get Header from Serializer
+
+        rows = []
+        for deposit in queryset:
+            serializer = serializer_class(deposit)
+            row = []
+            for field in base_fields:
+                value = serializer.data.get(field)
+
+                # Convert Gregorian to Jalali for specific fields
+                if field in ['submit_date', 'deposit_date'] and value:
+                    try:
+                        g_date = deposit.submit_date if field == 'submit_date' else deposit.deposit_date
+                        if g_date:
+                            jdate = jdatetime.datetime.fromgregorian(datetime=g_date)
+                            value = jdate.strftime('%Y/%m/%d %H:%M')
+                    except Exception:
+                        pass
+
+                # Add comma separators for numeric fields
+                if field in ['receive_amount', 'pay_amount'] and isinstance(value, (int, float)):
+                    value = f"{value:,}"
+
+                # Default clean-up
+                if not value:
+                    value = '-'
+                row.append(str(value))
+            rows.append(row)
+        return ExcelHandler.generate_excel(headers, rows, file_name='deposit.xlsx', check_field=str(check_field))
 
 
 @extend_schema(tags=['Financial'])
@@ -116,16 +186,32 @@ class OfflineBankAccountViewSet(CustomMixinModelViewSet):
     """
     queryset = BankAccount.objects.all().filter(is_online=False)
     serializer_class = BankAccountSerializer
+    filter_backends = [
+        filters.OrderingFilter
+    ]
+    ordering_fields = ['title', 'is_active', 'sort_number']
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['offline_bank_account_list'],
-        'create': ['create_offline_bank_account']
+        'create': ['create_offline_bank_account'],
+        'choice_list': ['allow_any']
     }
 
     def get_serializer_class(self):
         if self.action == 'list':
             return BankAccountBriefSerializer
         return super().get_serializer_class()
+
+    @extend_schema(summary='Choice list for drop down input')
+    @action(detail=False, methods=['get'], serializer_class=BankAccountBriefSerializer,
+            url_path='choice-list')
+    def choice_list(self, request):
+        """
+        MEH: List of Bank (offline) for dropdown Menu
+        """
+        bank_list = BankAccount.objects.filter(is_online=False, is_active=True)
+        print(bank_list)
+        return self.custom_get(bank_list)
 
 
 @extend_schema(tags=['Financial'])

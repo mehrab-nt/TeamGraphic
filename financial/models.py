@@ -60,7 +60,7 @@ class Credit(models.Model):
         return f'Credit For: {self.owner}'
 
     def update_total_amount(self, value):
-        self.total_amount += value
+        self.total_amount += value * (-1)
         self.save(update_fields=['total_amount'])
     
     def validate_total_amount(self):
@@ -82,7 +82,7 @@ class DepositConfirmStatus(models.TextChoices):
     AUTO = 'AUT', 'تایید خودکار'
 
 class OnlineDepositStatus(models.TextChoices):
-    START = 'STR', 'موفق'
+    START = 'STR', 'شروع'
     REQUEST = 'REQ', 'ارتباط با بانک'
     SUCCESS = 'SUC', 'موفق'
     FAILURE = 'FAL', 'ناموفق'
@@ -92,7 +92,7 @@ class OnlineDepositStatus(models.TextChoices):
 class DepositType(models.TextChoices):
     WEBSITE = 'WEB', 'ثبت سفارش آنلاین'
     IN_PERSON_SUBMIT= 'PER', 'ثبت سفارش حضوری'
-    PLEDGE = 'PLG', 'بیعانه'
+    PLEDGE = 'PLG', 'افزایش اعتبار'
     DELIVERY = 'DEL', 'هزینه ارسال'
     PAY = 'PAT', 'بازگشت وجه'
     DAMAGE = 'DMG', 'خسارت'
@@ -101,7 +101,7 @@ class DepositType(models.TextChoices):
     CODE_DISCOUNT = 'COD', 'کد تخفیف'
     FESTIVAL_DISCOUNT = 'FSD', 'تخفیف جشنواره'
     FESTIVAL_CREDIT = 'FSC', 'اعتبار جشنواره'
-    CANCELLED = 'CAN', 'لفو سفارش'
+    CANCELLED = 'CAN', 'لغو سفارش'
     MANUAL_CREDIT = 'INC', 'اعتبار دستی'
 
 class TransactionType(models.TextChoices):
@@ -115,7 +115,7 @@ class TransactionType(models.TextChoices):
     DISCOUNT = 'DIS', 'تخفیف'
 
 def deposit_picture_upload_path(instance, filename): # MEH: Store picture in media in deposit folder (it's not in file manager!)
-    return f'deposit/{instance.user.id}/{instance.deposit_date.strftime('%Y%m%d%H%M%S')}.jpg'
+    return f'deposit/{instance.id}/{instance.deposit_date.strftime('%Y%m%d%H%M%S')}.jpg'
 
 
 class Deposit(models.Model):
@@ -358,9 +358,7 @@ class BankAccount(models.Model):
         verbose_name_plural = 'Bank Accounts'
 
     def __str__(self):
-        if self.is_online:
-            return f'Online Bank: {self.title}'
-        return f'Offline Bank: {self.title}'
+        return f'{self.title}'
 
 
 class DiscountAmountType(models.TextChoices):
