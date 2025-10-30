@@ -7,14 +7,14 @@ from django.core.files.base import ContentFile
 ALLOWED_IMAGE_FORMATS = ['JPEG', 'PNG', 'WEBP', 'JPG']
 
 
-def optimize_image(image, size=(256, 256)):
+def optimize_image(image, size: tuple[int, int] | None = (256, 256)):
     """
     MEH: Optimize and Resize image for SEO base performance and volume of data
     Export in webp format
     """
     img = Image.open(image).convert('RGB')
-    img_ratio = img.width / img.height
-    if size[0] and size[1]:
+    if size:
+        img_ratio = img.width / img.height
         target_ratio = size[0] / size[1]
         if img_ratio > target_ratio: # MEH: Crop Wider image: crop sides
             new_width = int(target_ratio * img.height)
@@ -25,8 +25,6 @@ def optimize_image(image, size=(256, 256)):
             top = (img.height - new_height) // 2
             img = img.crop((0, top, img.width, top + new_height))
         img = img.resize(size, Image.Resampling.LANCZOS)
-    else:
-        img = img.resize((img.width, img.height), Image.Resampling.LANCZOS)
     buffer = BytesIO()
     img.save(buffer, format='WEBP', quality=75)
     buffer.seek(0)

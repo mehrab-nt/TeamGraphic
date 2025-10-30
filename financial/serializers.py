@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from file_manager.images import optimize_image
 from .filters import DepositFilter
 from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit, BankAccount, \
     CashBackPercent, CashBack
@@ -66,7 +67,7 @@ class DepositSerializer(CustomModelSerializer):
 
     @staticmethod
     def get_total_price(obj):
-        if not obj.income:
+        if not obj.increase:
             return obj.total_price * -1
         return obj.total_price
 
@@ -101,14 +102,14 @@ class DepositDownloadDataSerializer(DepositSerializer):
 
     @staticmethod
     def get_receive_amount(obj):
-        if obj.income:
+        if obj.increase:
             return obj.total_price
         else:
             return 0
 
     @staticmethod
     def get_pay_amount(obj):
-        if obj.income:
+        if obj.increase:
             return 0
         else:
             return obj.total_price
@@ -121,7 +122,7 @@ class DepositBriefListSerializer(DepositSerializer):
     class Meta:
         model = Deposit
         fields = ['id', 'submit_date', 'user', 'user_display', 'total_price', 'deposit_type', 'deposit_type_display',
-                  'transaction_type', 'transaction_type_display', 'deposit_date',
+                  'transaction_type', 'transaction_type_display', 'deposit_date', 'confirm_status',
                   'submit_by', 'submit_by_display', 'confirm_by', 'confirm_by_display', 'description']
 
 
@@ -199,17 +200,31 @@ class DepositCreateSerializer(CustomModelSerializer):
 
     class Meta:
         model = Deposit
-        fields = ['user', 'total_price', 'income', 'deposit_date', 'transaction_type', 'deposit_type',
-                  'bank', 'description', 'confirm_status', 'tracking_code']
+        fields = ['user', 'total_price', 'increase', 'deposit_date', 'transaction_type', 'deposit_type',
+                  'bank', 'description', 'confirm_status', 'tracking_code', 'picture']
+
+    def validate_picture(self, image): # MEH: Check uploaded Image for profile (Optimize in filemanager.images.py)
+        if image:
+            validate_image = self.validate_upload_image(image, max_image_size=2, max_width=2048, max_height=2048, size=None)
+            return validate_image
+        return None
 
     def create(self, validated_data):
         user = validated_data.pop('user')
         validated_data['credit'] = user.credit
+        picture = validated_data.pop('picture')
         deposit = super().create(validated_data)
-        if deposit.confirm_status == DepositConfirmStatus.AUTO and deposit.transaction_type == TransactionType.CREDIT:
-            deposit.credit.update_total_amount(deposit.display_price())
-        if not deposit.deposit_date:
-            deposit.save()
+        calculate = False
+        if deposit.confirm_status == DepositConfirmStatus.AUTO:
+            if deposit.deposit_type == DepositType.PLEDGE or deposit.deposit_type == DepositType.MANUAL_CREDIT:
+                calculate = True
+                deposit.credit.update_total_amount(deposit.display_price())
+            elif deposit.transaction_type == TransactionType.CREDIT:
+                calculate = True
+                deposit.credit.update_total_amount(deposit.display_price())
+        deposit.calculate = calculate
+        deposit.picture = picture
+        deposit.save()
         return deposit
 
 
