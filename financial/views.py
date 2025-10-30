@@ -141,8 +141,8 @@ class DepositViewSet(CustomMixinModelViewSet):
             'submit_date': 'تاریخ ثبت',
             'deposit_date': 'تاریخ پرداخت',
             'deposit_type_display': 'نوع تراکنش',
-            'receive_amount': 'دریافت (تومان)',
-            'pay_amount': 'پرداخت (تومان)',
+            'receive_amount': 'بستانکار (تومان)',
+            'pay_amount': 'بدهکار (تومان)',
             'description': 'توضیحات',
             'transaction_type_display': 'نحوه پرداحت',
         }

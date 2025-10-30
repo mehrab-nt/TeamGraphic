@@ -60,17 +60,18 @@ class Credit(models.Model):
         return f'Credit For: {self.owner}'
 
     def update_total_amount(self, value):
-        self.total_amount += value * (-1)
+        self.total_amount += value
         self.save(update_fields=['total_amount'])
     
     def validate_total_amount(self):
         deposit_list = self.deposit_list.all()
         value = 0
         for deposit in deposit_list:
-            if deposit.income:
-                value += deposit.total_price
-            else:
-                value -= deposit.total_price
+            if deposit.calculate:
+                if deposit.increase:
+                    value += deposit.total_price
+                else:
+                    value -= deposit.total_price
         self.total_amount = value
         self.save(update_fields=['total_amount'])
 
@@ -128,7 +129,8 @@ class Deposit(models.Model):
                                   blank=True, null=True, verbose_name='Submit By',
                                   related_name='deposit_submit_list')
     deposit_date = models.DateTimeField(blank=True, null=True, verbose_name='Deposit Date')
-    income = models.BooleanField(default=True, blank=False, null=False)
+    increase = models.BooleanField(default=True, blank=False, null=False)
+    calculate = models.BooleanField(default=False, blank=False, null=False)
     official_invoice = models.BooleanField(default=False,
                                            blank=False, null=False, verbose_name='Official Invoice')
     transaction_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
@@ -161,7 +163,7 @@ class Deposit(models.Model):
         verbose_name_plural = 'Deposits'
 
     def __str__(self):
-        if self.income:
+        if self.increase:
             return f'Deposit {self.total_price} /Income From: {self.credit.owner}'
         else:
             return f'Deposit {self.total_price} /Pay For: {self.credit.owner}'
@@ -172,7 +174,7 @@ class Deposit(models.Model):
         super().save(*args, **kwargs)
 
     def display_price(self):
-        if not self.income:
+        if not self.increase:
             return self.total_price * -1
         return self.total_price
 
