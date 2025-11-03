@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from file_manager.images import optimize_image
+from report.models import NotifReport
 from .filters import DepositFilter
 from .models import Deposit, TransactionType, DepositType, DepositConfirmStatus, Company, Credit, BankAccount, \
     CashBackPercent, CashBack
@@ -122,7 +123,7 @@ class DepositBriefListSerializer(DepositSerializer):
     class Meta:
         model = Deposit
         fields = ['id', 'submit_date', 'user', 'user_display', 'total_price', 'deposit_type', 'deposit_type_display',
-                  'transaction_type', 'transaction_type_display', 'deposit_date', 'confirm_status',
+                  'transaction_type', 'transaction_type_display', 'deposit_date', 'confirm_status', 'confirm_status_display',
                   'submit_by', 'submit_by_display', 'confirm_by', 'confirm_by_display', 'description']
 
 
@@ -132,9 +133,9 @@ class DepositPendingListSerializer(DepositSerializer):
     """
     class Meta:
         model = Deposit
-        fields = ['id', 'submit_date', 'user_display', 'total_price', 'deposit_type', 'deposit_type_display',
+        fields = ['id', 'submit_date', 'user', 'user_display', 'total_price', 'deposit_type', 'deposit_type_display',
                   'transaction_type', 'transaction_type_display', 'deposit_date',
-                  'confirm_status', 'confirm_status_display', 'submit_by_display', 'description', 'tracking_code', 'bank_display']
+                  'confirm_status', 'confirm_status_display', 'submit_by', 'submit_by_display', 'description', 'tracking_code', 'bank', 'bank_display']
 
 
 class DepositOnlineListSerializer(DepositSerializer):
@@ -155,21 +156,20 @@ class DepositPendingSetStatusSerializer(CustomModelSerializer):
         (DepositConfirmStatus.CONFIRMED, DepositConfirmStatus.CONFIRMED.label),
         (DepositConfirmStatus.REJECT, DepositConfirmStatus.REJECT.label)
     ])
-    description = serializers.CharField(allow_blank=True, required=False)
 
     class Meta:
         model = Deposit
-        fields = ['confirm_status', 'description']
-
-    def validate(self, attrs):
-        if not attrs['description']: # MEH: if description is empty, drop to keep old description in update
-            attrs.pop('description')
-        return attrs
+        fields = ['confirm_status']
 
     def update(self, instance, validated_data):
         deposit = super().update(instance, validated_data)
         if deposit.confirm_status == DepositConfirmStatus.CONFIRMED:
             deposit.credit.update_total_amount(deposit.display_price())
+        if deposit.confirm_status != DepositConfirmStatus.PENDING:
+            notif = NotifReport.objects.first()
+            if notif:
+                notif.pending_deposit -= 1
+                notif.save()
         return deposit
 
 
@@ -212,18 +212,28 @@ class DepositCreateSerializer(CustomModelSerializer):
     def create(self, validated_data):
         user = validated_data.pop('user')
         validated_data['credit'] = user.credit
-        picture = validated_data.pop('picture')
+        picture = getattr(validated_data, 'picture', None)
+        if picture:
+            validated_data.pop('picture')
         deposit = super().create(validated_data)
         calculate = False
         if deposit.confirm_status == DepositConfirmStatus.AUTO:
             if deposit.deposit_type == DepositType.PLEDGE or deposit.deposit_type == DepositType.MANUAL_CREDIT:
                 calculate = True
                 deposit.credit.update_total_amount(deposit.display_price())
+                deposit.rem_credit = deposit.credit.total_amount
             elif deposit.transaction_type == TransactionType.CREDIT:
                 calculate = True
                 deposit.credit.update_total_amount(deposit.display_price())
+                deposit.rem_credit = deposit.credit.total_amount
+        else:
+            notif = NotifReport.objects.first()
+            if notif:
+                notif.pending_deposit += 1
+                notif.save()
         deposit.calculate = calculate
-        deposit.picture = picture
+        if picture:
+            deposit.picture = picture
         deposit.save()
         return deposit
 
@@ -265,13 +275,13 @@ class DepositOnlineDetailSerializer(DepositSerializer):
         return data
 
 
-class DepositBriefInfoForUserManualListSerializer(DepositSerializer):
+class DepositBriefInfoForUserListSerializer(DepositSerializer):
     """
-    MEH: Deposit brief info for user manual list (Pending, Confirm, Reject)
+    MEH: Deposit brief info for user list (Pending, Confirm, Reject)
     """
     class Meta:
         model = Deposit
-        fields = ['id', 'total_price', 'submit_date', 'deposit_date', 'transaction_type_display', 'confirm_status', 'confirm_status_display']
+        fields = ['id', 'total_price', 'submit_date', 'deposit_date', 'deposit_type_display', 'transaction_type_display', 'confirm_status', 'confirm_status_display', 'rem_credit']
 
 
 class DepositBriefInfoForCreditSerializer(DepositSerializer):
@@ -280,7 +290,7 @@ class DepositBriefInfoForCreditSerializer(DepositSerializer):
     """
     class Meta:
         model = Deposit
-        fields = ['submit_date', 'description', 'income', 'total_price', 'deposit_type_display', 'transaction_type_display']
+        fields = ['submit_date', 'description', 'increase', 'total_price', 'deposit_type_display', 'transaction_type_display']
 
 
 class CreditSerializer(CustomModelSerializer):

@@ -31,10 +31,11 @@ class Company(models.Model):
     address_content = models.TextField(blank=False, null=False, verbose_name='Address Content')
     phone_number = models.CharField(max_length=12,
                                     blank=False, null=False, verbose_name='Phone Number')
-    accounting_id = models.PositiveBigIntegerField(blank=True, null=True, verbose_name='Accounting ID')
+    accounting_id = models.PositiveBigIntegerField(unique=True,
+                                                   blank=True, null=True, verbose_name='Accounting ID')
 
     class Meta:
-        ordering = ['agent']
+        ordering = ['id']
         verbose_name = 'Company'
         verbose_name_plural = 'Companies'
 
@@ -123,6 +124,7 @@ class Deposit(models.Model):
     total_price = models.PositiveBigIntegerField(blank=False, null=False, verbose_name='Total Price')
     credit = models.ForeignKey(Credit, on_delete=models.CASCADE,
                                blank=False, null=False, related_name='deposit_list')
+    rem_credit = models.BigIntegerField(blank=True, null=True, verbose_name='Remaining Credit')
     submit_date = models.DateTimeField(auto_now_add=True,
                                        blank=False, null=False, verbose_name='Submit Date')
     submit_by = models.ForeignKey(Employee, on_delete=models.PROTECT,

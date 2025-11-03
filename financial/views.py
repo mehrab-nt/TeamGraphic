@@ -29,11 +29,15 @@ class CompanyViewSet(CustomMixinModelViewSet):
     queryset = Company.objects.all().select_related('agent', 'city', 'province')
     serializer_class = CompanySerializer
     filter_backends = [
-        filters.SearchFilter
+        filters.SearchFilter,
+        filters.OrderingFilter
     ]
     search_fields = ['name', 'agent__first_name']
+    ordering_fields = ['name', 'province']
     permission_classes = [ApiAccess]
-    required_api_keys = {} # MEH: Empty mean just Admin can Access
+    required_api_keys = {
+        '__all__': ['company_manager'],
+    }
 
     def get_serializer_class(self):
         if self.action == 'list':
@@ -87,12 +91,12 @@ class DepositViewSet(CustomMixinModelViewSet):
         raise PermissionDenied
 
     @action(detail=False, methods=['get'],
-            url_path='pending-list', serializer_class=DepositPendingListSerializer, filter_backends=[None])
+            url_path='pending-list', serializer_class=DepositPendingListSerializer)
     def pending_list(self, request):
         """
         MEH: Deposit Pending List View for check and confirm
         """
-        deposit_list = self.get_queryset().select_related('bank').filter(confirm_status=DepositConfirmStatus.PENDING)
+        deposit_list = self.filter_queryset(self.get_queryset().select_related('bank').filter(confirm_status=DepositConfirmStatus.PENDING))
         return self.custom_get(deposit_list)
 
     @action(detail=True, methods=['put', 'patch'], http_method_names=['put', 'patch'],
@@ -102,7 +106,9 @@ class DepositViewSet(CustomMixinModelViewSet):
         MEH: Deposit Pending List set confirm status
         """
         deposit = self.get_object(pk=pk)
-        return self.custom_update(deposit, request, partial=(request.method == 'PATCH'))
+        if hasattr(request.user, 'employee_profile'): # MEH: Just make sure, employee got here
+            return self.custom_update(deposit, request, confirm_by=request.user.employee_profile, partial=(request.method == 'PATCH'))
+        raise PermissionDenied
 
     @action(detail=False, methods=['get'],
             url_path='online-list', serializer_class=DepositOnlineListSerializer)
