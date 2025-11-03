@@ -336,18 +336,18 @@ class UserBriefSerializer(CustomModelSerializer):
     """
     MEH: Brief User information for list
     """
-    company = serializers.SerializerMethodField()
+    company_display = serializers.SerializerMethodField()
     credit = serializers.SerializerMethodField()
     role_display = serializers.StringRelatedField(source='role')
     province = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role', 'role_display', 'province']
-        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'credit', 'role', 'role_display', 'province']
+        fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'company_display', 'credit', 'role', 'role_display', 'province']
+        read_only_fields = ['id', 'first_name', 'last_name', 'phone_number', 'date_joined', 'order_count', 'last_order_date', 'company', 'company_display', 'credit', 'role', 'role_display', 'province']
 
     @staticmethod
-    def get_company(obj):
+    def get_company_display(obj):
         company = getattr(obj, 'company', None)
         if company:
             return company.name
