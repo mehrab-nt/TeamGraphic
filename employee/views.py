@@ -7,7 +7,7 @@ from .models import Employee, EmployeeLevel
 from api.models import ApiCategory
 from .serializers import EmployeeSerializer, EmployeeLevelSerializer, EmployeeBriefSerializer, \
     EmployeeSignInWithPasswordSerializer, EmployeeApiList, EmployeeResetPasswordRequestSerializer, \
-    EmployeeResendResetPasswordRequestSerializer, EmployeeChangeVerifySerializer
+    EmployeeResendResetPasswordRequestSerializer, EmployeeChangeVerifySerializer, EmployeeChoiceListSerializer
 from api.serializers import ApiCategorySerializer
 from .filters import EmployeeFilter, EmployeeLevelFilter
 from django.core.exceptions import PermissionDenied

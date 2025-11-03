@@ -7,7 +7,7 @@ from .serializers import ProductReportSerializer, CounterReportSerializer, Month
 from product.models import Product
 from drf_spectacular.utils import extend_schema
 from api.mixins import CustomMixinModelViewSet
-from .models import CounterReport, MonthlySaleReport
+from .models import CounterReport, MonthlySaleReport, NotifReport
 
 @extend_schema(tags=['Report'])
 class ProductReportViewSet(CustomMixinModelViewSet):

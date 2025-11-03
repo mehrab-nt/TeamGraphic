@@ -9,7 +9,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from api.throttles import PhoneNumberRateThrottle
 from django_filters.rest_framework import DjangoFilterBackend
 from financial.models import DepositConfirmStatus
-from financial.serializers import CreditSerializer, DepositBriefInfoForUserManualListSerializer
+from financial.serializers import CreditSerializer, DepositBriefInfoForUserListSerializer
 from .models import User, Role, Introduction, Address
 from api.models import ApiCategory
 from django.db.models import Subquery, OuterRef, Q
@@ -83,7 +83,8 @@ class UserViewSet(CustomMixinModelViewSet):
         'download_user_list': ['download_user_list'],
         'create_address': ['create_address', 'customer_address'],
         'manually_verify_phone': ['verify_phone'],
-        'web_message_list': ['message_manager']
+        'web_message_list': ['message_manager'],
+        'deposit_list': ['deposit_list'],
     }
 
     def get_queryset(self, *args, **kwargs):
@@ -156,7 +157,6 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         user_list = User.objects.filter(is_active=True, is_employee=False)
         return self.custom_get(user_list)
-
 
     @extend_schema(tags=['Auth'], summary="Sign Up for Customer in-person")
     @action(detail=False, methods=['post'],
@@ -562,13 +562,23 @@ class UserViewSet(CustomMixinModelViewSet):
         return self.custom_get(user.credit)
 
     @action(detail=True, methods=['get'],
-            url_path='manual-deposit-list', serializer_class=DepositBriefInfoForUserManualListSerializer, filter_backends=[None])
-    def manual_deposit_list(self, request, pk=None):
+            url_path='deposit-list', serializer_class=DepositBriefInfoForUserListSerializer, filter_backends=[None])
+    def deposit_list(self, request, pk=None):
         """
-        MEH: Get User manual_deposit info
+        MEH: Get User deposit info
         """
         user = self.get_object(pk=pk)
-        deposit_list = user.credit.deposit_list.exclude(confirm_status=DepositConfirmStatus.AUTO)
+        deposit_list = user.credit.deposit_list.all()
+        return self.custom_get(deposit_list)
+
+    @action(detail=True, methods=['get'],
+            url_path='credit-history-list', serializer_class=DepositBriefInfoForUserListSerializer, filter_backends=[None])
+    def credit_history_list(self, request, pk=None):
+        """
+        MEH: Get User deposit info (just credit calculate)
+        """
+        user = self.get_object(pk=pk)
+        deposit_list = user.credit.deposit_list.filter(calculate=True)
         return self.custom_get(deposit_list)
 
 
