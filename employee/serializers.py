@@ -131,6 +131,15 @@ class EmployeeSerializer(CustomModelSerializer):
         return instance
 
 
+class EmployeeChoiceListSerializer(CustomModelSerializer):
+    """
+    MEH: Employee brief Information for Choice List
+    """
+    class Meta:
+        model = Employee
+        fields = ['id', 'full_name']
+
+
 class EmployeeResetPasswordRequestSerializer(serializers.Serializer):
     """
     MEH: Api for request reset password with phone number

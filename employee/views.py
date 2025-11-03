@@ -75,6 +75,16 @@ class EmployeeViewSet(CustomMixinModelViewSet):
         """
         return self.custom_get(request.user.employee_profile.level)
 
+    @extend_schema(summary='Choice list for drop down input')
+    @action(detail=False, methods=['get'], serializer_class=EmployeeChoiceListSerializer,
+            url_path='choice-list')
+    def choice_list(self, request):
+        """
+        MEH: List of Employee for dropdown Menu
+        """
+        employee_list = Employee.objects.filter(user__is_active=True)
+        return self.custom_get(employee_list)
+
     @extend_schema(tags=['Employee'], summary="Sign In Employee with password")
     @action(detail=False, methods=['post'],
             url_path='sign-in-employee', serializer_class=EmployeeSignInWithPasswordSerializer, filter_backends=[None],
