@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import DailySaleReport, CounterReport, MonthlySaleReport
+from .models import DailySaleReport, CounterReport, MonthlySaleReport, NotifReport
 from product.models import Product
 from api.mixins import CustomModelSerializer
 from django.core.cache import cache
@@ -31,5 +31,14 @@ class MonthlySaleReportSerializer(CustomModelSerializer):
     """
     class Meta:
         model = MonthlySaleReport
+        fields = '__all__'
+
+
+class NotifReportSerializer(CustomModelSerializer):
+    """
+    MEH: Notif Report Serializer
+    """
+    class Meta:
+        model = NotifReport
         fields = '__all__'
 

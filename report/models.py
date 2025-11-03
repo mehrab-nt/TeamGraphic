@@ -78,3 +78,19 @@ class CounterReport(models.Model):
     class Meta:
         verbose_name = 'Counter Report'
         verbose_name_plural = 'Counter Reports'
+
+
+class NotifReport(models.Model):
+    pending_deposit = models.PositiveIntegerField(blank=False, null=False, verbose_name='Pending Deposit')
+    inbox = models.PositiveIntegerField(blank=False, null=False, verbose_name='Inbox')
+    price_ask = models.PositiveIntegerField(blank=False, null=False, verbose_name='Price Ask')
+    new_cart = models.PositiveIntegerField(blank=False, null=False, verbose_name='Cart')
+    new_user = models.PositiveIntegerField(blank=False, null=False, verbose_name='New User')
+    delivery_request = models.PositiveIntegerField(blank=False, null=False, verbose_name='Delivery Request')
+    agency_request = models.PositiveIntegerField(blank=False, null=False, verbose_name='Agency Request')
+    inventory_alert = models.PositiveIntegerField(blank=False, null=False, verbose_name='Inventory Alert')
+    incomplete_cart = models.PositiveIntegerField(blank=False, null=False, verbose_name='Incomplete Cart')
+
+    class Meta:
+        verbose_name = 'Notif Report'
+        verbose_name_plural = 'Notif Reports'

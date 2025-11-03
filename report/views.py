@@ -2,7 +2,8 @@ from rest_framework import filters
 from api.permissions import ApiAccess
 from django_filters.rest_framework import DjangoFilterBackend
 from product.filters import ProductReportFilter
-from .serializers import ProductReportSerializer, CounterReportSerializer, MonthlySaleReportSerializer
+from .serializers import ProductReportSerializer, CounterReportSerializer, MonthlySaleReportSerializer, \
+    NotifReportSerializer
 from product.models import Product
 from drf_spectacular.utils import extend_schema
 from api.mixins import CustomMixinModelViewSet
@@ -52,6 +53,21 @@ class MonthlySaleReportViewSet(CustomMixinModelViewSet):
     """
     queryset = MonthlySaleReport.objects.all()
     serializer_class = MonthlySaleReportSerializer
+    http_method_names = ['get', 'head', 'options']
+    permission_classes = [ApiAccess]
+    pagination_class = None
+    required_api_keys = {
+        '__all__': ['allow_any']
+    }
+
+
+@extend_schema(tags=['Report'])
+class NotifReportViewSet(CustomMixinModelViewSet):
+    """
+    MEH: Notif Report Viewset (READ-Only)
+    """
+    queryset = NotifReport.objects.all()
+    serializer_class = NotifReportSerializer
     http_method_names = ['get', 'head', 'options']
     permission_classes = [ApiAccess]
     pagination_class = None
