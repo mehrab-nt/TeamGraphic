@@ -45,7 +45,7 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_THROTTLE_RATES': { # MEH: Handle spam request mostly
         'anon': '23/minute',
-        'burst': '78/minute',
+        'burst': '786/minute',
         'sustained': '7578/hour',
         'phone': '1/minute',
         'auth': '3/minute',
