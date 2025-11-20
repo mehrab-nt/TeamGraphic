@@ -376,13 +376,13 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                             qs = qs.exclude(id__in=ids)
                     if not qs.exists():
                         continue
-                    if model.delete is models.Model.delete: # MEH: Safe to do bulk delete
-                        deleted_count, _ = qs.delete()
-                        total_delete += deleted_count
-                    else: # MEH: Delete obj 1 by 1 (for M2M sub child)
-                        for obj in qs:
-                            sub_delete, _ = obj.delete()
-                            total_delete += sub_delete
+                    # if model.delete is models.Model.delete: # MEH: Safe to do bulk delete
+                    #     deleted_count, _ = qs.delete()
+                    #     total_delete += deleted_count
+                    # else: # MEH: Delete obj 1 by 1 (for M2M sub child)
+                    for obj in qs:
+                        sub_delete, _ = obj.delete()
+                        total_delete += sub_delete
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if total_delete == 0:
@@ -427,20 +427,32 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({'detail': TG_DATA_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
     def get_explorer_list(self, request, category_model, item_model, category_serializer, item_serializer,
-                          parent_field='parent_category', category_filter_extra=None, item_filter_field='parent_category'):
+                          parent_field='parent_category', category_filter_extra=None, item_filter_field='parent_category', filter_backends=None):
         """
         MEH: Handle mixed list of category and item for explorer view
         """
-        parent = self.get_parent_with_id(request, category_model)
-        category_filter = {parent_field: parent}
-        if category_filter_extra:
-            category_filter.update(category_filter_extra)
-        categories = category_model.objects.filter(**category_filter)
+        search_query = request.query_params.get('search', '').strip()
+        has_search = bool(search_query)
+        parent = None
+        if not has_search:
+            parent = self.get_parent_with_id(request, category_model)
+            category_filter = {parent_field: parent}
+            if category_filter_extra:
+                category_filter.update(category_filter_extra)
+            categories = category_model.objects.filter(**category_filter)
+            items = item_model.objects.filter(**{item_filter_field: parent})
+        else:
+            categories = category_model.objects.all()
+            items = item_model.objects.all()
         if hasattr(category_model, 'sort_number'):
             categories = categories.order_by('sort_number')
-        items = item_model.objects.filter(**{item_filter_field: parent})
         if hasattr(item_model, 'sort_number'):
             items = items.order_by('sort_number')
+        if filter_backends: # Use Filter Backend :)
+            for backend in list(filter_backends):
+                filter_instance = backend()
+                categories = filter_instance.filter_queryset(request, categories, self)
+                items = filter_instance.filter_queryset(request, items, self)
         cat_data = category_serializer(categories, many=True, context={'request': request}).data
         item_data = item_serializer(items, many=True, context={'request': request}).data
         return Response(cat_data + item_data, status=status.HTTP_200_OK)

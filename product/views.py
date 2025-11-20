@@ -1,3 +1,4 @@
+from celery.concurrency import custom
 from rest_framework import status, filters
 from rest_framework.response import Response
 from api.permissions import ApiAccess
@@ -9,17 +10,23 @@ from .models import ProductCategory, Product, GalleryCategory, GalleryImage, Pro
     Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Page, Folding, \
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
     PriceListCategory, PriceListTable
+from .services.category_clone import clone_category_tree
 from .serializers import (ProductCategorySerializer, ProductCategoryBriefSerializer, ProductBriefSerializer, \
-    GalleryCategorySerializer, GalleryImageSerializer, GalleryCategoryBriefSerializer, GalleryImageBriefSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
-    ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer, SolidProductSerializer, DigitalProductSerializer, \
-    SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
-    BannerSerializer, ColorSerializer, FoldingSerializer, PageSerializer, \
-    FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer, FileFieldDropDownSerializer, \
-    DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
-    OptionCategorySerializer, OptionSerializer, ProductOptionSerializer, OptionCategoryBriefSerializer, OptionBriefSerializer, \
-    OptionCategorySelectListSerializer, OptionProductListSerializer, \
-    ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
-    PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer, PriceListTableBriefSerializer)
+                          GalleryCategorySerializer, GalleryImageSerializer, GalleryCategoryBriefSerializer,
+                          GalleryImageBriefSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
+                          ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer,
+                          SolidProductSerializer, DigitalProductSerializer, \
+                          SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
+                          BannerSerializer, ColorSerializer, FoldingSerializer, PageSerializer, \
+                          FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer,
+                          FileFieldDropDownSerializer, \
+                          DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
+                          OptionCategorySerializer, OptionSerializer, ProductOptionSerializer,
+                          OptionCategoryBriefSerializer, OptionBriefSerializer, \
+                          OptionCategorySelectListSerializer, OptionProductListSerializer, \
+                          ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
+                          PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer,
+                          PriceListTableBriefSerializer, ProductCategoryTreeSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -61,6 +68,13 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    @action(detail=False, methods=['get'], pagination_class=None,
+            serializer_class=ProductCategoryTreeSerializer)
+    def tree(self, request):
+        # Get only root categories
+        roots = ProductCategory.objects.root_nodes()
+        return self.custom_get(roots)
+
     @extend_schema(
         summary='Tree list of Both Product & Category',
         parameters=[
@@ -81,7 +95,8 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         return self.get_explorer_list(request=request, category_model=ProductCategory, item_model=Product,
                                       category_serializer=ProductCategoryBriefSerializer,
-                                      item_serializer=ProductBriefSerializer)
+                                      item_serializer=ProductBriefSerializer,
+                                      filter_backends=self.filter_backends)
 
     @extend_schema(
         summary='Delete list of Categories & Products',
@@ -98,11 +113,14 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         MEH: Delete List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
         itm_qs, cat_qs = self.explorer_bulk_queryset(request, ProductCategory, Product)
-        return self.custom_list_destroy([itm_qs, cat_qs])
+        parents = {cat.parent_category for cat in cat_qs if cat.parent_category}
+        response = self.custom_list_destroy([itm_qs, cat_qs])
+        ProductCategory.objects.rebuild()
+        return response
 
     @extend_schema(
         summary='Change Status list of Categories & Products',
-        request=CombineBulkUpdateActivateSerializer,
+        request=CombineBulkUpdateProductStatusSerializer,
         responses={
             200: OpenApiResponse(description="Successfully Change status in Categories & Products."),
             400: OpenApiResponse(description="Invalid IDs or constraint violation."),
@@ -114,7 +132,7 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
         """
         MEH: Change status field in List of Category & Product Item Objects (use POST ACTION for sending ids list in request body)
         """
-        itm_qs, cat_qs = self.explorer_bulk_queryset(request, OptionCategory, Option)
+        itm_qs, cat_qs = self.explorer_bulk_queryset(request, ProductCategory, Product)
         update_field = self.explorer_bulk_update_fields(request, field_name='status')
         return self.custom_list_update([itm_qs, cat_qs], update_field, update_sub=True)
 
@@ -130,10 +148,11 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
             original_category = ProductCategory.objects.get(pk=category_id)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
-        category_copy = deepcopy(original_category)
-        category_copy.pk = None
-        category_copy.title += " (copy)"
-        category_copy.save()
+        # category_copy = deepcopy(original_category)
+        # category_copy.pk = None
+        # category_copy.title += " (copy)"
+        # category_copy.save()
+        new_root = clone_category_tree(original_category, parent_copy=original_category.parent_category)
         return Response({"detail": TG_DATA_COPIED}, status=status.HTTP_201_CREATED)
 
     @extend_schema(summary="Get list of Product in Category")

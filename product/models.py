@@ -87,13 +87,15 @@ class ProductCategory(MPTTModel):
         return f'TGC-{self.pk}: {self.title}'
 
     def save(self, *args, **kwargs):
+        if getattr(self, "_skip_custom_save", False):
+            return super().save(*args, **kwargs)
         if self.image and not self.alt:
             self.alt = f'{self.title}عکس دسته محصولات '
         if self.fast_order and not self.fast_order_title:
             self.fast_order_title = self.title
         if self.landing:
             self.is_landing = True
-        super().save(*args, **kwargs)
+        return super().save(*args, **kwargs)
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
         if self.parent_category:

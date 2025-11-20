@@ -17,10 +17,11 @@ class ProductCategoryBriefSerializer(CustomModelSerializer):
     """
     type = serializers.SerializerMethodField()
     has_children = serializers.SerializerMethodField()
+    status_display = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductCategory
-        fields = ['id', 'title', 'status', 'sort_number', 'type', 'has_children']
+        fields = ['id', 'title', 'status', 'status_display', 'sort_number', 'type', 'has_children']
 
     @staticmethod
     def get_type(obj):
@@ -30,14 +31,24 @@ class ProductCategoryBriefSerializer(CustomModelSerializer):
     def get_has_children(obj):
         return obj.sub_categories.exists()
 
+    @staticmethod
+    def get_status_display(obj):
+        return obj.get_status_display()
+
 
 class ProductBriefSerializer(CustomModelSerializer):
     """
     MEH: Product Brief Information for product_explorer
     """
+    status_display = serializers.SerializerMethodField()
+
     class Meta:
         model = Product
-        fields = ['id', 'title', 'status', 'sort_number', 'type']
+        fields = ['id', 'title', 'status', 'status_display', 'sort_number', 'type']
+
+    @staticmethod
+    def get_status_display(obj):
+        return obj.get_status_display()
 
 
 class ProductCategorySerializer(CustomModelSerializer):
@@ -102,6 +113,31 @@ class ProductCategorySerializer(CustomModelSerializer):
             return instance
         else:
             return super().update(instance, validated_data)
+
+
+class ProductCategoryTreeSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ProductCategory
+        fields = [
+            'id', 'title', 'parent_category', 'parent_path', 'has_children', 'children'
+        ]
+
+    @staticmethod
+    def get_children(obj):
+        children = obj.get_children()
+        return ProductCategoryTreeSerializer(children, many=True).data
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.get_children().exists()
+
+    @staticmethod
+    def get_parent_path(obj):
+        return obj.get_slug_path()
 
 
 class ProductInfoSerializer(CustomModelSerializer):
