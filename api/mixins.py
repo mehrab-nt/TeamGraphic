@@ -444,6 +444,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         else:
             categories = category_model.objects.all()
             items = item_model.objects.all()
+        if hasattr(item_model, 'for_order'): # for ignore file for order in explorer
+            items = items.filter(for_order=False)
         if hasattr(category_model, 'sort_number'):
             categories = categories.order_by('sort_number')
         if hasattr(item_model, 'sort_number'):
@@ -455,6 +457,12 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                 items = filter_instance.filter_queryset(request, items, self)
         cat_data = category_serializer(categories, many=True, context={'request': request}).data
         item_data = item_serializer(items, many=True, context={'request': request}).data
+        if paginate:
+            combined = list(cat_data) + list(item_data)
+            paginator = PageNumberPagination()
+            paginator.page_size = 50
+            paginated = paginator.paginate_queryset(combined, request)
+            return paginator.get_paginated_response(paginated)
         return Response(cat_data + item_data, status=status.HTTP_200_OK)
 
     def perform_create(self, serializer, **kwargs):
