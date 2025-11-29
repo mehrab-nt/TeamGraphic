@@ -26,7 +26,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
                           OptionCategorySelectListSerializer, OptionProductListSerializer, \
                           ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
                           PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer,
-                          PriceListTableBriefSerializer, ProductCategoryTreeSerializer)
+                          PriceListTableBriefSerializer, ProductCategoryTreeSerializer, GalleryCategoryTreeSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -440,13 +440,19 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         filters.SearchFilter
     ]
     search_fields = ['name']
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['gallery_manager'],
         **dict.fromkeys(['gallery_explore_view', 'list', 'retrieve'], ['gallery_list', 'gallery_manager']),
         'drop_down_list': ['product_manager', 'create_product', 'gallery_list', 'gallery_manager']
     }
+
+    @action(detail=False, methods=['get'], pagination_class=None,
+            serializer_class=GalleryCategoryTreeSerializer)
+    def tree(self, request):
+        # Get only root categories
+        roots = GalleryCategory.objects.root_nodes()
+        return self.custom_get(roots)
 
     @extend_schema(
         summary='Tree list of Both Categories & Images',
@@ -460,7 +466,7 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         ],
     )
     @action(detail=False, methods=['get'],
-            url_path='explorer', filter_backends=[None])
+            url_path='explorer')
     def gallery_explore_view(self, request):
         """
         MEH: Return mixed list of Category `type='dir'` and Image Item `type='webp'`
@@ -468,7 +474,8 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
         """
         return self.get_explorer_list(request=request, category_model=GalleryCategory, item_model=GalleryImage,
                                       category_serializer=GalleryCategoryBriefSerializer,
-                                      item_serializer=GalleryImageBriefSerializer)
+                                      item_serializer=GalleryImageBriefSerializer,
+                                      filter_backends=self.filter_backends ,paginate=True)
 
     @extend_schema(
         summary='Delete list of Categories & Images',
@@ -492,10 +499,10 @@ class GalleryCategoryViewSet(CustomMixinModelViewSet):
             url_path='list', filter_backends=[None])
     def drop_down_list(self, request):
         """
-        MEH: Tree-based List of Gallery Category (id & name + children)
+        MEH: Tree-based List of Gallery Category (id & name with tree based title)
         """
-        root_category_list = self.get_queryset().filter(parent_category__isnull=True).prefetch_related('sub_galleries')
-        return self.custom_get(root_category_list)
+        category_list = self.get_queryset().model.objects.order_by('tree_id', 'lft')
+        return self.custom_get(category_list)
 
 
 @extend_schema(tags=['Gallery'])

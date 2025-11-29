@@ -829,6 +829,11 @@ class GalleryCategory(MPTTModel):
             if self.pk and self.parent_category.is_descendant_of(self):
                 raise ValidationError("You cannot assign a descendant as the parent category.")
 
+    def get_slug_path(self):
+        return ' - '.join(
+            [category.name for category in self.get_ancestors(include_self=True)]
+        )
+
 
 def get_random_basename(instance): # MEH: With this image and thumbnail get equal name
     if not hasattr(instance, "_random_basename"):

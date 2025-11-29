@@ -574,19 +574,16 @@ class GalleryDropDownSerializer(CustomModelSerializer):
     """
     MEH: Gallery Category id & name for drop-down list
     """
-    children = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
 
     class Meta:
         model = GalleryCategory
-        fields = ['id', 'name', 'children']
+        fields = ["id", "name"]
 
     @staticmethod
-    def get_children(obj): # MEH: This will recursively serialize children categories
-        children = obj.get_children()
-        if children.exists():
-            serializer = GalleryDropDownSerializer(children, many=True)
-            return serializer.data
-        return []
+    def get_name(obj):
+        prefix = "-" * obj.level if obj.level > 0 else ""
+        return f"{prefix}{obj.name}"
 
 
 class GalleryCategoryBriefSerializer(CustomModelSerializer):
@@ -594,14 +591,27 @@ class GalleryCategoryBriefSerializer(CustomModelSerializer):
     MEH: Gallery Category Brief Information for gallery_explorer
     """
     type = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_category = serializers.SerializerMethodField()
 
     class Meta:
         model = GalleryCategory
-        fields = ['id', 'name', 'sort_number', 'type']
+        fields = ['id', 'name', 'sort_number', 'type', 'has_children', 'parent_category']
 
     @staticmethod
     def get_type(obj):
         return 'dir'
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.sub_galleries.exists()
+
+    @staticmethod
+    def get_parent_category(obj):
+        if obj.parent_category:
+            return obj.parent_category.name
+        else:
+            return None
 
 
 class GalleryImageBriefSerializer(CustomModelSerializer):
@@ -609,14 +619,47 @@ class GalleryImageBriefSerializer(CustomModelSerializer):
     MEH: Gallery Image Brief Information for gallery_explorer
     """
     type = serializers.SerializerMethodField()
+    parent_category = serializers.SerializerMethodField()
 
     class Meta:
         model = GalleryImage
-        fields = ['id', 'name', 'sort_number', 'type', 'preview']
+        fields = ['id', 'name', 'sort_number', 'type', 'preview', 'image_file', 'parent_category', 'alt']
 
     @staticmethod
     def get_type(obj):
         return 'img'
+
+    @staticmethod
+    def get_parent_category(obj):
+        if obj.parent_category:
+            return obj.parent_category.name
+        else:
+            return None
+
+
+class GalleryCategoryTreeSerializer(CustomModelSerializer):
+    children = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = GalleryCategory
+        fields = [
+            'id', 'name', 'parent_category', 'parent_path', 'has_children', 'children'
+        ]
+
+    @staticmethod
+    def get_children(obj):
+        children = obj.get_children()
+        return GalleryCategoryTreeSerializer(children, many=True).data
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.get_children().exists()
+
+    @staticmethod
+    def get_parent_path(obj):
+        return obj.get_slug_path()
 
 
 class GalleryCategorySerializer(CustomModelSerializer):
@@ -633,12 +676,6 @@ class GalleryCategorySerializer(CustomModelSerializer):
     @staticmethod
     def get_type(obj):
         return 'dir'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        instance = self.instance
-        if instance and isinstance(instance, GalleryCategory):
-            self.fields['parent_category'].queryset = GalleryCategory.objects.exclude(pk=instance.pk)
 
     def get_fields(self): # MEH: for drop parent_category in Update action (just in first Create)
         fields = super().get_fields()
@@ -675,12 +712,12 @@ class GalleryImageSerializer(CustomModelSerializer):
             data['image_file'] = self.validate_upload_image(file, max_image_size=10, max_width=None, max_height=None, size=(width, height)) # MEH: Change image to SEO base friendly format
         return data
 
-    def get_fields(self): # MEH: for drop image in Update action (just in first Create)
-        fields = super().get_fields()
-        request = self.context.get('request')
-        if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, image assign and don't allow to change!
-            fields.pop('image_file', None)
-        return fields
+    # def get_fields(self): # MEH: for drop image in Update action (just in first Create)
+    #     fields = super().get_fields()
+    #     request = self.context.get('request')
+    #     if request and request.method in ['PUT', 'PATCH']: # MEH: When Create, image assign and don't allow to change!
+    #         fields.pop('image_file', None)
+    #     return fields
 
 
 class OptionCategoryBriefSerializer(CustomModelSerializer):
