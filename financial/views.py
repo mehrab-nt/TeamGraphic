@@ -216,7 +216,6 @@ class OfflineBankAccountViewSet(CustomMixinModelViewSet):
         MEH: List of Bank (offline) for dropdown Menu
         """
         bank_list = BankAccount.objects.filter(is_online=False, is_active=True)
-        print(bank_list)
         return self.custom_get(bank_list)
 
 

@@ -1,5 +1,3 @@
-import json
-
 from django.db import models
 from django.db import IntegrityError, DatabaseError
 from django.db.models.deletion import ProtectedError
@@ -15,7 +13,6 @@ from .responses import *
 from file_manager.images import *
 from typing import Optional, Dict
 from django.db import transaction
-from drf_spectacular.utils import extend_schema
 from django.core.cache import cache
 import hashlib
 
@@ -427,7 +424,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
             return Response({'detail': TG_DATA_NOT_FOUND}, status=status.HTTP_404_NOT_FOUND)
 
     def get_explorer_list(self, request, category_model, item_model, category_serializer, item_serializer,
-                          parent_field='parent_category', category_filter_extra=None, item_filter_field='parent_category', filter_backends=None):
+                          parent_field='parent_category', category_filter_extra=None, item_filter_field='parent_category', filter_backends=None, paginate=False):
         """
         MEH: Handle mixed list of category and item for explorer view
         """
