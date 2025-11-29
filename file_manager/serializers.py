@@ -5,20 +5,50 @@ from api.mixins import CustomModelSerializer
 import jdatetime
 
 
+class FileDirectoryTreeSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = FileDirectory
+        fields = [
+            'id', 'name', 'parent_directory', 'parent_path', 'has_children', 'children'
+        ]
+
+    @staticmethod
+    def get_children(obj):
+        children = obj.get_children()
+        return FileDirectoryTreeSerializer(children, many=True).data
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.get_children().exists()
+
+    @staticmethod
+    def get_parent_path(obj):
+        return obj.get_slug_path()
+
+
 class FileDirectorySerializer(CustomModelSerializer):
     """
     MEH: File Directory Full Information for file_explorer
     """
     type = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
     parent_directory = serializers.PrimaryKeyRelatedField(queryset=FileDirectory.objects.all(), required=False, allow_null=True)
 
     class Meta:
         model = FileDirectory
-        fields = ['id', 'name', 'create_date', 'type', 'parent_directory']
+        fields = ['id', 'name', 'create_date', 'type', 'parent_directory', 'has_children']
 
     @staticmethod
     def get_type(obj):
         return 'dir'
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.sub_dirs.exists()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

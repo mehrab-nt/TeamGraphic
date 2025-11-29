@@ -2,13 +2,15 @@ from rest_framework import filters
 from rest_framework.response import Response
 from api.permissions import ApiAccess
 from rest_framework.decorators import action
+from .filters import TypeFilter
 from .models import FileDirectory, FileItem, ClearFileHistory
-from .serializers import FileDirectorySerializer, FileItemSerializer, ClearFileSerializer
+from .serializers import FileDirectorySerializer, FileItemSerializer, ClearFileSerializer, FileDirectoryTreeSerializer
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.mixins import CustomMixinModelViewSet
 from api.serializers import CombineBulkDeleteSerializer
 from django.core.cache import cache
 from rest_framework.exceptions import PermissionDenied
+from django_filters.rest_framework import DjangoFilterBackend
 
 
 @extend_schema(tags=['File-Manager'])
@@ -25,12 +27,18 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
     ]
     search_fields = ['name']
     ordering_fields = ['create_date', 'name']
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['file_manager'],
        'retrieve': [] # MEH: Admin User
     }
+
+    @action(detail=False, methods=['get'], pagination_class=None,
+            serializer_class=FileDirectoryTreeSerializer)
+    def tree(self, request):
+        # Get only root categories
+        roots = FileDirectory.objects.root_nodes()
+        return self.custom_get(roots)
 
     @extend_schema(
         summary='Tree list of Both Directories & Files',
@@ -44,7 +52,7 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         ],
     )
     @action(detail=False, methods=['get'],
-            url_path='explorer', filter_backends=[None])
+            url_path='explorer')
     def file_explore_view(self, request):
         """
         MEH: Return mixed list of Directory `type='dir'` and File Item `type='else'`
@@ -52,7 +60,8 @@ class FileDirectoryViewSet(CustomMixinModelViewSet):
         """
         return self.get_explorer_list(request=request, category_model=FileDirectory, item_model=FileItem,
                                       category_serializer=FileDirectorySerializer, item_serializer=FileItemSerializer,
-                                      parent_field='parent_directory', item_filter_field='parent_directory')
+                                      parent_field='parent_directory', item_filter_field='parent_directory',
+                                      filter_backends=self.filter_backends, paginate=True)
 
     @extend_schema(
         summary='Delete list of Directories & Files',

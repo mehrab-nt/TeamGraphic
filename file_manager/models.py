@@ -35,7 +35,14 @@ class FileDirectory(MPTTModel):
             if self.pk and self.parent_directory.is_descendant_of(self):
                 raise ValidationError("You cannot assign a descendant as the parent directory.")
 
+    def get_slug_path(self):
+        return ' - '.join(
+            [directory.name for directory in self.get_ancestors(include_self=True)]
+        )
+
 def upload_path(instance): # MEH: Tree based Directory handle (and safe slug for names)
+    if instance.for_order:
+        return 'orders'
     directory = instance.parent_directory
     path_parts = []
     while directory:
@@ -78,6 +85,8 @@ class FileItem(models.Model):
                                          related_name='sub_files')
     seo_base = models.BooleanField(default=False,
                                    blank=False, null=False, verbose_name='SEO Base')
+    for_order = models.BooleanField(default=False,
+                                    blank=False, null=False, verbose_name='For Order')
 
     class Meta:
         ordering = ['-create_date']
@@ -97,6 +106,8 @@ class FileItem(models.Model):
             self.volume = self.file.size / 1024 # MEH: KB
         if self.file and not self.preview and self.type.lower() in ['jpg', 'jpeg', 'png', 'webp']:
             self.preview = create_square_thumbnail(self.file, size=(128, 128))
+        elif self.file and not self.preview and self.type.lower() in ['svg', 'gif', 'ico']:
+            self.preview = self.file
         super().save(*args, **kwargs)
 
     @property
