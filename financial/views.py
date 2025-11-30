@@ -193,8 +193,10 @@ class OfflineBankAccountViewSet(CustomMixinModelViewSet):
     queryset = BankAccount.objects.all().filter(is_online=False)
     serializer_class = BankAccountSerializer
     filter_backends = [
+        filters.SearchFilter,
         filters.OrderingFilter
     ]
+    search_fields = ['title']
     ordering_fields = ['title', 'is_active', 'sort_number']
     permission_classes = [ApiAccess]
     required_api_keys = {

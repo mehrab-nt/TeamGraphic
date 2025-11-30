@@ -668,8 +668,10 @@ class BannerViewSet(TirageViewSet):
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
     filter_backends = [
+        filters.SearchFilter,
         filters.OrderingFilter
     ]
+    search_fields = ['title']
     ordering_fields = ['width', 'title', 'is_active']
 
 
