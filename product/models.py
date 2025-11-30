@@ -84,7 +84,7 @@ class ProductCategory(MPTTModel):
         parent_attr = 'parent_category'
 
     def __str__(self):
-        return f'TGC-{self.pk}: {self.title}'
+        return f'{self.title}'
 
     def save(self, *args, **kwargs):
         if getattr(self, "_skip_custom_save", False):
@@ -95,6 +95,11 @@ class ProductCategory(MPTTModel):
             self.fast_order_title = self.title
         if self.landing:
             self.is_landing = True
+        if self.parent_category:
+            if self == self.parent_category:
+                raise ValidationError("دسته بندی نمی تواند زیرمجموعه خودش باشد")
+            if self.pk and self.parent_category.is_descendant_of(self):
+                raise ValidationError("نمی توان دسته زیرمجموعه را به عنوان دسته بالاتر انتخاب کرد")
         return super().save(*args, **kwargs)
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
