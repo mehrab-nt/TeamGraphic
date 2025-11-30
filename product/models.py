@@ -549,7 +549,7 @@ class ProductFileField(models.Model):
                                   related_name='child_file_list')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
-    Color_mode = models.CharField(max_length=4, validators=[validators.MinLengthValidator(3)],
+    color_mode = models.CharField(max_length=4, validators=[validators.MinLengthValidator(3)],
                                   choices=FileColorMode.choices,
                                   blank=True, null=True, verbose_name='Color Mode')
     resolution = models.PositiveSmallIntegerField(default=300,
@@ -565,7 +565,7 @@ class ProductFileField(models.Model):
         verbose_name_plural = 'Product Files'
 
     def __str__(self):
-        return f'File #{self.title}'
+        return f'{self.title}'
 
     def clean(self): # MEH: Prevent circular reference A → B → C → A in Admin Panel
         current = self.depend_on

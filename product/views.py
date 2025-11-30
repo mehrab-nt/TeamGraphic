@@ -536,8 +536,7 @@ class FileFieldViewSet(CustomMixinModelViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['title']
-    ordering_fields = ['sort_number']
-    pagination_class = None
+    ordering_fields = ['sort_number', 'title']
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
@@ -621,7 +620,6 @@ class TirageViewSet(CustomMixinModelViewSet):
     """
     queryset = Tirage.objects.all()
     serializer_class = TirageSerializer
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['field_manager'],
@@ -669,6 +667,10 @@ class BannerViewSet(TirageViewSet):
     """
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
+    filter_backends = [
+        filters.OrderingFilter
+    ]
+    ordering_fields = ['width', 'title', 'is_active']
 
 
 @extend_schema(tags=['Product-Fields'])
