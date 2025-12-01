@@ -658,6 +658,12 @@ class DurationViewSet(TirageViewSet):
     """
     queryset = Duration.objects.all()
     serializer_class = DurationSerializer
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['title']
+    ordering_fields = ['day', 'title', 'before_12']
 
 
 @extend_schema(tags=['Product-Fields'])
@@ -682,6 +688,12 @@ class ColorViewSet(TirageViewSet):
     """
     queryset = Color.objects.all()
     serializer_class = ColorSerializer
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['name']
+    ordering_fields = ['name']
 
 
 @extend_schema(tags=['Product-Fields'])
@@ -724,6 +736,12 @@ class FoldingViewSet(TirageViewSet):
     """
     queryset = Folding.objects.all()
     serializer_class = FoldingSerializer
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['title']
+    ordering_fields = ['folding_number', 'title']
 
 
 @extend_schema(tags=['Option'])
