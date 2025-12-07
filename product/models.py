@@ -121,6 +121,11 @@ class ProductCategory(MPTTModel):
         )
 
 
+class TemplateCheck(models.TextChoices):
+    DONT = 'DON', 'نشود'
+    AUTO = 'AUT', 'خودکار'
+    MANUAL = 'MAN', 'فایل انتخابی'
+
 class ProductType(models.TextChoices):
     OFFSET = 'OFF', 'افست'
     LARGE_FORMAT = 'LAR', 'لارج فرمت'
@@ -156,6 +161,9 @@ class Product(models.Model):
     template = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                                  blank=True, null=True,
                                  related_name='template_for_products')
+    template_check = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                      choices=TemplateCheck.choices, default=TemplateCheck.DONT,
+                                      blank=False, null=False)
     gallery = models.ForeignKey('GalleryCategory', on_delete=models.SET_NULL,
                                 blank=True, null=True,
                                 related_name='gallery_for_products')
@@ -233,7 +241,9 @@ class OffsetProduct(models.Model):
                                     blank=True, null=True, verbose_name='Min & Max Size')
     size_list = models.ManyToManyField('Size', blank=False)
     tirage_list = models.ManyToManyField('Tirage', blank=False)
-    page_list = models.ManyToManyField('Page', blank=True)
+    min_page = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Min Page')
+    max_page = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Max Page')
+    page_multiply = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Page Multiply')
     duration_list = models.ManyToManyField('Duration', blank=False)
     folding_list = models.ManyToManyField('Folding', blank=True)
     manual_price = models.JSONField(default=dict,
@@ -255,6 +265,8 @@ class Size(models.Model):
                                           blank=False, null=False, verbose_name='Base Cutting Edge')
     lat = models.BooleanField(default=False,
                               blank=False, null=False)
+    rounded = models.BooleanField(default=False,
+                                  blank=False, null=False)
 
     class Meta:
         ordering = ['display_name']
@@ -262,7 +274,7 @@ class Size(models.Model):
         verbose_name_plural = 'Sizes'
 
     def __str__(self):
-        return f'Size: {self.display_name}'
+        return f'{self.display_name}'
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -272,7 +284,7 @@ class Size(models.Model):
 
 
 class Tirage(models.Model):
-    amount = models.PositiveSmallIntegerField(unique=True, blank=False, null=False)
+    amount = models.PositiveIntegerField(unique=True, blank=False, null=False)
 
     class Meta:
         ordering = ['amount']
@@ -281,18 +293,6 @@ class Tirage(models.Model):
 
     def __str__(self):
         return f'Tirage #{self.amount}'
-
-
-class Page(models.Model):
-    number = models.PositiveSmallIntegerField(unique=True, blank=False, null=False)
-
-    class Meta:
-        ordering = ['number']
-        verbose_name = "Page"
-        verbose_name_plural = "Pages"
-
-    def __str__(self):
-        return f'Tirage #{self.number}'
 
 
 class Duration(models.Model):
@@ -412,8 +412,12 @@ class DigitalProduct(models.Model):
                                    blank=False, null=False, verbose_name='One Face')
     tow_face = models.BooleanField(default=True,
                                    blank=False, null=False, verbose_name='Tow Face')
-    pageable = models.BooleanField(default=False,
-                                   blank=False, null=False)
+    min_page = models.PositiveSmallIntegerField(default=1,
+                                                blank=False, null=False, verbose_name='Min Page')
+    max_page = models.PositiveSmallIntegerField(default=1000,
+                                                blank=False, null=False, verbose_name='Max Page')
+    page_multiply = models.PositiveSmallIntegerField(default=1,
+                                                     blank=False, null=False, verbose_name='Page Multiply')
     size_method = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                    choices=SizeMethod.choices, default=SizeMethod.FIXED_ONE)
     size_list = models.ManyToManyField('Size', blank=False)
@@ -423,6 +427,8 @@ class DigitalProduct(models.Model):
                                                   blank=False, null=False, verbose_name='Min Tirage')
     max_tirage = models.PositiveSmallIntegerField(default=1000,
                                                   blank=False, null=False, verbose_name='Max Tirage')
+    tirage_multiply = models.PositiveSmallIntegerField(default=1,
+                                                       blank=False, null=False, verbose_name='Tirage Multiply')
     paper_list = models.ManyToManyField('Paper', blank=False,
                                         related_name='paper_list_for_digital')
     cover_paper_list = models.ManyToManyField('Paper', blank=True,
@@ -458,7 +464,7 @@ class SheetPaper(models.Model):
         verbose_name_plural = 'Sheet Papers'
 
     def __str__(self):
-        return f'Sheet Paper: {self.display_name}'
+        return f'{self.display_name}'
 
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
@@ -491,6 +497,7 @@ class Paper(models.Model):
         ordering = ['sheet_paper']
         verbose_name = 'Paper'
         verbose_name_plural = 'Papers'
+        unique_together = (('size', 'sheet_paper'),)
 
     def __str__(self):
         return f'Paper: {self.sheet_paper.display_name} #{self.size.display_name}'
@@ -521,9 +528,13 @@ class Folding(models.Model):
     title = models.CharField(max_length=78,
                              blank=False, null=False)
     description = models.TextField(max_length=236, blank=True, null=True)
-    icon = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
-                             blank=True, null=True,
-                             related_name='icon_for_lats')
+    sort_number = models.SmallIntegerField(default=0,
+                                           blank=False, null=False, verbose_name='Sort Number')
+
+    class Meta:
+        ordering = ['sort_number']
+        verbose_name = 'Folding'
+        verbose_name_plural = 'Folding'
 
 
 class FileColorMode(models.TextChoices):

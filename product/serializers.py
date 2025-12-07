@@ -4,7 +4,7 @@ from file_manager.models import FileItem
 from landing.models import Landing
 from .models import Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, ProductCategory, \
     ProductStatus, CountingUnit, RoundPriceType, GalleryCategory, GalleryImage, ProductFileField, Design, \
-    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, Page, \
+    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, \
     PriceListCategory, PriceListTable
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField
@@ -155,7 +155,7 @@ class ProductInfoSerializer(CustomModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display',
+        fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display', 'category_description',
                   'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'is_private', 'accounting_id']
 
     def get_image_url(self, obj):
@@ -199,7 +199,6 @@ class OffsetProductSerializer(CustomModelSerializer):
     size_method_display = serializers.SerializerMethodField()
     size_list_display = serializers.StringRelatedField(source='size_list', many=True, read_only=True)
     tirage_list_display = serializers.StringRelatedField(source='tirage_list', many=True, read_only=True)
-    page_list_display = serializers.StringRelatedField(source='page_list', many=True, read_only=True)
     folding_list_display = serializers.StringRelatedField(source='folding_list', many=True, read_only=True)
     duration_list_display = serializers.StringRelatedField(source='duration_list', many=True, read_only=True)
 
@@ -290,7 +289,7 @@ class DesignBriefSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Design
-        fields = ['id', 'title', 'base_price', 'variant_type', 'sort_number']
+        fields = ['id', 'title', 'base_price', 'second_price', 'sort_number']
 
 
 class DesignSerializer(CustomModelSerializer):
@@ -301,11 +300,12 @@ class DesignSerializer(CustomModelSerializer):
     category_display = serializers.StringRelatedField(source='category', many=True, read_only=True)
     image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='webp', seo_base=True), required=False, allow_null=True)
     image_url = serializers.SerializerMethodField()
+    variant_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Design
         fields = '__all__'
-        read_only_fields = ['id', 'total_order', 'last_order', 'total_sale', 'category_display', 'image_url']
+        read_only_fields = ['id', 'total_order', 'last_order', 'total_sale', 'category_display', 'image_url', 'variant_type_display']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -313,6 +313,10 @@ class DesignSerializer(CustomModelSerializer):
             url = obj.image.file.url
             return request.build_absolute_uri(url) if request else url
         return None
+
+    @staticmethod
+    def get_variant_type_display(obj):
+        return obj.get_variant_type_display()
 
 
 class ProductDesignSerializer(CustomModelSerializer):
@@ -455,13 +459,6 @@ class SizeSerializer(CustomModelSerializer):
         model = Size
         fields = '__all__'
 
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if self.context.get('view').action == 'list': # MEH: brief view for list
-            for field in ['name', 'description']:
-                data.pop(field, None)
-        return data
-
 
 class TirageSerializer(CustomModelSerializer):
     """
@@ -469,15 +466,6 @@ class TirageSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Tirage
-        fields = '__all__'
-
-
-class PageSerializer(CustomModelSerializer):
-    """
-    MEH: Main Product Field (Page) full Information
-    """
-    class Meta:
-        model = Page
         fields = '__all__'
 
 
@@ -540,7 +528,7 @@ class PaperSerializer(CustomModelSerializer):
     def to_representation(self, instance):
         data = super().to_representation(instance)
         if self.context.get('view').action == 'list': # MEH: brief view for list
-            for field in ['size', 'sheet_paper', 'color_print_price', 'baw_print_price', 'cutting_price', 'folding_price']:
+            for field in ['color_print_price', 'baw_print_price', 'cutting_price', 'folding_price']:
                 data.pop(field, None)
         return data
 
@@ -549,25 +537,9 @@ class FoldingSerializer(CustomModelSerializer):
     """
     MEH: Main Product Folding (Paper) full Information
     """
-    icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='svg'), required=False, allow_null=True)
-    icon_url = serializers.StringRelatedField(source='icon')
-
     class Meta:
         model = Folding
         fields = '__all__'
-
-    def get_icon_url(self, obj):
-        request = self.context.get('request')
-        if obj.icon and obj.icon.file:
-            url = obj.icon.file.url
-            return request.build_absolute_uri(url) if request else url
-        return None
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        if self.context.get('view').action == 'list':  # MEH: brief view for list
-            data.pop('description', None)
-        return data
 
 
 class GalleryDropDownSerializer(CustomModelSerializer):

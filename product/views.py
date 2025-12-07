@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActivateSerializer, \
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
-    Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Page, Folding, \
+    Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Folding, \
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
     PriceListCategory, PriceListTable
 from .services.category_clone import clone_category_tree
@@ -17,7 +17,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
                           ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer,
                           SolidProductSerializer, DigitalProductSerializer, \
                           SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
-                          BannerSerializer, ColorSerializer, FoldingSerializer, PageSerializer, \
+                          BannerSerializer, ColorSerializer, FoldingSerializer, \
                           FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer,
                           FileFieldDropDownSerializer, \
                           DesignSerializer, ProductDesignSerializer, DesignBriefSerializer, DesignDropDownSerializer, \
@@ -203,6 +203,9 @@ class ProductViewSet(CustomMixinModelViewSet):
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
+    def create(self, request, *args, **kwargs): # MEH: override -> to set id in response
+        return self.custom_create(request, response_data_back=True, **kwargs)
+
     @extend_schema(summary="Page 2 of Product Edit (Offset)")
     @action(detail=True, methods=['get', 'put', 'patch'], serializer_class=OffsetProductSerializer,
             url_path='offset', filter_backends=[None])
@@ -212,7 +215,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         Page 2 of Product Edit (Offset)
         """
         try:
-            offset_product = OffsetProduct.objects.prefetch_related('size_list', 'tirage_list', 'page_list',
+            offset_product = OffsetProduct.objects.prefetch_related('size_list', 'tirage_list',
                                                                     'folding_list', 'duration_list').get(product_info__pk=pk)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
@@ -570,9 +573,8 @@ class DesignViewSet(CustomMixinModelViewSet):
         filters.SearchFilter,
         filters.OrderingFilter
     ]
-    search_fields = ['title', 'category__title']
+    search_fields = ['title']
     ordering_fields = ['sort_number', 'title']
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['design_manager'],
@@ -643,15 +645,6 @@ class SizeViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class PageViewSet(TirageViewSet):
-    """
-    MEH: Page Model viewset
-    """
-    queryset = Page.objects.all()
-    serializer_class = PageSerializer
-
-
-@extend_schema(tags=['Product-Fields'])
 class DurationViewSet(TirageViewSet):
     """
     MEH: Duration Model viewset
@@ -708,7 +701,7 @@ class SheetPaperViewSet(TirageViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['material', 'display_name']
-    ordering_fields = ['inventory']
+    ordering_fields = ['inventory', 'display_name', 'purchase_price']
     required_api_keys = {
         '__all__': ['field_manager']
     }
@@ -741,7 +734,7 @@ class FoldingViewSet(TirageViewSet):
         filters.OrderingFilter
     ]
     search_fields = ['title']
-    ordering_fields = ['folding_number', 'title']
+    ordering_fields = ['folding_number', 'title', 'sort_number']
 
 
 @extend_schema(tags=['Option'])
