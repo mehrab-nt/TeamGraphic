@@ -185,8 +185,6 @@ class Product(models.Model):
                                     related_name='design_for_products')
     files = models.ManyToManyField('ProductFileField', blank=True,
                                    related_name='file_for_products')
-    check_file = models.BooleanField(default=False,
-                                     blank=False, null=False, verbose_name='Check File')
     options = models.ManyToManyField(
         'Option',
         through='ProductOption',
@@ -240,10 +238,16 @@ class OffsetProduct(models.Model):
     min_max_size = models.JSONField(default=dict,
                                     blank=True, null=True, verbose_name='Min & Max Size')
     size_list = models.ManyToManyField('Size', blank=False)
+    check_file_size = models.BooleanField(default=False,
+                                          blank=False, null=False, verbose_name='Check File Size')
+    lat = models.BooleanField(default=False,
+                              blank=False, null=False)
+    lat_size = models.ForeignKey('Size', on_delete=models.SET_NULL,
+                                 related_name='lat_size',
+                                 blank=True, null=True, verbose_name='Lat Size')
     tirage_list = models.ManyToManyField('Tirage', blank=False)
-    min_page = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Min Page')
-    max_page = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Max Page')
-    page_multiply = models.PositiveSmallIntegerField(blank=True, null=True, verbose_name='Page Multiply')
+    page = models.JSONField(default=dict,
+                            blank=True, null=True, verbose_name='page') # min / max / multiply
     duration_list = models.ManyToManyField('Duration', blank=False)
     folding_list = models.ManyToManyField('Folding', blank=True)
     manual_price = models.JSONField(default=dict,
@@ -263,8 +267,6 @@ class Size(models.Model):
                               blank=False, null=False)
     base_cutting_edge = models.FloatField(default=0,
                                           blank=False, null=False, verbose_name='Base Cutting Edge')
-    lat = models.BooleanField(default=False,
-                              blank=False, null=False)
     rounded = models.BooleanField(default=False,
                                   blank=False, null=False)
 

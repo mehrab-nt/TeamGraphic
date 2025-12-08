@@ -148,7 +148,7 @@ class ProductInfoSerializer(CustomModelSerializer):
     title = serializers.CharField(required=True, min_length=3, max_length=78)
     parent_category = serializers.PrimaryKeyRelatedField(queryset=ProductCategory.objects.all(), required=False, allow_null=True)
     parent_category_display = serializers.StringRelatedField(source='parent_category')
-    template = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.filter(type__in=['zip', 'rar', 'pdf', 'psd', 'cdr']), required=False, allow_null=True)
+    template = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.filter(type__in=['zip', 'rar', 'pdf', 'psd', 'cdr', 'jpg', 'jpeg']), required=False, allow_null=True)
     template_url = serializers.SerializerMethodField()
     image = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.filter(type='webp', seo_base=True), required=False, allow_null=True)
     image_url = serializers.SerializerMethodField()
@@ -198,6 +198,7 @@ class OffsetProductSerializer(CustomModelSerializer):
     """
     size_method_display = serializers.SerializerMethodField()
     size_list_display = serializers.StringRelatedField(source='size_list', many=True, read_only=True)
+    lat_size_display = serializers.StringRelatedField(source='lat_size', many=False, read_only=True)
     tirage_list_display = serializers.StringRelatedField(source='tirage_list', many=True, read_only=True)
     folding_list_display = serializers.StringRelatedField(source='folding_list', many=True, read_only=True)
     duration_list_display = serializers.StringRelatedField(source='duration_list', many=True, read_only=True)
