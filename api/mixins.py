@@ -244,7 +244,7 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data, many=is_many)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def custom_create(self, request, many=False, response_data_back=None, **kwargs):
+    def custom_create(self, request, many=False, response_data_back=None, full_data=None, **kwargs):
         """
         MEH: Handle single or list obj create & handle Exception response,
         send manual field data that not in the request with **kwargs
@@ -265,6 +265,8 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         if response_data_back: # MEH: If wanting data in response
+            if full_data:
+                return Response(created_data, status=status.HTTP_202_ACCEPTED)
             return Response({"detail": TG_DATA_CREATED, "id": created_data.id}, status=status.HTTP_202_ACCEPTED)
         return Response({"detail": TG_DATA_CREATED}, status=status.HTTP_201_CREATED)
 

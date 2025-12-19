@@ -165,7 +165,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: User Sign Up (POST ACTION) Only Employee with access have permission
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Sign Up request code")
     @action(detail=False, methods=['post'],
@@ -175,7 +175,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: User request Sign Up (POST ACTION) and get code via SMS Only User that not authenticated have permission
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Request resend code")
     @action(
@@ -187,7 +187,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         MEH: Re-send the last verification code
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Sign Up verify code")
     @action(detail=False, methods=['post'],
@@ -198,7 +198,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: User Sign Up (POST ACTION) to verify SMS code
         Only User that not authenticated have permission
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Sign In with password")
     @action(detail=False, methods=['post'],
@@ -209,7 +209,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: User Sign In with password (POST ACTION) and get `access_token` & `refresh_token`
         Only User that not authenticated have permission
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Sign In request code")
     @action(detail=False, methods=['post'],
@@ -220,7 +220,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: User request Sign In (POST ACTION) and get SMS code
         Only User that not authenticated have permission.
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(tags=['Auth'], summary="Sign In verify code")
     @action(detail=False, methods=['post'],
@@ -231,7 +231,7 @@ class UserViewSet(CustomMixinModelViewSet):
         MEH: User Sign In with code (POST ACTION) to verify SMS code and get `access_token` & `refresh_token`
         Only User that not authenticated have permission
         """
-        return self.custom_create(request, response_data_back=True)
+        return self.custom_create(request, response_data_back=True, full_data=True)
 
     @extend_schema(
         tags=['Auth'],
@@ -262,7 +262,7 @@ class UserViewSet(CustomMixinModelViewSet):
         """
         user = self.get_object(pk=pk)
         self.check_object_permissions(request, user)
-        return self.custom_update(user, request, response_data_back=True)
+        return self.custom_update(user, request, response_data_back=True, full_data=True)
 
     @extend_schema(summary="Get User by phone number")
     @action(detail=False, methods=['get'],
