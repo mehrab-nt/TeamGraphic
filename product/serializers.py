@@ -156,7 +156,7 @@ class ProductInfoSerializer(CustomModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display', 'category_description',
-                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'is_private', 'accounting_id']
+                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'status_lock', 'is_private', 'accounting_id']
 
     def get_image_url(self, obj):
         request = self.context.get('request')

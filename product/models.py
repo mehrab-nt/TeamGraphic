@@ -6,6 +6,7 @@ from file_manager.models import FileItem
 from file_manager.images import *
 from django.core.exceptions import ValidationError
 from api.responses import TG_PREVENT_CIRCULAR_CATEGORY
+from django.db.models import Q
 
 
 class ProductStatus(models.TextChoices):
@@ -56,6 +57,8 @@ class ProductCategory(MPTTModel):
     status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
+    status_lock = models.BooleanField(default=False,
+                                      blank=False, null=False, verbose_name='Status Lock')
     accounting_id = models.PositiveBigIntegerField(default=0,
                                                    blank=True, null=True, verbose_name='Accounting ID')
     fast_order = models.BooleanField(default=True,
@@ -109,11 +112,27 @@ class ProductCategory(MPTTModel):
             if self.pk and self.parent_category.is_descendant_of(self):
                 raise ValidationError("You cannot assign a descendant as the parent category.")
 
-    def update_all_subcategories_and_items(self): # MEH: Call when update status of a category
+    def update_all_subcategories_and_items(self):
         new_status = self.status
         descendants = self.get_descendants()
-        descendants.update(status=new_status)
-        Product.objects.filter(parent_category__in=[self] + list(descendants)).update(status=new_status)
+        locked = descendants.filter(status_lock=True)
+        blocked_ids = set()
+        for node in locked:
+            blocked_ids.update(
+                node.get_descendants(include_self=True)
+                .values_list('id', flat=True)
+            )
+        allowed_ids = (
+            descendants
+            .exclude(id__in=blocked_ids)
+            .values_list('id', flat=True)
+        )
+        allowed_ids = list(allowed_ids) + [self.id]
+        self.__class__.objects.filter(id__in=allowed_ids).update(status=new_status)
+        Product.objects.filter(
+            parent_category_id__in=allowed_ids,
+            status_lock=False
+        ).update(status=new_status)
 
     def get_slug_path(self):
         return ' - '.join(
@@ -173,6 +192,8 @@ class Product(models.Model):
     status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
+    status_lock = models.BooleanField(default=False,
+                                      blank=False, null=False, verbose_name='Status Lock')
     is_private = models.BooleanField(default=False,
                                      blank=False, null=False, verbose_name='Is Private')
     accounting_id = models.PositiveBigIntegerField(default=0,
@@ -185,6 +206,8 @@ class Product(models.Model):
                                     related_name='design_for_products')
     files = models.ManyToManyField('ProductFileField', blank=True,
                                    related_name='file_for_products')
+    check_file = models.BooleanField(default=False,
+                                     blank=False, null=False, verbose_name='Check File')
     options = models.ManyToManyField(
         'Option',
         through='ProductOption',
@@ -237,9 +260,8 @@ class OffsetProduct(models.Model):
                                    choices=SizeMethod.choices, default=SizeMethod.FIXED_ONE)
     min_max_size = models.JSONField(default=dict,
                                     blank=True, null=True, verbose_name='Min & Max Size')
-    size_list = models.ManyToManyField('Size', blank=False)
-    check_file_size = models.BooleanField(default=False,
-                                          blank=False, null=False, verbose_name='Check File Size')
+    size_list = models.ManyToManyField('Size',
+                                       blank=True, verbose_name='Size List')
     lat = models.BooleanField(default=False,
                               blank=False, null=False)
     lat_size = models.ForeignKey('Size', on_delete=models.SET_NULL,
