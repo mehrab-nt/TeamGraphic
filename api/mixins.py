@@ -454,6 +454,10 @@ class CustomMixinModelViewSet(viewsets.ModelViewSet):
                 filter_instance = backend()
                 categories = filter_instance.filter_queryset(request, categories, self)
                 items = filter_instance.filter_queryset(request, items, self)
+        type_param = request.query_params.get('type')
+        if type_param:
+            types = type_param.split(',')
+            items = items.filter(type__in=types)
         cat_data = category_serializer(categories, many=True, context={'request': request}).data
         item_data = item_serializer(items, many=True, context={'request': request}).data
         if paginate:
