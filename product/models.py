@@ -140,11 +140,6 @@ class ProductCategory(MPTTModel):
         )
 
 
-class TemplateCheck(models.TextChoices):
-    DONT = 'DON', 'نشود'
-    AUTO = 'AUT', 'خودکار'
-    MANUAL = 'MAN', 'فایل انتخابی'
-
 class ProductType(models.TextChoices):
     OFFSET = 'OFF', 'افست'
     LARGE_FORMAT = 'LAR', 'لارج فرمت'
@@ -180,9 +175,6 @@ class Product(models.Model):
     template = models.ForeignKey(FileItem, on_delete=models.SET_NULL,
                                  blank=True, null=True,
                                  related_name='template_for_products')
-    template_check = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                                      choices=TemplateCheck.choices, default=TemplateCheck.DONT,
-                                      blank=False, null=False)
     gallery = models.ForeignKey('GalleryCategory', on_delete=models.SET_NULL,
                                 blank=True, null=True,
                                 related_name='gallery_for_products')
@@ -208,6 +200,8 @@ class Product(models.Model):
                                    related_name='file_for_products')
     check_file = models.BooleanField(default=False,
                                      blank=False, null=False, verbose_name='Check File')
+    show_cutting_edge = models.BooleanField(default=False,
+                                            blank=False, null=False, verbose_name='Show Cutting Edge')
     options = models.ManyToManyField(
         'Option',
         through='ProductOption',
@@ -254,8 +248,8 @@ class OffsetProduct(models.Model):
                                         related_name='offset_info')
     one_face = models.BooleanField(default=True,
                                    blank=False, null=False, verbose_name='One Face')
-    tow_face = models.BooleanField(default=True,
-                                   blank=False, null=False, verbose_name='Tow Face')
+    two_face = models.BooleanField(default=True,
+                                   blank=False, null=False, verbose_name='Two Face')
     size_method = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                    choices=SizeMethod.choices, default=SizeMethod.FIXED_ONE)
     min_max_size = models.JSONField(default=dict,
@@ -267,7 +261,8 @@ class OffsetProduct(models.Model):
     lat_size = models.ForeignKey('Size', on_delete=models.SET_NULL,
                                  related_name='lat_size',
                                  blank=True, null=True, verbose_name='Lat Size')
-    tirage_list = models.ManyToManyField('Tirage', blank=False)
+    tirage_list = models.JSONField(default=dict,
+                                   blank=False, null=False, verbose_name='Tirage List') # items: number[]
     page = models.JSONField(default=dict,
                             blank=True, null=True, verbose_name='page') # min / max / multiply
     duration_list = models.ManyToManyField('Duration', blank=False)
@@ -305,18 +300,6 @@ class Size(models.Model):
         paper_list = self.paper_list.all()
         for paper in paper_list:
             paper.save()
-
-
-class Tirage(models.Model):
-    amount = models.PositiveIntegerField(unique=True, blank=False, null=False)
-
-    class Meta:
-        ordering = ['amount']
-        verbose_name = "Tirage"
-        verbose_name_plural = "Tirages"
-
-    def __str__(self):
-        return f'Tirage #{self.amount}'
 
 
 class Duration(models.Model):

@@ -1,6 +1,6 @@
 from rest_framework.routers import DefaultRouter
 from .views import ProductViewSet, ProductCategoryViewSet, GalleryCategoryViewSet, GalleryImageViewSet, \
-    DesignViewSet, FileFieldViewSet, SizeViewSet, TirageViewSet, DurationViewSet, \
+    DesignViewSet, FileFieldViewSet, SizeViewSet, DurationViewSet, \
     SheetPaperViewSet, PaperViewSet, ColorViewSet, FoldingViewSet, BannerViewSet, \
     OptionCategoryViewSet, OptionViewSet, PriceListCategoryViewSet, PriceListTableViewSet
 
@@ -14,7 +14,6 @@ router.register(r'option/category', OptionCategoryViewSet, basename='option-cate
 router.register(r'option/item', OptionViewSet, basename='option-item')
 router.register(r'product/file-field', FileFieldViewSet, basename='product-file-field')
 router.register(r'product/size', SizeViewSet, basename='product-size')
-router.register(r'product/tirage', TirageViewSet, basename='product-tirage')
 router.register(r'product/duration', DurationViewSet, basename='product-duration')
 router.register(r'product/banner', BannerViewSet, basename='product-banner')
 router.register(r'product/color', ColorViewSet, basename='product-color')

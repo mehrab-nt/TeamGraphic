@@ -4,7 +4,7 @@ from file_manager.models import FileItem
 from landing.models import Landing
 from .models import Product, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, ProductCategory, \
     ProductStatus, CountingUnit, RoundPriceType, GalleryCategory, GalleryImage, ProductFileField, Design, \
-    Size, Tirage, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, \
+    Size, Duration, SheetPaper, Paper, Banner, Color, Folding, OptionCategory, Option, ProductOption, \
     PriceListCategory, PriceListTable
 from api.responses import *
 from api.mixins import CustomModelSerializer, CustomChoiceField
@@ -156,7 +156,7 @@ class ProductInfoSerializer(CustomModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display', 'category_description',
-                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'status_lock', 'is_private', 'accounting_id']
+                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'status_lock', 'is_private', 'accounting_id', 'accept_copies', 'min_copies']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -197,11 +197,10 @@ class OffsetProductSerializer(CustomModelSerializer):
     MEH: Page 2 of Product Edit (if Offset)
     """
     size_method_display = serializers.SerializerMethodField()
-    size_list_display = serializers.StringRelatedField(source='size_list', many=True, read_only=True)
+    size_list_display = serializers.SerializerMethodField()
     lat_size_display = serializers.StringRelatedField(source='lat_size', many=False, read_only=True)
-    tirage_list_display = serializers.StringRelatedField(source='tirage_list', many=True, read_only=True)
-    folding_list_display = serializers.StringRelatedField(source='folding_list', many=True, read_only=True)
-    duration_list_display = serializers.StringRelatedField(source='duration_list', many=True, read_only=True)
+    duration_list_display = serializers.SerializerMethodField()
+    folding_list_display = serializers.SerializerMethodField()
 
     class Meta:
         model = OffsetProduct
@@ -211,6 +210,18 @@ class OffsetProductSerializer(CustomModelSerializer):
     @staticmethod
     def get_size_method_display(obj):
         return obj.get_size_method_display()
+
+    @staticmethod
+    def get_size_list_display(obj):
+        return [{'id': size.id, 'title': size.display_name} for size in obj.size_list.all()]
+
+    @staticmethod
+    def get_duration_list_display(obj):
+        return [{'id': duration.id, 'title': duration.title} for duration in obj.duration_list.all()]
+
+    @staticmethod
+    def get_folding_list_display(obj):
+        return [{'id': folding.id, 'title': folding.title} for folding in obj.folding_list.all()]
 
 
 class LargeFormatProductSerializer(CustomModelSerializer):
@@ -379,7 +390,7 @@ class ProductFileSerializer(CustomModelSerializer):
 
     class Meta:
         model = Product
-        fields = ['id', 'check_file', 'files', 'files_info']
+        fields = ['id', 'check_file', 'show_cutting_edge', 'files', 'files_info']
 
 
 class ProductOptionSerializer(CustomModelSerializer):
@@ -458,15 +469,6 @@ class SizeSerializer(CustomModelSerializer):
     """
     class Meta:
         model = Size
-        fields = '__all__'
-
-
-class TirageSerializer(CustomModelSerializer):
-    """
-    MEH: Main Product Field (Tirage) full Information
-    """
-    class Meta:
-        model = Tirage
         fields = '__all__'
 
 

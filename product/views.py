@@ -7,7 +7,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActivateSerializer, \
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
-    Size, SheetPaper, Paper, Tirage, Duration, Banner, Color, Folding, \
+    Size, SheetPaper, Paper, Duration, Banner, Color, Folding, \
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
     PriceListCategory, PriceListTable
 from .services.category_clone import clone_category_tree
@@ -16,7 +16,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
                           GalleryImageBriefSerializer, GalleryDropDownSerializer, ProductGallerySerializer, \
                           ProductInfoSerializer, OffsetProductSerializer, LargeFormatProductSerializer,
                           SolidProductSerializer, DigitalProductSerializer, \
-                          SizeSerializer, SheetPaperSerializer, PaperSerializer, TirageSerializer, DurationSerializer, \
+                          SizeSerializer, SheetPaperSerializer, PaperSerializer, DurationSerializer, \
                           BannerSerializer, ColorSerializer, FoldingSerializer, \
                           FileFieldSerializer, ProductFileSerializer, FileFieldBriefSerializer,
                           FileFieldDropDownSerializer, \
@@ -215,8 +215,7 @@ class ProductViewSet(CustomMixinModelViewSet):
         Page 2 of Product Edit (Offset)
         """
         try:
-            offset_product = OffsetProduct.objects.prefetch_related('size_list', 'tirage_list',
-                                                                    'folding_list', 'duration_list').get(product_info__pk=pk)
+            offset_product = OffsetProduct.objects.prefetch_related('size_list', 'folding_list', 'duration_list').get(product_info__pk=pk)
         except ObjectDoesNotExist:
             raise NotFound(TG_DATA_NOT_FOUND)
         if request.method in ['PUT', 'PATCH']:
@@ -616,13 +615,19 @@ class DesignViewSet(CustomMixinModelViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class TirageViewSet(CustomMixinModelViewSet):
+class SizeViewSet(CustomMixinModelViewSet):
     """
-    MEH: Tirage Model viewset
+    MEH: Size Model viewset
     """
-    queryset = Tirage.objects.all()
-    serializer_class = TirageSerializer
+    queryset = Size.objects.all()
+    serializer_class = SizeSerializer
     permission_classes = [ApiAccess]
+    filter_backends = [
+        filters.SearchFilter,
+        filters.OrderingFilter
+    ]
+    search_fields = ['name', 'display_name']
+    ordering_fields = ['display_name']
     required_api_keys = {
         '__all__': ['field_manager'],
         'list': ['product_manager', 'create_product', 'field_manager']
@@ -630,22 +635,7 @@ class TirageViewSet(CustomMixinModelViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class SizeViewSet(TirageViewSet):
-    """
-    MEH: Size Model viewset
-    """
-    queryset = Size.objects.all()
-    serializer_class = SizeSerializer
-    filter_backends = [
-        filters.SearchFilter,
-        filters.OrderingFilter
-    ]
-    search_fields = ['name', 'display_name']
-    ordering_fields = ['display_name']
-
-
-@extend_schema(tags=['Product-Fields'])
-class DurationViewSet(TirageViewSet):
+class DurationViewSet(SizeViewSet):
     """
     MEH: Duration Model viewset
     """
@@ -660,7 +650,7 @@ class DurationViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class BannerViewSet(TirageViewSet):
+class BannerViewSet(SizeViewSet):
     """
     MEH: Banner Model viewset
     """
@@ -675,7 +665,7 @@ class BannerViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class ColorViewSet(TirageViewSet):
+class ColorViewSet(SizeViewSet):
     """
     MEH: Color Model viewset
     """
@@ -690,7 +680,7 @@ class ColorViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class SheetPaperViewSet(TirageViewSet):
+class SheetPaperViewSet(SizeViewSet):
     """
     MEH: Sheet Paper Model viewset
     """
@@ -708,7 +698,7 @@ class SheetPaperViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class PaperViewSet(TirageViewSet):
+class PaperViewSet(SizeViewSet):
     """
     MEH: Paper Model viewset
     """
@@ -723,7 +713,7 @@ class PaperViewSet(TirageViewSet):
 
 
 @extend_schema(tags=['Product-Fields'])
-class FoldingViewSet(TirageViewSet):
+class FoldingViewSet(SizeViewSet):
     """
     MEH: Folding Model viewset
     """
