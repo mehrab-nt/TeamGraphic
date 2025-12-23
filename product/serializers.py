@@ -11,6 +11,15 @@ from api.mixins import CustomModelSerializer, CustomChoiceField
 import json
 
 
+class ProductCategoryListSerializer(CustomModelSerializer):
+    """
+    MEH: Product Category Brief Information for drop down list
+    """
+    class Meta:
+        model = ProductCategory
+        fields = ['id', 'title']
+
+
 class ProductCategoryBriefSerializer(CustomModelSerializer):
     """
     MEH: Product Category Brief Information for product_explorer
@@ -156,7 +165,9 @@ class ProductInfoSerializer(CustomModelSerializer):
     class Meta:
         model = Product
         fields = ['id', 'title', 'description', 'sort_number', 'type', 'parent_category', 'parent_category_display', 'category_description',
-                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'status_lock', 'is_private', 'accounting_id', 'accept_copies', 'min_copies']
+                  'template', 'template_url', 'image', 'image_url', 'alt', 'status', 'status_lock', 'is_private', 'accounting_id', 'accept_copies', 'min_copies',
+                  'total_order', 'last_order', 'total_main_sale', 'total_option_sale']
+        read_only_fields = ['total_order', 'last_order', 'total_main_sale', 'total_option_sale']
 
     def get_image_url(self, obj):
         request = self.context.get('request')
@@ -274,12 +285,11 @@ class ProductGallerySerializer(CustomModelSerializer):
     """
     gallery = serializers.PrimaryKeyRelatedField(queryset=GalleryCategory.objects.all(),
                                                  required=False, allow_null=True)
-    gallery_title = serializers.StringRelatedField(read_only=True, source='gallery')
     gallery_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ['id', 'gallery', 'gallery_title', 'gallery_type', 'gallery_type_display']
+        fields = ['id', 'gallery', 'gallery_type', 'gallery_type_display', 'gallery_multiple',]
 
     @staticmethod
     def get_gallery_type_display(obj):
