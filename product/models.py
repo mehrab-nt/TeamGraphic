@@ -181,6 +181,8 @@ class Product(models.Model):
     gallery_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                     choices=GalleryType.choices,
                                     blank=True, null=True)
+    gallery_multiple = models.BooleanField(default=False,
+                                           blank=False, null=False, verbose_name='Gallery Multiple')
     status = models.CharField(max_length=2, validators=[validators.MinLengthValidator(2)],
                               choices=ProductStatus.choices, default=ProductStatus.ACTIVE,
                               blank=False, null=False)
