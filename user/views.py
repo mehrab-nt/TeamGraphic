@@ -85,6 +85,7 @@ class UserViewSet(CustomMixinModelViewSet):
         'manually_verify_phone': ['verify_phone'],
         'web_message_list': ['message_manager'],
         'deposit_list': ['deposit_list'],
+        'choice_list': ['allow_any']
     }
 
     def get_queryset(self, *args, **kwargs):

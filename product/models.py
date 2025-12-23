@@ -274,9 +274,9 @@ class OffsetProduct(models.Model):
 
 
 class Size(models.Model):
-    name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
+    name = models.CharField(max_length=30, unique=True, validators=[validators.MinLengthValidator(2)],
                             blank=False, null=False)
-    display_name = models.CharField(max_length=23, unique=True, validators=[validators.MinLengthValidator(2)],
+    display_name = models.CharField(max_length=30, unique=True, validators=[validators.MinLengthValidator(2)],
                             blank=False, null=False, verbose_name='Display Name')
     description = models.TextField(max_length=78,
                                    blank=True, null=True)

@@ -26,7 +26,8 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
                           OptionCategorySelectListSerializer, OptionProductListSerializer, \
                           ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
                           PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer,
-                          PriceListTableBriefSerializer, ProductCategoryTreeSerializer, GalleryCategoryTreeSerializer)
+                          PriceListTableBriefSerializer, ProductCategoryTreeSerializer, GalleryCategoryTreeSerializer,
+                          ProductCategoryListSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -64,8 +65,9 @@ class ProductCategoryViewSet(CustomMixinModelViewSet):
             return qs
         return qs.select_related('gallery', 'image', 'landing')
 
-    @extend_schema(exclude=True) # MEH: Hidden list from Api Documentation (only Admin work)
+    @extend_schema() # MEH: Hidden list from Api Documentation (only Admin work)
     def list(self, request, *args, **kwargs):
+        self.serializer_class = ProductCategoryListSerializer
         return super().list(request, *args, **kwargs)
 
     @action(detail=False, methods=['get'], pagination_class=None,
