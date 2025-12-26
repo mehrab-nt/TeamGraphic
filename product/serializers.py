@@ -710,25 +710,38 @@ class OptionCategoryBriefSerializer(CustomModelSerializer):
     MEH: Option Category Brief Information for option_explorer
     """
     type = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_category = serializers.SerializerMethodField()
 
     class Meta:
         model = OptionCategory
-        fields = ['id', 'title', 'is_active', 'sort_number', 'type', 'icon']
+        fields = ['id', 'title', 'is_active', 'sort_number', 'type', 'icon', 'has_children', 'parent_category']
 
     @staticmethod
     def get_type(obj):
         return 'dir'
 
+    @staticmethod
+    def get_has_children(obj):
+        return obj.sub_categories.exists()
+
+    @staticmethod
+    def get_parent_category(obj):
+        if obj.parent_category:
+            return obj.parent_category.title
+        else:
+            return None
+
 
 class OptionBriefSerializer(CustomModelSerializer):
     """
-    MEH: Option Brief Information for option_explorer
+    MEH: Option Information for option_explorer
     """
     type = serializers.SerializerMethodField()
 
     class Meta:
         model = Option
-        fields = ['id', 'title', 'is_active', 'sort_number', 'type']
+        fields = ['id', 'title', 'base_amount', 'is_active', 'sort_number', 'type']
 
     @staticmethod
     def get_type(obj):
@@ -740,12 +753,18 @@ class OptionCategorySerializer(CustomModelSerializer):
     MEH: Option Category Full Information
     """
     parent_category = serializers.PrimaryKeyRelatedField(queryset=OptionCategory.objects.all(), required=False, allow_null=True)
-    icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all().filter(type='svg'), required=False, allow_null=True)
+    icon = serializers.PrimaryKeyRelatedField(queryset=FileItem.objects.all(), required=False, allow_null=True)
     icon_url = serializers.SerializerMethodField()
+    type = serializers.SerializerMethodField()
+    input_type_display = serializers.SerializerMethodField()
 
     class Meta:
         model = OptionCategory
         fields = '__all__'
+
+    @staticmethod
+    def get_type(obj):
+        return 'dir'
 
     def get_icon_url(self, obj):
         request = self.context.get('request')
@@ -753,6 +772,10 @@ class OptionCategorySerializer(CustomModelSerializer):
             url = obj.icon.file.url
             return request.build_absolute_uri(url) if request else url
         return None
+
+    @staticmethod
+    def get_input_type_display(obj):
+        return obj.get_input_type_display()
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -786,6 +809,29 @@ class OptionSelectListSerializer(CustomModelSerializer):
     class Meta:
         model = Option
         fields = ['id', 'title', 'is_numberize', 'base_amount', 'price_type']
+
+
+class OptionCategoryTreeSerializer(CustomModelSerializer):
+    children = serializers.SerializerMethodField()
+    has_children = serializers.SerializerMethodField()
+    parent_path = serializers.SerializerMethodField()
+
+    class Meta:
+        model = OptionCategory
+        fields = ['id', 'title', 'children', 'parent_path', 'has_children', 'parent_category']
+
+    @staticmethod
+    def get_children(obj):
+        children = obj.get_children()
+        return OptionCategoryTreeSerializer(children, many=True).data
+
+    @staticmethod
+    def get_has_children(obj):
+        return obj.get_children().exists()
+
+    @staticmethod
+    def get_parent_path(obj):
+        return obj.get_slug_path()
 
 
 class OptionCategorySelectListSerializer(CustomModelSerializer):

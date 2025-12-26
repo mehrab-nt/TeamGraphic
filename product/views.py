@@ -6,6 +6,7 @@ from rest_framework.decorators import action
 from django_filters.rest_framework import DjangoFilterBackend
 from api.serializers import CombineBulkDeleteSerializer, CombineBulkUpdateActivateSerializer, \
     CombineBulkUpdateProductStatusSerializer, CopyWithIdSerializer
+from .filters import OptionFilter
 from .models import ProductCategory, Product, GalleryCategory, GalleryImage, ProductFileField, \
     Size, SheetPaper, Paper, Duration, Banner, Color, Folding, \
     Design, OffsetProduct, LargeFormatProduct, SolidProduct, DigitalProduct, Option, OptionCategory, ProductOption, \
@@ -27,7 +28,7 @@ from .serializers import (ProductCategorySerializer, ProductCategoryBriefSeriali
                           ProductManualPriceSerializer, ProductFormulaPriceSerializer, ProductInCategorySerializer, \
                           PriceListCategorySerializer, PriceListTableSerializer, PriceListCategoryBriefSerializer,
                           PriceListTableBriefSerializer, ProductCategoryTreeSerializer, GalleryCategoryTreeSerializer,
-                          ProductCategoryListSerializer)
+                          ProductCategoryListSerializer, OptionCategoryTreeSerializer)
 from drf_spectacular.utils import extend_schema, OpenApiResponse, OpenApiParameter
 from api.responses import *
 from api.mixins import CustomMixinModelViewSet
@@ -736,18 +737,25 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
     """
     queryset = OptionCategory.objects.all().order_by('sort_number')
     serializer_class = OptionCategorySerializer
+    filterset_class = OptionFilter
     filter_backends = [
+        DjangoFilterBackend,
         filters.SearchFilter,
-        filters.OrderingFilter
     ]
     search_fields = ['title']
-    pagination_class = None
     permission_classes = [ApiAccess]
     required_api_keys = {
         '__all__': ['option_manager'],
         'create': ['create_option'],
         **dict.fromkeys(['bulk_delete', 'destroy'], ['delete_option'])
     }
+
+    @action(detail=False, methods=['get'], pagination_class=None,
+            serializer_class=OptionCategoryTreeSerializer)
+    def tree(self, request):
+        # Get only root categories
+        roots = OptionCategory.objects.root_nodes()
+        return self.custom_get(roots)
 
     @extend_schema(
         summary='Tree list of Both Categories & Images',
@@ -761,14 +769,16 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         ],
     )
     @action(detail=False, methods=['get'],
-            url_path='explorer', filter_backends=[None])
+            url_path='explorer')
     def option_explore_view(self, request):
         """
         MEH: Return mixed list of Option Category `type='dir'` and Option Item `type='opt'`
         for parent_id = x or root level parent_id = None
         """
         return self.get_explorer_list(request=request, category_model=OptionCategory, item_model=Option,
-                                      category_serializer=OptionCategoryBriefSerializer, item_serializer=OptionBriefSerializer)
+                                      category_serializer=OptionCategoryBriefSerializer,
+                                      item_serializer=OptionBriefSerializer,
+                                      filter_backends=self.filter_backends ,paginate=True)
 
     @extend_schema(
         summary='Delete list of Categories & Options',
@@ -814,6 +824,15 @@ class OptionCategoryViewSet(CustomMixinModelViewSet):
         """
         root_category_list = self.get_queryset().filter(parent_category__isnull=True).prefetch_related('sub_categories', 'option_list')
         return self.custom_get(root_category_list)
+
+    @action(detail=True, methods=['get'], serializer_class=OptionBriefSerializer,
+            url_path='option-list', filter_backends=[None], pagination_class=None)
+    def product_option_select(self, request, pk=None):
+        """
+        MEH: Children option for Option Category Brief List info
+        """
+        option_list = Option.objects.select_related('parent_category').filter(parent_category__pk=pk).order_by('sort_number')
+        return self.custom_get(option_list)
 
 
 @extend_schema(tags=['Option'])
@@ -894,7 +913,7 @@ class PriceListCategoryViewSet(CustomMixinModelViewSet):
         ],
     )
     @action(detail=False, methods=['get'],
-            url_path='explorer', filter_backends=[None])
+            url_path='explorer')
     def table_explore_view(self, request):
         """
         MEH: Return mixed list of Price List Category `type='dir'` and Option Item `type='OFF/LAR/...'`

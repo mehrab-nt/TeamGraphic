@@ -649,6 +649,12 @@ class Design(models.Model):
         super().save(*args, **kwargs)
 
 
+class OptionType(models.TextChoices):
+    FIELD = 'FLD', 'فیلد'
+    SERVICE = 'SRV', 'خدمات پس از چاپ'
+    FIXED = 'FIX', 'خدمات ثابت'
+
+
 class OptionInputType(models.TextChoices):
     CHECKBOX = 'CHE', 'چک باکس'
     RADIOBUTTON = 'RAD', 'رادیو'
@@ -665,9 +671,9 @@ class OptionCategory(MPTTModel):
                              blank=False, null=False)
     description = models.TextField(max_length=236,
                                    blank=True, null=True)
-    product_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
-                                    choices=ProductType.choices, default=None,
-                                    blank=True, null=True)
+    option_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
+                                   choices=OptionType.choices, default=OptionType.FIELD,
+                                   blank=False, null=False)
     input_type = models.CharField(max_length=3, validators=[validators.MinLengthValidator(3)],
                                   choices=OptionInputType.choices,
                                   blank=False, null=False, verbose_name='Input Type')
@@ -681,14 +687,12 @@ class OptionCategory(MPTTModel):
                                     blank=False, null=False)
     is_active = models.BooleanField(default=True,
                                     blank=False, null=False, verbose_name='Is Active')
-    in_formula = models.BooleanField(default=False,
-                                     blank=False, null=False, verbose_name='In Formula')
     keyword = models.CharField(max_length=23, unique=True,
                                blank=False, null=False)
-    after_print = models.BooleanField(default=False,
-                                      blank=False, null=False, verbose_name='After Print')
     sort_number = models.SmallIntegerField(default=0,
                                            blank=False, null=False, verbose_name='Sort Number')
+    hidden_price = models.BooleanField(default=False,
+                                       blank=False, null=False, verbose_name='Hidden Price')
 
     class Meta:
         ordering = ['sort_number']
